@@ -1,0 +1,13 @@
+{
+  "user1 pretty name": {
+    "login": "user1 login",
+    "password": "******"
+  },
+  "user2 pretty name": {
+    "login": "user2 login",
+    "password": "******"
+  },
+  "user3 pretty name": {
+    "sid": "******"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "installed": {
+    "client_id": "создай проект в https://console.developers.google.com/, создай учетные данные OAuth с типом «Другие типы», скачай этот конфиг для своих учетных данных в виде json, включи «Google Sheets API» для проекта",
+    "client_secret": "заполни, прочитав инструкцию в client_id",
+    "redirect_uris": ["urn:ietf:wg:oauth:2.0:oob","http://localhost"],
+    "project_id": "заполни, прочитав инструкцию в client_id",
+    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+    "token_uri": "https://oauth2.googleapis.com/token",
+    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs"
+  }
+}
