@@ -5,12 +5,17 @@ export class PartnerAuth {
   key: string
 
   constructor(cookie: string) {
-    const kvs = cookie.split(';').map((p) => p.split('=').map((x) => x.trim()))
-    const parsedCookie = {} as { [k: string]: string }
-    for (const kv of kvs) {
-      parsedCookie[kv[0]] = kv[1]
+    const parts = cookie.split(';')
+    if (parts.length === 1 && parts[0].indexOf('=') < 0) {
+      this.key = cookie
+    } else {
+      const kvs = parts.map((p) => p.split('=').map((x) => x.trim()))
+      const parsedCookie = {} as { [k: string]: string }
+      for (const kv of kvs) {
+        parsedCookie[kv[0]] = kv[1]
+      }
+      this.key = parsedCookie['key']
     }
-    this.key = parsedCookie['key']
   }
 }
 
@@ -37,13 +42,14 @@ export class PartnerApi {
   }
 }
 
-type HtmlString = string
-type DateString = string
-type DateTimeString = string
-type Id = number
+export type HtmlString = string
+export type DateString = string
+export type DateTimeString = string
+export type Id = number
 
-type ProjectRoleType = 'MCUR' | 'RROP'
-type DifficultyType = 'TYPA' | 'TYPB' | 'TYPC'
+export type ProjectRoleType = 'MCUR' | 'RROP'
+export type DifficultyType = 'TYPA' | 'TYPB' | 'TYPC'
+export type WorkType = 'APPL' | 'DSCV'
 
 interface Project {
   id: Id
@@ -156,7 +162,7 @@ interface Program {
 interface ProgramProject {
   id: Id
   program: Program
-  work_type: 'APPL'
+  work_type: WorkType
   project_short_name: string
   student_diploma_name: string
   description: HtmlString

@@ -5,6 +5,7 @@ import { fromHtml } from 'hast-util-from-html'
 import { toMdast } from 'hast-util-to-mdast'
 import { toMarkdown } from 'mdast-util-to-markdown'
 import { markdownToBlocks } from '@tryfabric/martian'
+import { Emoji } from './types.js'
 
 export class NotionAuth {
   token: string
@@ -24,7 +25,39 @@ export class NotionApi {
     })
   }
 
-  async runAsync(): Promise<void> {
+  async addProjectAsync(
+    databaseId: string,
+    emoji: Emoji,
+    title: string,
+    properties: object,
+    htmlContent: string,
+  ): Promise<boolean> {
+    const notionContent = htmlToBlocks(htmlContent)
+
+    await this.notion.pages.create({
+      parent: { database_id: databaseId },
+      icon: {
+        emoji: emoji,
+      },
+      properties: {
+        ...properties,
+        title: {
+          title: [
+            {
+              text: {
+                content: title,
+              },
+            },
+          ],
+        },
+      },
+      children: notionContent,
+    })
+
+    return true
+  }
+
+  async runSampleAsync(): Promise<void> {
     const databaseId = 'fb0e51d76fa14145a48a797b02b6138b'
     console.log()
 
@@ -68,36 +101,3 @@ function htmlToBlocks(html: string): BlockObjectRequest[] {
   const blocks = markdownToBlocks(markdown)
   return blocks as unknown as BlockObjectRequest[]
 }
-
-// const ys: Array<BlockObjectRequest> = [
-    //   {
-    //     object: 'block',
-    //     type: 'heading_1',
-    //     heading_1: {
-    //       rich_text: [{ type: 'text', text: { content: 'Зачем?' } }],
-    //     },
-    //   },
-    //   {
-    //     object: 'block',
-    //     type: 'paragraph',
-    //     paragraph: {
-    //       rich_text: [
-    //         {
-    //           type: 'text',
-    //           text: {
-    //             content:
-    //               'Lacinato kale is a variety of kale with a long tradition in Italian cuisine, especially that of Tuscany. It is also known as Tuscan kale, Italian kale, dinosaur kale, kale, flat back kale, palm tree kale, or black Tuscan palm.',
-    //             link: { url: 'https://en.wikipedia.org/wiki/Lacinato_kale' },
-    //           },
-    //         },
-    //         {
-    //           type: 'text',
-    //           text: {
-    //             content: 'Просто <b>текст</b>',
-    //           },
-    //         },
-    //       ],
-    //     },
-    //   },
-    // ]
-    // const xs = ys.concat(notionContent);
