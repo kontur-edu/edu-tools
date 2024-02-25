@@ -8,7 +8,7 @@ console.log('Hello')
 main()
 
 async function main() {
-  await runTeamProject34CreateIterations()
+  // await runTeamProject34CreateIterations()
 }
 
 async function cloneProjects() {
@@ -166,7 +166,7 @@ async function cloneProjects() {
 }
 
 async function runTeamProject34CreateIterations() {
-  const save = true
+  const save = false
 
   const it3start = new JustDate(2023, 10, 30)
   const it3end = new JustDate(2023, 11, 12)
@@ -177,8 +177,7 @@ async function runTeamProject34CreateIterations() {
   const it6start = new JustDate(2023, 12, 11)
   const it6end = new JustDate(2023, 12, 24)
 
-  const authJwt =
-    'Bearer ...'
+  const authJwt = 'Bearer ...'
   const auth = new TeamProjectAuthV2(authJwt)
   const teamProjectApi = new TeamProjectApiV2(auth)
 
