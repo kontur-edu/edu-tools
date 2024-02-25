@@ -1,14 +1,21 @@
 import { Telegraf } from 'telegraf'
 import { message } from 'telegraf/filters'
 import { toHTML } from '@telegraf/entity'
-import config from 'config'
+import 'dotenv/config'
 import { NotionApi, NotionAuth } from './apis/NotionApi.js'
 import { showLoader } from './helpers/TelegramBotHelpers.js'
+import fetch from 'node-fetch'
 
+const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || ''
+const TELEGRAM_URL = process.env.TELEGRAM_URL || ''
+const TELEGRAM_NEED_LAUNCH =
+  (process.env.TELEGRAM_NEED_LAUNCH && process.env.TELEGRAM_NEED_LAUNCH.toLowerCase() === 'true') || false
+const NOTION_RESOURCES_DB = process.env.NOTION_RESOURCES_DB || ''
+const NOTION_TASKS_DB = process.env.NOTION_TASKS_DB || ''
 const RESOURCE_ICON = 'https://www.notion.so/icons/bookmark_gray.svg'
 const TASK_ICON = 'https://www.notion.so/icons/checkmark_gray.svg'
 
-const bot = new Telegraf(config.get('TELEGRAM_TOKEN'), {
+const bot = new Telegraf(TELEGRAM_TOKEN, {
   handlerTimeout: Infinity,
 })
 
@@ -19,13 +26,14 @@ bot.command('start', (ctx) => {
 })
 
 bot.on(message('text'), async (ctx) => {
+  let hideLoader = null
   try {
     const text = ctx.message.text.trim()
     if (!text) {
       ctx.reply('Текст не может быть пустым!')
       return
     }
-    const hideLoader = await showLoader(ctx)
+    hideLoader = await showLoader(ctx)
 
     const preHtmlText = toHTML(ctx.message).trim()
     const isResource = preHtmlText.startsWith('.')
@@ -37,7 +45,7 @@ bot.on(message('text'), async (ctx) => {
 
     if (isResource) {
       const notionResponse = await notionApi.addHtmlPageAsync(
-        config.get('NOTION_RESOURCES_DB'),
+        NOTION_RESOURCES_DB,
         { type: 'external', external: { url: RESOURCE_ICON } },
         header ?? 'Ресурс',
         {},
@@ -48,7 +56,7 @@ bot.on(message('text'), async (ctx) => {
       ctx.reply(`Создан ресурс\n${header}\n${notionResponse.url}`)
     } else {
       const notionResponse = await notionApi.addHtmlPageAsync(
-        config.get('NOTION_TASKS_DB'),
+        NOTION_TASKS_DB,
         { type: 'external', external: { url: TASK_ICON } },
         header ?? 'Задача',
         {
@@ -70,8 +78,37 @@ bot.on(message('text'), async (ctx) => {
     } else {
       console.log('Error while processing text')
     }
+
+    hideLoader && hideLoader()
     ctx.reply('Что-то пошло не так...')
   }
 })
 
-bot.launch()
+export const cloudHandler = async function (event: any, context: any) {
+  const message = JSON.parse(event.body)
+  await bot.handleUpdate(message)
+  return {
+    statusCode: 200,
+    body: '',
+  }
+}
+
+export async function cloudRegister() {
+  const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/setWebhook`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: `{"url": "${TELEGRAM_URL}"}`,
+  })
+
+  console.log(response)
+}
+
+export async function localLaunch() {
+  await bot.launch()
+}
+
+if (TELEGRAM_NEED_LAUNCH) {
+  localLaunch()
+}

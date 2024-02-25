@@ -5,13 +5,15 @@ import { toMdast } from 'hast-util-to-mdast'
 import { toMarkdown } from 'mdast-util-to-markdown'
 import { markdownToBlocks } from '@tryfabric/martian'
 import { Emoji } from './types.js'
-import config from 'config'
+import 'dotenv/config'
+
+const NOTION_TOKEN = process.env.NOTION_TOKEN || ''
 
 export class NotionAuth {
   token: string
 
   constructor() {
-    this.token = config.get('NOTION_TOKEN')
+    this.token = NOTION_TOKEN
   }
 }
 

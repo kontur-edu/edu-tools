@@ -20,7 +20,7 @@
       "request": "launch",
       "name": "Launch Telegram Bot",
       //"program": "${file}",
-      "program": "${workspaceFolder}/src/tg-main.ts",
+      "program": "${workspaceFolder}/src/bot.ts",
       "outFiles": ["${workspaceFolder}/build/**/*.js"],
       "preLaunchTask": "npm: build",
       "console": "integratedTerminal"
