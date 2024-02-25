@@ -13,11 +13,7 @@ async function main() {
 
 async function cloneProjects() {
   const notionApi = new NotionApi(new NotionAuth())
-  const partnerApi = new PartnerApi(
-    new PartnerAuth(
-      '',
-    ),
-  )
+  const partnerApi = new PartnerApi(new PartnerAuth(''))
 
   const projectUrls: Array<string> = [
     // 'https://partner.urfu.ru/ptraining/services/learning/#/passport/7823',
@@ -137,9 +133,9 @@ async function cloneProjects() {
     const engineType = '⚙инженерный'
     const scienceType = '🔬исследовательский'
     // const entrepreneurType = '💸предпринимательский'
-    await notionApi.addProjectAsync(
+    await notionApi.addHtmlPageAsync(
       databaseId,
-      '🚀',
+      { type: 'emoji', emoji: '🚀' },
       title,
       {
         Статус: {

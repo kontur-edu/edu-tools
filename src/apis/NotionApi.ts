@@ -1,18 +1,17 @@
 import { Client } from '@notionhq/client'
-import { BlockObjectRequest } from '@notionhq/client/build/src/api-endpoints.js'
-import * as fs from 'fs'
+import { BlockObjectRequest, PageObjectResponse } from '@notionhq/client/build/src/api-endpoints.js'
 import { fromHtml } from 'hast-util-from-html'
 import { toMdast } from 'hast-util-to-mdast'
 import { toMarkdown } from 'mdast-util-to-markdown'
 import { markdownToBlocks } from '@tryfabric/martian'
 import { Emoji } from './types.js'
+import config from 'config'
 
 export class NotionAuth {
   token: string
 
   constructor() {
-    const json = JSON.parse(fs.readFileSync('./secrets/notion.json', 'utf8'))
-    this.token = json['token']
+    this.token = config.get('NOTION_TOKEN')
   }
 }
 
@@ -25,20 +24,17 @@ export class NotionApi {
     })
   }
 
-  async addProjectAsync(
+  async addHtmlPageAsync(
     databaseId: string,
-    emoji: Emoji,
+    icon: { type: 'emoji'; emoji: Emoji } | { type: 'external'; external: { url: string } } | null,
     title: string,
     properties: object,
     htmlContent: string,
-  ): Promise<boolean> {
-    const notionContent = htmlToBlocks(htmlContent)
-
-    await this.notion.pages.create({
+  ): Promise<PageObjectResponse> {
+    const notionContent = htmlToNotionBlocks(htmlContent)
+    const response = await this.notion.pages.create({
       parent: { database_id: databaseId },
-      icon: {
-        emoji: emoji,
-      },
+      icon,
       properties: {
         ...properties,
         title: {
@@ -54,7 +50,7 @@ export class NotionApi {
       children: notionContent,
     })
 
-    return true
+    return response as PageObjectResponse
   }
 
   async runSampleAsync(): Promise<void> {
@@ -62,7 +58,7 @@ export class NotionApi {
     console.log()
 
     const htmlContent = '<b>bold</b><i>italic</i>'
-    const notionContent = htmlToBlocks(htmlContent)
+    const notionContent = htmlToNotionBlocks(htmlContent)
 
     await this.notion.pages.create({
       parent: { database_id: databaseId },
@@ -94,7 +90,7 @@ export class NotionApi {
   }
 }
 
-function htmlToBlocks(html: string): BlockObjectRequest[] {
+function htmlToNotionBlocks(html: string): BlockObjectRequest[] {
   const hast = fromHtml(html, { fragment: true })
   const mdast = toMdast(hast)
   const markdown = toMarkdown(mdast)

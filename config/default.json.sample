@@ -1,0 +1,6 @@
+{
+  "TELEGRAM_TOKEN": "",
+  "NOTION_TOKEN": "",
+  "NOTION_RESOURCES_DB" : "",
+  "NOTION_TASKS_DB" : ""
+}
