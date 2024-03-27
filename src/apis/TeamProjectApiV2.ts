@@ -132,15 +132,25 @@ async function fetchApiAsync(
     .map((k) => `${k}=${cookies[k]}`)
     .join('; ')
 
-  const response = await fetch(baseUrl + uri, {
-    method: 'GET',
-    ...options,
-    headers: {
-      Cookie: cookieHeader,
-      ...headers,
-    },
-  })
-  return response
+  const url = baseUrl + uri
+  const timeout = 30000
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      ...options,
+      headers: {
+        Cookie: cookieHeader,
+        ...headers,
+      },
+      signal: AbortSignal.timeout(timeout),
+    })
+    return response
+  } catch (e: any) {
+    if (e.name && e.name === 'TimeoutError') {
+      console.log(`${timeout} ms timeout`)
+    }
+    throw e
+  }
 }
 
 interface RequestOptions {
