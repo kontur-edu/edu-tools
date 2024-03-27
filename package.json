@@ -40,6 +40,8 @@
     "@tryfabric/martian": "^1.2.4",
     "@types/dotenv-safe": "^8.1.6",
     "dotenv": "^16.4.5",
+    "google-auth-library": "^9.7.0",
+    "googleapis": "^134.0.0",
     "hast-util-from-html": "^2.0.1",
     "hast-util-to-mdast": "^10.0.0",
     "mdast-util-to-markdown": "^2.1.0",
