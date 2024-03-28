@@ -16,7 +16,7 @@ export class GoogleAuth {
     this.authClient = authClient
   }
 
-  static async createAsync(policy: AuthorizePolicy) {
+  static async createAsync(policy: AuthorizePolicy): Promise<GoogleAuth> {
     const authClient = await authorizeAsync(policy)
     return new GoogleAuth(authClient)
   }
