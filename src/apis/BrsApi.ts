@@ -220,6 +220,48 @@ export class BrsApi {
     )
     return result.uuid || null
   }
+
+  async checkTechnologyCardAsync(technologyCard: TechnologyCard): Promise<TechnologyCardCheck> {
+    const response = await requestApiWithTextResponseAsync(
+      this.auth,
+      `/mrd/mvc/mobile/view/technologyCard/${technologyCard.disciplineLoad}/agreed/`,
+    )
+
+    const lines = response.split('\r\n').map((s) => s.trim())
+
+    let isFilled = false
+    const isCorrectPrefix = 'var message = "Ошибок в тех карте не обнаружено.";'
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]
+      if (line.startsWith(isCorrectPrefix)) {
+        isFilled = true
+        break
+      }
+    }
+
+    let isAllowedToAgree = false
+    const canAgreePrefix = '<a class="button" id="agreed-button"'
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]
+      if (line.startsWith(canAgreePrefix)) {
+        isAllowedToAgree = true
+        break
+      }
+    }
+
+    return {
+      isFilled,
+      isAllowedToAgree,
+    }
+  }
+
+  async agreeTechnologyCardAsync(technologyCard: TechnologyCard, agreed: boolean): Promise<void> {
+    const body = {
+      agreed: agreed,
+      disciplineLoad: technologyCard.disciplineLoad,
+    }
+    await postFormWithTextResponseAsync(this.auth, `/mrd/mvc/mobile/technologyCard/doAgreed`, body)
+  }
 }
 
 async function getDisciplinesInternalAsync(
@@ -367,11 +409,10 @@ async function getTechnologyCardsAsync(
     search,
   )}`
   if (isModule) {
-    const paging = await requestApiWithJsonResponseAsync<Paging<TechnologyCard>>(
+    const cards = await requestApiWithJsonResponseAsync<Array<TechnologyCard>>(
       auth,
       '/mrd/mvc/mobile/technologyCard/module/fetch' + queryString,
     )
-    const cards = paging.content
     for (const c of cards) {
       c.isModule = true
     }
@@ -652,6 +693,21 @@ async function postFormWithJsonResponseAsync<T>(auth: BrsAuth, uri: string, body
   return response
 }
 
+async function postFormWithTextResponseAsync(auth: BrsAuth, uri: string, body: any) {
+  const response = await requestApiWithTextResponseAsync(
+    auth,
+    uri,
+    {
+      method: 'POST',
+      body: buildFormData(body),
+    },
+    {
+      'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+    },
+  )
+  return response
+}
+
 async function requestApiWithJsonResponseAsync<T>(
   auth: BrsAuth,
   uri: string,
@@ -846,4 +902,9 @@ export interface TechnologyCardLoad {
   action: string // 'prz' - зачет 'prdr' - домашняя работа 'prkr' - контрольная работа
   startDate: string // '01.09.2023'
   intermediateName: string // 'Промежуточная' или 'Текущая'
+}
+
+export interface TechnologyCardCheck {
+  isFilled: boolean
+  isAllowedToAgree: boolean
 }

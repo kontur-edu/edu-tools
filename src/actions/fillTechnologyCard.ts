@@ -126,6 +126,19 @@ export async function fillTechnologyCard(brsApi: BrsApi, card: TechnologyCard, s
     factorCount -= 1
   }
 
-  console.log(`✅ Техкарта обработана`)
+  const checkResult = await brsApi.checkTechnologyCardAsync(card);
+  if (checkResult.isFilled) {
+    console.log(`🟩 Техкарта заполнена корректно`)
+    if (checkResult.isAllowedToAgree) {
+      console.log(`🟩 Техкарта может быть согласована`)
+    } else {
+      console.log(`🟨 Можно запросить согласование техкарты`)
+    }
+  } else {
+    console.log(`🟥 Техкарта содержит ошибки`)
+    console.log(`🟥 Для согласования требуется исправить ошибки`)
+  }
+  
+  console.log('✅ Обработка техкарты завершена')
   console.log()
 }
