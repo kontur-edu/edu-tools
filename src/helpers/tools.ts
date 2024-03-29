@@ -23,3 +23,17 @@ export function startsWithNormalized(str: string, prefix: string) {
 export function parseAnyFloat(s: string) {
   return parseFloat(s && s.replace(',', '.'))
 }
+
+export function replaceAll(str: string, find: string, replace: string) {
+  return str.replace(new RegExp(escapeRegExp(find), 'g'), replace)
+}
+
+export function escapeRegExp(str: string) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') // $& means the whole matched string
+}
+
+export function buildFormData(data: { [key: string]: any }): string {
+  return Object.keys(data)
+    .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(data[key].toString())}`)
+    .join('&')
+}

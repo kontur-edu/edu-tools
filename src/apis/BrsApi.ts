@@ -1,5 +1,6 @@
 import fetch, { Response } from 'node-fetch'
 import { BrsAuth } from './BrsAuth.js'
+import { buildFormData, replaceAll } from '../helpers/tools.js'
 const baseUrl = 'https://brs.urfu.ru'
 
 export class BrsApi {
@@ -9,13 +10,18 @@ export class BrsApi {
     this.auth = auth
   }
 
-  async getDisciplinesAsync(year: number, termType: TermType, course: number, isModule: boolean) {
+  async getDisciplinesAsync(
+    year: number,
+    termType: TermType,
+    course: number,
+    isModule: boolean,
+  ): Promise<Discipline[]> {
     const total = await getDisciplineTotalAsync(this.auth, year, termType, course, isModule)
     const result = await getDisciplinesInternalAsync(this.auth, year, termType, course, isModule, total)
     return result
   }
 
-  async getAllStudentMarksAsync(discipline: Discipline) {
+  async getAllStudentMarksAsync(discipline: Discipline): Promise<StudentMark[]> {
     const students = [
       ...(await getStudentMarksAsync(this.auth, discipline, 'lecture', 'current')),
       ...(await getStudentMarksAsync(this.auth, discipline, 'lecture', 'intermediate')),
@@ -36,7 +42,7 @@ export class BrsApi {
     return Object.keys(uniqueStudents).map((k) => uniqueStudents[k])
   }
 
-  async getAllControlActionsAsync(discipline: Discipline) {
+  async getAllControlActionsAsync(discipline: Discipline): Promise<ControlAction[]> {
     return [
       ...(await getControlActionsAsync(this.auth, discipline, 'lecture', 'current')),
       ...(await getControlActionsAsync(this.auth, discipline, 'lecture', 'intermediate')),
@@ -54,7 +60,7 @@ export class BrsApi {
     discipline: Discipline,
     studentFailure: StudentFailure = StudentFailure.NoFailure,
     cardType: CardType = 'lecture',
-  ) {
+  ): Promise<void> {
     const body = `markFailure=${studentFailure}&cardType=${cardType}&disciplineLoad=${discipline.disciplineLoad}&studentId=${studentUuid}`
     await requestApiWithJsonResponseAsync(
       this.auth,
@@ -69,7 +75,7 @@ export class BrsApi {
     )
   }
 
-  async updateAllMarksAsync(discipline: Discipline) {
+  async updateAllMarksAsync(discipline: Discipline): Promise<void> {
     await updateMarksAsync(this.auth, discipline, 'lecture', 'intermediate')
     await updateMarksAsync(this.auth, discipline, 'lecture', 'current')
     await updateMarksAsync(this.auth, discipline, 'lecture', 'intermediate')
@@ -88,7 +94,7 @@ export class BrsApi {
     groupId: string,
     cardTypeKey: CardType,
     disciplineLoadUuid: string,
-  ) {
+  ): Promise<StudentMark> {
     const body = `student=${studentUuid}&techcard=${controlActionId}&mark=${
       isNaN(mark) ? '' : mark.toString()
     }&groupId=${groupId}&cardTypeKey=${cardTypeKey}&disciplineLoadUuid=${disciplineLoadUuid}`
@@ -111,12 +117,108 @@ export class BrsApi {
     course: number,
     isModule: boolean,
     search: string = '',
-  ) {
+  ): Promise<TechnologyCard[]> {
     return getTechnologyCardsAsync(this.auth, year, termType, course, isModule, search)
   }
 
-  async getTechnologyCardIntermediateAsync(technologyCard: TechnologyCard) {
+  async getTechnologyCardIntermediateAsync(technologyCard: TechnologyCard): Promise<TechnologyCardIntermediate | null> {
     return getTechnologyCardIntermediateAsync(this.auth, technologyCard)
+  }
+
+  async putTechnologyCardIntermediateAsync(
+    intermediate: TechnologyCardIntermediate,
+    newCardType: CardType,
+  ): Promise<void> {
+    const body: { [k: string]: any } = {
+      code: intermediate.code,
+      technologyCardType: newCardType,
+      controlAction: intermediate.controlAction,
+      maxValue: intermediate.maxValue,
+      disciplineLoad: intermediate.disciplineLoad,
+    }
+    return postFormWithJsonResponseAsync(this.auth, `/mrd/mvc/mobile/technologyCard/items/update`, body)
+  }
+
+  async getTechnologyCardFactorsAsync(technologyCard: TechnologyCard): Promise<TechnologyCardFactor[] | null> {
+    return getTechnologyCardFactorsAsync(this.auth, technologyCard)
+  }
+
+  async updateTechnologyCardFactorsAsync(
+    technologyCard: TechnologyCard,
+    technologyCardType: CardType,
+    current: number,
+    intermediate: number,
+    total: number,
+  ): Promise<void> {
+    const body = {
+      disciplineLoad: technologyCard.disciplineLoad,
+      technologyCardType: technologyCardType,
+      current: current,
+      intermediate: intermediate,
+      total: total,
+    }
+    return postFormWithJsonResponseAsync(this.auth, `/mrd/mvc/mobile/technologyCard/factors/update`, body)
+  }
+
+  async getTechnologyCardLoadsAsync(
+    technologyCard: TechnologyCard,
+    technologyCardType: CardType,
+  ): Promise<TechnologyCardLoad[] | null> {
+    return await getTechnologyCardLoadsAsync(this.auth, technologyCard, technologyCardType)
+  }
+
+  async deleteTechnologyCardLoadAsync(load: TechnologyCardLoad): Promise<boolean> {
+    const body = {
+      code: load.code,
+    }
+    const result = await postFormWithJsonResponseAsync<{ errorMessage?: string }>(
+      this.auth,
+      `/mrd/mvc/mobile/technologyCard/items/delete`,
+      body,
+    )
+
+    return !result.errorMessage
+  }
+
+  async addTechnologyCardLoadAsync(
+    technologyCard: TechnologyCard,
+    technologyCardType: CardType,
+    name: string,
+    maxValue: number,
+  ): Promise<string | null> {
+    const body = {
+      disciplineLoad: technologyCard.disciplineLoad,
+      technologyCardType: technologyCardType,
+      controlAction: name,
+      maxValue: maxValue,
+    }
+    const result = await postFormWithJsonResponseAsync<{ uuid: string }>(
+      this.auth,
+      `/mrd/mvc/mobile/technologyCard/items/add`,
+      body,
+    )
+    return result.uuid || null
+  }
+
+  async updateTechnologyCardLoadAsync(
+    technologyCard: TechnologyCard,
+    technologyCardLoad: TechnologyCardLoad,
+    name: string,
+    maxValue: number,
+  ): Promise<string | null> {
+    const body = {
+      disciplineLoad: technologyCard.disciplineLoad,
+      technologyCardType: technologyCardLoad.technologyCardType,
+      code: technologyCardLoad.code,
+      controlAction: name,
+      maxValue: maxValue,
+    }
+    const result = await postFormWithJsonResponseAsync<{ uuid: string }>(
+      this.auth,
+      `/mrd/mvc/mobile/technologyCard/items/update`,
+      body,
+    )
+    return result.uuid || null
   }
 }
 
@@ -127,7 +229,7 @@ async function getDisciplinesInternalAsync(
   course: number,
   isModule: boolean,
   total: number,
-) {
+): Promise<Discipline[]> {
   const queryString = `?year=${year}&termType=${termType}&course=${course}&total=${total}&page=1&pageSize=${total}&search=`
   if (isModule) {
     const paging = await requestApiWithJsonResponseAsync<Paging<Discipline>>(
@@ -187,7 +289,12 @@ async function getStudentMarksAsync(
   )
 }
 
-async function getControlActionsAsync(auth: BrsAuth, discipline: Discipline, cardType: CardType, markType: MarkType) {
+async function getControlActionsAsync(
+  auth: BrsAuth,
+  discipline: Discipline,
+  cardType: CardType,
+  markType: MarkType,
+): Promise<ControlAction[]> {
   const { disciplineLoad, isModule } = discipline
   const groupUuid = discipline.groupHistoryId
   const techgroup = discipline.groupId
@@ -224,26 +331,10 @@ async function getControlActionsAsync(auth: BrsAuth, discipline: Discipline, car
 }
 
 async function updateMarksAsync(auth: BrsAuth, discipline: Discipline, cardType: CardType, markType: MarkType) {
-  return updateMarksInternalAsync(
-    auth,
-    discipline.disciplineLoad,
-    discipline.isModule,
-    discipline.groupHistoryId,
-    discipline.groupId,
-    cardType,
-    markType,
-  )
-}
+  const { disciplineLoad, isModule } = discipline
+  const groupUuid = discipline.groupHistoryId
+  const techgroup = discipline.groupId
 
-async function updateMarksInternalAsync(
-  auth: BrsAuth,
-  disciplineLoad: string,
-  isModule: boolean,
-  groupUuid: string,
-  techgroup: string,
-  cardType: CardType,
-  markType: MarkType,
-) {
   const modulePart = isModule ? '/module' : ''
   const groupPart = isModule ? `techgroup=${techgroup}` : `groupUuid=${groupUuid}`
   const body =
@@ -271,8 +362,8 @@ async function getTechnologyCardsAsync(
   course: number,
   isModule: boolean,
   search: string = '',
-) {
-  const queryString = `?year=${year}&termType=${termType}&course=${course}&page=1&pageSize=100&search=${encodeURIComponent(
+): Promise<TechnologyCard[]> {
+  const queryString = `?year=${year}&termType=${termType}&course=${course}&page=1&pageSize=1000&search=${encodeURIComponent(
     search,
   )}`
   if (isModule) {
@@ -298,6 +389,101 @@ async function getTechnologyCardsAsync(
   }
 }
 
+async function getTechnologyCardLoadsAsync(
+  auth: BrsAuth,
+  technologyCard: TechnologyCard,
+  cardType: CardType,
+): Promise<TechnologyCardLoad[] | null> {
+  // var dataItems = [{"controlActionURL":null,"code":"8aca614b8b040471018b60c50f1c0f89","endDate":"24.12.2023","maxValue":100,"technologyCardTypeName":"практические занятия","standart":1,"technologyCardType":"practice","hasMarks":false,"name":"зачет","intermediate":1,"action":"prz","startDate":"01.09.2023","intermediateName":"Промежуточная"},{"controlActionURL":null,"code":"8aca614b8b040471018b60c512aa0f8a","endDate":"24.12.2023","maxValue":20,"technologyCardTypeName":"практические занятия","standart":1,"technologyCardType":"practice","hasMarks":false,"name":"домашняя работа","intermediate":0,"action":"prdr","startDate":"01.09.2023","intermediateName":"Текущая"},{"controlActionURL":null,"code":"8aca614b8b040471018b60c512b90f8b","endDate":"24.12.2023","maxValue":20,"technologyCardTypeName":"практические занятия","standart":1,"technologyCardType":"practice","hasMarks":false,"name":"домашняя работа","intermediate":0,"action":"prdr","startDate":"01.09.2023","intermediateName":"Текущая"},{"controlActionURL":null,"code":"8aca614b8b040471018b60c512b90f8c","endDate":"24.12.2023","maxValue":20,"technologyCardTypeName":"практические занятия","standart":1,"technologyCardType":"practice","hasMarks":false,"name":"домашняя работа","intermediate":0,"action":"prdr","startDate":"01.09.2023","intermediateName":"Текущая"},{"controlActionURL":null,"code":"8aca614b8b040471018b60c512b90f8d","endDate":"24.12.2023","maxValue":20,"technologyCardTypeName":"практические занятия","standart":1,"technologyCardType":"practice","hasMarks":false,"name":"контрольная работа","intermediate":0,"action":"prkr","startDate":"01.09.2023","intermediateName":"Текущая"},{"controlActionURL":null,"code":"8aca614b8b040471018b60c512c90f8e","endDate":"24.12.2023","maxValue":20,"technologyCardTypeName":"практические занятия","standart":1,"technologyCardType":"practice","hasMarks":false,"name":"контрольная работа","intermediate":0,"action":"prkr","startDate":"01.09.2023","intermediateName":"Текущая"}];
+  const response = await requestApiWithTextResponseAsync(
+    auth,
+    `/mrd/mvc/mobile/view/technologyCard/${technologyCard.disciplineLoad}/loadtype/${cardType}`,
+  )
+
+  const lines = response.split('\r\n').map((s) => s.trim())
+
+  const prefix = 'var dataItems = '
+  const suffix = ';'
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    if (line.startsWith(prefix)) {
+      const value = line.substr(prefix.length, line.length - prefix.length - suffix.length).trim()
+      const json = JSON.parse(value) as TechnologyCardLoad[]
+      return json
+    }
+  }
+
+  return null
+}
+
+async function getTechnologyCardFactorsAsync(
+  auth: BrsAuth,
+  technologyCard: TechnologyCard,
+): Promise<TechnologyCardFactor[] | null> {
+  const response = await requestApiWithTextResponseAsync(
+    auth,
+    `/mrd/mvc/mobile/view/technologyCard/${technologyCard.disciplineLoad}/factors`,
+  )
+
+  const lines = response.split('\r\n').map((s) => s.trim())
+  const actions = extractTechnologyCardFactorActions(lines)
+  const factors = extractTechnologyCardFactors(lines)
+
+  if (factors === null || actions === null) {
+    return null
+  }
+
+  for (const action of actions) {
+    const factor = factors.filter((f) => f.technologyCardType === action.action)[0]
+    if (factor) {
+      factor.technologyCardTypeTitle = action.actionTitle
+    } else {
+      factors.push({
+        current: NaN,
+        intermediate: NaN,
+        readonly: false,
+        technologyCardType: action.action,
+        technologyCardTypeTitle: action.actionTitle,
+        total: NaN,
+      })
+    }
+  }
+
+  return factors
+}
+
+function extractTechnologyCardFactorActions(lines: string[]): TechnologyCardFactorAction[] | null {
+  //var data = [{"actionTitle":"лекции","action":"lecture"},{"actionTitle":"лабораторные занятия","action":"laboratory"}];
+
+  const prefix = 'var data = '
+  const suffix = ';'
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    if (line.startsWith(prefix)) {
+      const value = line.substr(prefix.length, line.length - prefix.length - suffix.length).trim()
+      const json = JSON.parse(value) as TechnologyCardFactorAction[]
+      return json
+    }
+  }
+
+  return null
+}
+
+function extractTechnologyCardFactors(lines: string[]): TechnologyCardFactor[] | null {
+  const prefix = 'var factorsData = '
+  const suffix = ';'
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    if (line.startsWith(prefix)) {
+      const value = line.substr(prefix.length, line.length - prefix.length - suffix.length).trim()
+      const json = JSON.parse(value) as TechnologyCardFactor[]
+      return json
+    }
+  }
+
+  return null
+}
+
 async function getTechnologyCardIntermediateAsync(
   auth: BrsAuth,
   technologyCard: TechnologyCard,
@@ -318,12 +504,9 @@ async function getTechnologyCardIntermediateAsync(
     return null
   }
   const currentCardType = extractCurrentIntermediateCardType(lines, params.code)
-  if (!currentCardType) {
-    return null
-  }
 
   return {
-    availableCardTypes: availableCardTypes,
+    availableCardTypes: availableCardTypes.map((it) => ({ cardType: it.code, cardTypeTitle: it.name })),
     code: params.code,
     controlAction: params.controlAction,
     disciplineLoad: params.disciplineLoad,
@@ -332,7 +515,7 @@ async function getTechnologyCardIntermediateAsync(
   }
 }
 
-function extractAvailableIntermediateCardTypes(lines: Array<string>): Array<CardType> | null {
+function extractAvailableIntermediateCardTypes(lines: Array<string>): Array<{ code: CardType; name: string }> | null {
   // >> Sample <<
   // var technologyCardTypeDS = new kendo.data.DataSource({
   //   data: [
@@ -360,8 +543,13 @@ function extractAvailableIntermediateCardTypes(lines: Array<string>): Array<Card
 
   if (dataLines.length > 0) {
     try {
-      const json = JSON.parse('{' + dataLines.join('\r\n') + '}') as { data: [{ code: CardType; name: string }] }
-      return json.data.map((it) => it.code)
+      let v = '{' + dataLines.join('') + '}'
+      v = replaceAll(v, 'data', '"data"')
+      v = replaceAll(v, 'code', '"code"')
+      v = replaceAll(v, 'name', '"name"')
+      v = replaceAll(v, `'`, `"`)
+      const json = JSON.parse(v) as { data: [{ code: CardType; name: string }] }
+      return json.data
     } catch {
       return null
     }
@@ -400,14 +588,30 @@ function extractUpdateIntermediateParams(lines: Array<string>): TechnologyCardUp
 
   if (dataLines.length > 0) {
     try {
-      const json = JSON.parse('{' + dataLines.join('\r\n') + '}')
-      delete json.technologyCardType
-      return json as TechnologyCardUpdateIntermediateParams
+      const obj: { [k: string]: string | number } = {}
+      for (const line of dataLines) {
+        const parts = line.split(':')
+        const key = parts[0].trim()
+        switch (key) {
+          case 'code':
+          case 'controlAction':
+          case 'disciplineLoad':
+            const v1 = parts[1].trim()
+            const v2 = v1[v1.length - 1] === ',' ? v1.substring(0, v1.length - 1) : v1
+            const v3 = v2.startsWith(`'`) ? v2.substring(1, v2.length - 1) : v2
+            obj[key] = v3
+            break
+          case 'maxValue':
+            obj[key] = parseInt(parts[1].trim(), 10)
+          default:
+            break
+        }
+      }
+      return obj as unknown as TechnologyCardUpdateIntermediateParams
     } catch {
       return null
     }
   }
-
   return null
 }
 
@@ -417,21 +621,35 @@ function extractCurrentIntermediateCardType(lines: Array<string>, code: string):
   // или
   // oldValues['8aca614b8b040471018b60c50f1c0f89'] = 'practice';
 
-  const prefix = `oldValues['${code}'] = `
-  const suffix = ';'
+  const prefix = `oldValues['${code}'] = '`
+  const suffix = `';`
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
     if (line.startsWith(prefix)) {
       const value = line.substr(prefix.length, line.length - prefix.length - suffix.length).trim()
-      const cardType = JSON.parse(value) as string
-      if (cardType === 'intermediate') {
+      if (value === 'intermediate') {
         return null
       }
-      return cardType as CardType
+      return value as CardType
     }
   }
 
   return null
+}
+
+async function postFormWithJsonResponseAsync<T>(auth: BrsAuth, uri: string, body: any) {
+  const response = await requestApiWithJsonResponseAsync<T>(
+    auth,
+    uri,
+    {
+      method: 'POST',
+      body: buildFormData(body),
+    },
+    {
+      'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+    },
+  )
+  return response
 }
 
 async function requestApiWithJsonResponseAsync<T>(
@@ -445,10 +663,9 @@ async function requestApiWithJsonResponseAsync<T>(
     const json = await response.json()
     return json as T
   } else {
-    const text = await response.text()
-    console.log(text)
+    console.log(uri + ' is Forbidden')
+    throw new Error(uri + ' is Forbidden')
   }
-  throw new Error(uri + ' is Forbidden')
 }
 
 async function requestApiWithTextResponseAsync(
@@ -588,7 +805,7 @@ export interface TechnologyCard {
 export interface TechnologyCardIntermediate {
   code: string // '8aca614b8df25760018e83c02e540a5c'
   disciplineLoad: string // 'unpldd195e3pg0000oggql7nup388a14-00000000000000000000000000000000'
-  availableCardTypes: CardType[]
+  availableCardTypes: { cardType: CardType; cardTypeTitle: string }[]
   currentCardType: CardType | null
   maxValue: number // 100
   controlAction: string // 'экзамен'
@@ -599,4 +816,34 @@ interface TechnologyCardUpdateIntermediateParams {
   disciplineLoad: string // 'unpldd195e3pg0000oggql7nup388a14-00000000000000000000000000000000'
   maxValue: number // 100
   controlAction: string // 'экзамен'
+}
+
+export interface TechnologyCardFactor {
+  intermediate: number // 0.5
+  technologyCardType: CardType // 'practice'
+  technologyCardTypeTitle: string
+  current: number // 0.5
+  total: number // 1.0
+  readonly: boolean // false
+}
+
+interface TechnologyCardFactorAction {
+  actionTitle: string // 'лекции'
+  action: CardType // 'lecture'
+}
+
+export interface TechnologyCardLoad {
+  controlActionURL: string | null // null
+  code: string // '8aca614b8b040471018b60c50f1c0f89'
+  endDate: string // '24.12.2023'
+  maxValue: number // 100 или 20
+  technologyCardTypeName: string // 'практические занятия'
+  standart: number // 1
+  technologyCardType: CardType // 'practice'
+  hasMarks: boolean // false
+  name: string // 'домашняя работа' 'зачет'
+  intermediate: 0 | 1 // 0 или 1
+  action: string // 'prz' - зачет 'prdr' - домашняя работа 'prkr' - контрольная работа
+  startDate: string // '01.09.2023'
+  intermediateName: string // 'Промежуточная' или 'Текущая'
 }
