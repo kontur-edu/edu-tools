@@ -7,12 +7,57 @@ import { TableTaskReader } from './tasks/TableTask.js'
 import { GoogleApi } from './apis/GoogleApi.js'
 import { GoogleAuth } from './apis/GoogleAuth.js'
 import { DistributeStudentsIntoTeamsTaskExecutor } from './tasks/DistributeStudentsIntoTeamsTask.js'
+import { BrsApi, TechnologyCard, TermType } from './apis/BrsApi.js'
+import { BrsAuth } from './apis/BrsAuth.js'
+import { fillTechnologyCard } from './actions/fillTechnologyCard.js'
 
 console.log('Hello')
 
 main()
 
 async function main() {
+async function fillTechnologyCards() {
+  const auth = await BrsAuth.createByConfigAsync('domashnikh')
+  if (auth === null) {
+    console.log('incorrect auth')
+    return
+  }
+  const brsApi = new BrsApi(auth)
+
+  const allCards: Array<TechnologyCard> = [
+    //...(await brsApi.getTechnologyCardsAsync(2023, TermType.Spring, 1, false)),
+    //...(await brsApi.getTechnologyCardsAsync(2023, TermType.Spring, 2, false)),
+    //...(await brsApi.getTechnologyCardsAsync(2023, TermType.Spring, 3, false)),
+    //...(await brsApi.getTechnologyCardsAsync(2023, TermType.Spring, 4, false)),
+  ]
+
+  const ignoredDisciplines = [
+    'Математический анализ',
+    'Алгебра и геометрия',
+    'Математическая статистика',
+    'Алгоритмы и структуры данных',
+    'Производственная практика',
+    'Учебная практика',
+    'Физическая культура',
+    'Прикладная физическая культура',
+    'Подготовка к защите и процедура защиты выпускной квалификационной работы',
+    'Подготовка к сдаче и сдача государственного экзамена',
+    'Русский язык как иностранный',
+    'История',
+    'Философия',
+  ]
+
+  const cards = allCards
+    .filter((c) => new RegExp('(МЕН-..0801)|(МЕН-..0802)|(МЕН-..0809)|(МЕН-..0810)').test(c.group))
+    .filter((c) => !ignoredDisciplines.reduce((result, it) => result || c.discipline.startsWith(it), false))
+
+  console.log(cards.map((card) => `"${card.discipline}" для групп "${card.group}" ${card.isModule ? 'из ИТС' : ''}`))
+
+  const save = false
+  for (const card of cards) {
+    await fillTechnologyCard(brsApi, card, save)
+  }
+}
 
 async function distributeStudentsIntoTeams() {
   const googleAuth = await GoogleAuth.createAsync('ask-if-not-saved')
