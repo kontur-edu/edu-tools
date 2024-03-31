@@ -2,7 +2,6 @@ import { NotionApi, NotionAuth } from './apis/NotionApi.js'
 import { PartnerApi, PartnerAuth } from './apis/PartnerApi.js'
 import { ItsApiV2, ItsAuthV2 } from './apis/ItsApiV2.js'
 import { TeamProjectApiV2, TeamProjectAuthV2, IterationItem, Workspace } from './apis/TeamProjectApiV2.js'
-import JustDate from './helpers/JustDate.js'
 import { TableTaskReader } from './tasks/TableTask.js'
 import { GoogleApi } from './apis/GoogleApi.js'
 import { GoogleAuth } from './apis/GoogleAuth.js'
@@ -10,12 +9,18 @@ import { DistributeStudentsIntoTeamsTaskExecutor } from './tasks/DistributeStude
 import { BrsApi, TechnologyCard, TermType } from './apis/BrsApi.js'
 import { BrsAuth } from './apis/BrsAuth.js'
 import { fillTechnologyCard } from './actions/fillTechnologyCard.js'
+import { CreateTeamProjectIterationsTaskExecutor } from './tasks/CreateTeamProjectIterationsTask.js'
 
 console.log('Hello')
 
 main()
 
 async function main() {
+  //await runTeamProject34CreateIterations()
+  //await distributeStudentsIntoTeams()
+  await createTeamProjectIterationsAsync()
+}
+
 async function fillTechnologyCards() {
   const auth = await BrsAuth.createByConfigAsync('domashnikh')
   if (auth === null) {
@@ -59,7 +64,20 @@ async function fillTechnologyCards() {
   }
 }
 
-async function distributeStudentsIntoTeams() {
+async function createTeamProjectIterationsAsync() {
+  const googleAuth = await GoogleAuth.createAsync('ask-if-not-saved')
+  const taskReader = new TableTaskReader(new GoogleApi(googleAuth))
+  const task = await taskReader.readTaskAsync('1Bj34VK2pe2KgfCQd3W00HaoswJPX6QqHGByVQHAacjM', 'Итерации')
+  if (task === null) return
+
+  const authJwt =
+    'Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJmRXFJMlNLVm85X19yXzZMZ1hYZVloaEVSSG5jR19VdEVhNVgxT2VLQk5ZIn0.eyJleHAiOjE3MTE5MTkyNjUsImlhdCI6MTcxMTg4NTcxMiwiYXV0aF90aW1lIjoxNzExODgzMjY1LCJqdGkiOiI3MDRmMjNkYi1hMWZlLTQxYzAtODkyOS01NWQ2NmY0ZWIxYTQiLCJpc3MiOiJodHRwczovL2tleXMudXJmdS5ydS9hdXRoL3JlYWxtcy91cmZ1LWxrIiwic3ViIjoiZDVkYzUyYTYtYWZkYS00MzNiLTgwZjItMTMwMGY0MDYzODU5IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoidGVhbXBybyIsIm5vbmNlIjoiZDJkNDU5M2UtZmRkNi00NDY0LTgxY2UtNTgwYjg0OWU0ZjI0Iiwic2Vzc2lvbl9zdGF0ZSI6IjM1MjIzOTlhLWRmMWEtNDdkMy1hZDRiLTMyMzI5NWNiNzUyMyIsInNjb3BlIjoib3BlbmlkIGxrLW1hcGVycyIsInNpZCI6IjM1MjIzOTlhLWRmMWEtNDdkMy1hZDRiLTMyMzI5NWNiNzUyMyIsInVzZXIiOnsicGVyc29uIjp7ImlkIjoiSS5BLkRvbWFzaG5pa2giLCJndWlkIjoiZDRhZjA3NzMtMTQzZC0xMWUzLTgwZWEtMDAyNTkwMzBiNzRlIiwidGl0bGUiOiLQlNC-0LzQsNGI0L3QuNGFINCY0LLQsNC9INCQ0LvQtdC60YHQtdC10LLQuNGHIiwibGFzdE5hbWUiOiLQlNC-0LzQsNGI0L3QuNGFIiwiZmlyc3ROYW1lIjoi0JjQstCw0L0iLCJtaWRkbGVOYW1lIjoi0JDQu9C10LrRgdC10LXQstC40YciLCJlbWFpbCI6ImkuYS5kb21hc2huaWtoQHVyZnUucnUifSwicm9sZXMiOlt7InVzZXJUeXBlIjoiRW1wbG95ZWUiLCJpZCI6IjJhNzNkODEzLWEwNTgtMTFlZC05ZGMyLTI0OGEwN2Q3YmZlMSIsImVtcGxveW1lbnRUeXBlIjoi0JLQvdC10YjQvdC10LUg0YHQvtCy0LzQtdGB0YLQuNGC0LXQu9GM0YHRgtCy0L4iLCJwb3N0Ijoi0KHRgtCw0YDRiNC40Lkg0L_RgNC10L_QvtC00LDQstCw0YLQtdC70YwiLCJjYXRlZ29yeSI6ItCf0J_QoSIsInJhdGUiOjAuMjUsImRpdmlzaW9uSWQiOiI1N2E4OTBlNi04NmViLTQ0NTEtYWI2Zi05NDhhZGYxMmIyMjQiLCJkaXZpc2lvblRpdGxlIjoi0JTQtdC_0LDRgNGC0LDQvNC10L3RgiDQvNCw0YLQtdC80LDRgtC40LrQuCwg0LzQtdGF0LDQvdC40LrQuCDQuCDQutC-0LzQv9GM0Y7RgtC10YDQvdGL0YUg0L3QsNGD0LoifV19fQ.mlrbSTEGbd69f11nCUE7zhkaE6_SEM0HQzwWDmwBwBa-W8OwVNmhFfGNVaF9fjsPS_Hk6gafNFkUTaRGrYl0uY6SjOllCrvJGLQ_IUQIcaEGYaF123J71RnF2_-jvF6SrGUrEnwSW1xs14v1xCHH0R2UCIzNS9dgehjzghHhw6FKMXVNR7ifu1Q4bcu-oUxXpnEH2ix_xS3aKK-zE2U7oaSCp19FGvfhX_guxcyEMFRnpCBCA4XhV1aj-t4QCIKGkqhYTcgf-6tL6LuUOWD_jFiemxHZYdYEmAEkKiT2nLfUxQ0ke6jibpLuOZ8MhSBgP5QmVVOZvQ0-uBqUmrDAnA'
+  const teamProjectApi = new TeamProjectApiV2(new TeamProjectAuthV2(authJwt))
+  const executor = new CreateTeamProjectIterationsTaskExecutor(teamProjectApi)
+  await executor.executeAsync(task)
+}
+
+async function distributeStudentsIntoTeamsAsync() {
   const googleAuth = await GoogleAuth.createAsync('ask-if-not-saved')
   const taskReader = new TableTaskReader(new GoogleApi(googleAuth))
   const task = await taskReader.readTaskAsync('1Bj34VK2pe2KgfCQd3W00HaoswJPX6QqHGByVQHAacjM', 'Анализ')
@@ -224,101 +242,5 @@ async function cloneProjects() {
       },
       htmlContent,
     )
-  }
-}
-
-async function runTeamProject34CreateIterations() {
-  const save = false
-
-  const it3start = new JustDate(2023, 10, 30)
-  const it3end = new JustDate(2023, 11, 12)
-  const it4start = new JustDate(2023, 11, 13)
-  const it4end = new JustDate(2023, 11, 26)
-  const it5start = new JustDate(2023, 11, 27)
-  const it5end = new JustDate(2023, 12, 10)
-  const it6start = new JustDate(2023, 12, 11)
-  const it6end = new JustDate(2023, 12, 24)
-
-  const authJwt = 'Bearer ...'
-  const auth = new TeamProjectAuthV2(authJwt)
-  const teamProjectApi = new TeamProjectApiV2(auth)
-
-  const projects = (await teamProjectApi.getWorkspacesAsync('active', 2023, 1, 1, 100)).items
-  const filteredProjects = projects.filter(
-    (it) =>
-      !it.title.startsWith('Веб-приложение') &&
-      !it.title.startsWith('Новый продукт') &&
-      !it.title.startsWith('Используемое приложение'),
-  )
-
-  for (const project of filteredProjects) {
-    console.log('# Проект', project.title, project.instanceNumber)
-
-    const iterations = await teamProjectApi.getIterationsAsync(project.id)
-
-    if (iterations.length === 0) {
-      console.log('Добавление итераций...')
-      if (save) {
-        const r3 = await teamProjectApi.postIterationAsync(project.id, 'Спринт 3', '', it3start, it3end)
-        console.log(r3)
-
-        const r4 = await teamProjectApi.postIterationAsync(project.id, 'Спринт 4', '', it4start, it4end)
-        console.log(r4)
-
-        const r5 = await teamProjectApi.postIterationAsync(project.id, 'Спринт 5', '', it5start, it5end)
-        console.log(r5)
-
-        const r6 = await teamProjectApi.postIterationAsync(project.id, 'Спринт 6', '', it6start, it6end)
-        console.log(r6)
-      }
-    } else {
-      console.log('Итерации проекта:')
-      for (const iteration of iterations) {
-        console.log('- ', iteration.title)
-
-        await tryUpdateIteration(teamProjectApi, iteration, 'Спринт 3', it3start, it3end, project, save)
-        await tryUpdateIteration(teamProjectApi, iteration, 'Спринт 4', it4start, it4end, project, save)
-        await tryUpdateIteration(teamProjectApi, iteration, 'Спринт 5', it5start, it5end, project, save)
-        await tryUpdateIteration(teamProjectApi, iteration, 'Спринт 6', it6start, it6end, project, save)
-      }
-    }
-
-    console.log()
-  }
-}
-
-async function tryUpdateIteration(
-  teamProjectApi: TeamProjectApiV2,
-  iterationItem: IterationItem,
-  iterationName: string,
-  startDate: JustDate,
-  endDate: JustDate,
-  project: Workspace,
-  save: boolean,
-) {
-  if (iterationItem.title === iterationName) {
-    const iteration = await teamProjectApi.getIterationAsync(iterationItem.id)
-    const beginning = startDate.toDashedString()
-    const ending = endDate.toDashedString()
-    if (
-      !iteration.dates ||
-      !iteration.dates.beginning ||
-      iteration.dates.beginning != beginning ||
-      !iteration.dates.ending ||
-      iteration.dates.ending != ending
-    ) {
-      console.log('  Обновление... ', iterationItem.title)
-      if (save) {
-        const response = await teamProjectApi.putIterationAsync(
-          iteration.id,
-          iteration.title,
-          iteration.description,
-          startDate,
-          endDate,
-        )
-        console.log(response)
-        console.log('  обновлено: ', iterationItem.title, beginning, ending)
-      }
-    }
   }
 }

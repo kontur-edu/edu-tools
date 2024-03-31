@@ -14,7 +14,8 @@ export class TableTaskReader {
     const indices = buildIndicesBy(header)
     const { task, ...params } = readParameters(headRows, indices)
     const rows = await readRowsAsync(this.googleApi, spreadsheetId, sheetName, indices)
-    return task ? new TableTask(task, params, rows) : null
+    const namespacedRows = distributeRowsByNamespace(rows)
+    return task ? new TableTask(task, params, namespacedRows) : null
   }
 }
 
@@ -87,7 +88,7 @@ async function readRowsAsync(
   spreadsheetId: string,
   sheetName: string,
   indices: Indices,
-): Promise<{ [key: string]: string }[]> {
+): Promise<Row[]> {
   const sheet = googleApi.openSpreadsheet(spreadsheetId)
   const range = buildDataRange(sheetName, indices)
   const rows = (await sheet.readAsync(range)).values || []
@@ -103,6 +104,46 @@ async function readRowsAsync(
     result.push(rowObject)
   }
   return result
+}
+
+function distributeRowsByNamespace(rows: Row[]): NamespacedRows {
+  const result: NamespacedRows = {
+    rootNamespace: [],
+    byNamespace: {},
+  }
+
+  for (const row of rows) {
+    const root: Row = {}
+    const byNamespace: { [n: string]: Row } = {}
+
+    for (let key in row) {
+      const parts = key.split('.')
+      if (parts.length === 1) {
+        root[key] = row[key]
+      } else if (parts.length === 2) {
+        if (!byNamespace[parts[0]]) byNamespace[parts[0]] = {}
+        byNamespace[parts[0]][parts[1]] = row[key]
+      }
+    }
+
+    if (isFilled(root)) {
+      result.rootNamespace.push(root)
+    }
+    for (const n of Object.keys(byNamespace)) {
+      const r = byNamespace[n]
+      if (isFilled(r)) {
+        result.byNamespace[n] = result.byNamespace[n] || []
+        if (!result.byNamespace[n]) result.byNamespace[n] = []
+        result.byNamespace[n].push(r)
+      }
+    }
+  }
+
+  return result
+
+  function isFilled(r: Row) {
+    return Object.values(r).reduce((acc, value) => acc || value !== '' && value !== undefined, false)
+  }
 }
 
 function buildDataRange(sheetName: string, indices: Indices) {
@@ -126,11 +167,13 @@ export class TableTask {
   name: string
   params: { [key: string]: string }
   rows: { [key: string]: string }[]
+  rowsByNamespace: { [namespace: string]: { [key: string]: string }[] }
 
-  constructor(name: string, params: { [key: string]: string }, rows: { [key: string]: string }[]) {
+  constructor(name: string, params: { [key: string]: string }, namespacedRows: NamespacedRows) {
     this.name = name
     this.params = params
-    this.rows = rows
+    this.rows = namespacedRows.rootNamespace
+    this.rowsByNamespace = namespacedRows.byNamespace
   }
 
   getStringParam(name: string): string | null {
@@ -167,4 +210,13 @@ export class TableTask {
       return defaultValue
     }
   }
+}
+
+interface NamespacedRows {
+  rootNamespace: Row[]
+  byNamespace: { [n: string]: Row[] }
+}
+
+interface Row {
+  [k: string]: string
 }
