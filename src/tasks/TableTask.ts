@@ -1,6 +1,38 @@
 import { GoogleApi } from '../apis/GoogleApi.js'
 import { normalizeString } from '../helpers/tools.js'
 
+export class TableTaskWriter {
+  googleApi: GoogleApi
+  spreadsheetId: string
+  sheetName: string
+
+  constructor(googleApi: GoogleApi, spreadsheetId: string, sheetName: string) {
+    this.googleApi = googleApi
+    this.spreadsheetId = spreadsheetId
+    this.sheetName = sheetName
+  }
+
+  async batchWriteAsync(leftIndex: number, topIndex: number, values: any[][]) {
+    if (values.length < 1) {
+      return
+    }
+    const width = values[0].length
+
+    const batchSize = 50
+    for (let i = 0; i < values.length; ) {
+      const batch = values.slice(i, i + batchSize)
+      await this.writeAsync(leftIndex, leftIndex + width - 1, topIndex + i, batch)
+      i += batch.length
+    }
+  }
+
+  async writeAsync(leftIndex: number, rightIndex: number, topIndex: number, values: any[][]): Promise<void> {
+    const sheet = this.googleApi.openSpreadsheet(this.spreadsheetId)
+    const range = buildDataRange(this.sheetName, leftIndex, rightIndex, topIndex)
+    await sheet.writeAsync(range, values)
+  }
+}
+
 export class TableTaskReader {
   googleApi: GoogleApi
 
@@ -15,7 +47,7 @@ export class TableTaskReader {
     const { task, ...params } = readParameters(headRows, indices)
     const rows = await readRowsAsync(this.googleApi, spreadsheetId, sheetName, indices)
     const namespacedRows = distributeRowsByNamespace(rows)
-    return task ? new TableTask(task, params, namespacedRows) : null
+    return task ? new TableTask(task, params, namespacedRows, indices) : null
   }
 }
 
@@ -90,7 +122,7 @@ async function readRowsAsync(
   indices: Indices,
 ): Promise<Row[]> {
   const sheet = googleApi.openSpreadsheet(spreadsheetId)
-  const range = buildDataRange(sheetName, indices)
+  const range = buildDataRange(sheetName, indices.leftIndex, indices.rightIndex)
   const rows = (await sheet.readAsync(range)).values || []
 
   const result: { [key: string]: string }[] = []
@@ -142,17 +174,28 @@ function distributeRowsByNamespace(rows: Row[]): NamespacedRows {
   return result
 
   function isFilled(r: Row) {
-    return Object.values(r).reduce((acc, value) => acc || value !== '' && value !== undefined, false)
+    return Object.values(r).reduce((acc, value) => acc || (value !== '' && value !== undefined), false)
   }
 }
 
-function buildDataRange(sheetName: string, indices: Indices) {
-  if (!Number.isFinite(indices.leftIndex) || !Number.isFinite(indices.rightIndex)) {
-    return `${sheetName}!A2:A`
+function buildDataRange(sheetName: string, leftIndex: number, rightIndex: number, topIndex: number = 1) {
+  if (!Number.isFinite(leftIndex) || !Number.isFinite(rightIndex)) {
+    return `${sheetName}!A${topIndex + 1}:A`
   }
-  const leftLetter = String.fromCharCode('A'.charCodeAt(0) + indices.leftIndex)
-  const rightLetter = String.fromCharCode('A'.charCodeAt(0) + indices.rightIndex)
-  return `${sheetName}!${leftLetter}2:${rightLetter}`
+
+  const leftLetter = index2letter(leftIndex)
+  const rightLetter = index2letter(rightIndex)
+  return `${sheetName}!${leftLetter}${topIndex + 1}:${rightLetter}`
+}
+
+function index2letter(index: number) {
+  const size = 'Z'.charCodeAt(0) - 'A'.charCodeAt(0) + 1
+  const big = Math.floor(index / size)
+  const little = index % size
+
+  return big > 0
+    ? String.fromCharCode('A'.charCodeAt(0) + (big - 1)) + String.fromCharCode('A'.charCodeAt(0) + little)
+    : String.fromCharCode('A'.charCodeAt(0) + little)
 }
 
 interface Indices {
@@ -168,12 +211,14 @@ export class TableTask {
   params: { [key: string]: string }
   rows: { [key: string]: string }[]
   rowsByNamespace: { [namespace: string]: { [key: string]: string }[] }
+  columns: { [key: string]: number }
 
-  constructor(name: string, params: { [key: string]: string }, namespacedRows: NamespacedRows) {
+  constructor(name: string, params: { [key: string]: string }, namespacedRows: NamespacedRows, indices: Indices) {
     this.name = name
     this.params = params
     this.rows = namespacedRows.rootNamespace
     this.rowsByNamespace = namespacedRows.byNamespace
+    this.columns = indices.columns
   }
 
   getStringParam(name: string): string | null {
@@ -182,6 +227,10 @@ export class TableTask {
 
   getIntParam(name: string): number | null {
     return this.getParam(name, (it) => parseInt(it, 10), null)
+  }
+
+  getIntArrayParam(name: string): Array<number> | null {
+    return this.getParam(name, (it) => it.split(',').map(p => parseInt(p.trim(), 10)), null)
   }
 
   getBoolParam(name: string): boolean | null {
