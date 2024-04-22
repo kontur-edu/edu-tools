@@ -67,30 +67,30 @@ export class ExportTechnologyCardsTaskExecutor {
 }
 
 function extractTask(tableTask: TableTask): ExportTechnologyCardsTask | null {
-  const academicYear = tableTask.getCustomParam('academicYear', (it) => parseInt(it.split('/')[0], 10))
+  const academicYear = tableTask.getParam('academicYear').getCustom((it) => parseInt(it.split('/')[0], 10))
   if (academicYear === null) {
     console.log('- academicYear is required❗')
     return null
   }
   console.log(`- academicYear: ${academicYear}`)
 
-  const semester = tableTask.getCustomParam('semester', (it) =>
-    compareNormalized(it, 'fall') ? 1 : compareNormalized(it, 'spring') ? 2 : null,
-  )
+  const semester = tableTask
+    .getParam('semester')
+    .getCustom((it) => (compareNormalized(it, 'fall') ? 1 : compareNormalized(it, 'spring') ? 2 : null))
   if (semester === null) {
     console.log('- semester is required❗')
     return null
   }
   console.log(`- semester: ${semester}`)
 
-  const studyYears = tableTask.getIntArrayParam('studyYears')
+  const studyYears = tableTask.getParam('studyYears').getIntArray()
   if (studyYears === null) {
     console.log('- studyYears is required❗')
     return null
   }
   console.log(`- studyYears: ${studyYears.join(', ')}`)
 
-  const isModule = tableTask.getBoolParam('ismodule') || false
+  const isModule = tableTask.getParam('ismodule').getBool() || false
   console.log(`- isModule: ${isModule}`)
 
   return {

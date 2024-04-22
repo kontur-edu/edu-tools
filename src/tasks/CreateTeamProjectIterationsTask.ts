@@ -37,11 +37,11 @@ export class CreateTeamProjectIterationsTaskExecutor {
       pageNumber++
     }
 
-    const projectIdSet: {[k: string]: boolean} = {}
-    for(const id of task.projectsIds) {
+    const projectIdSet: { [k: string]: boolean } = {}
+    for (const id of task.projectsIds) {
       projectIdSet[id] = true
     }
-    const suitableProjects = projects.filter(p => projectIdSet[p.id] )
+    const suitableProjects = projects.filter((p) => projectIdSet[p.id])
 
     for (const project of suitableProjects) {
       console.log('## Проект', project.title, project.instanceNumber)
@@ -111,23 +111,23 @@ async function tryUpdateIteration(
 }
 
 function extractTask(tableTask: TableTask): CreateTeamProjectIterationsTask | null {
-  const academicYear = tableTask.getCustomParam('academicYear', (it) => parseInt(it.split('/')[0], 10))
+  const academicYear = tableTask.getParam('academicYear').getCustom((it) => parseInt(it.split('/')[0], 10))
   if (academicYear === null) {
     console.log('- academicYear необходим❗')
     return null
   }
   console.log(`- academicYear: ${academicYear}`)
 
-  const semester = tableTask.getCustomParam('semester', (it) =>
-    compareNormalized(it, 'fall') ? 1 : compareNormalized(it, 'spring') ? 2 : null,
-  )
+  const semester = tableTask
+    .getParam('semester')
+    .getCustom((it) => (compareNormalized(it, 'fall') ? 1 : compareNormalized(it, 'spring') ? 2 : null))
   if (semester === null) {
     console.log('- semester необходим❗')
     return null
   }
   console.log(`- semester: ${semester}`)
 
-  const save = tableTask.getBoolParam('save') || false
+  const save = tableTask.getParam('save').getBool() || false
   console.log(save ? `- режим save включен ⚡` : `- режим save выключен`)
 
   const projectIds = tableTask.rows.map(convertRow2ProjectId).filter((it) => it !== null) as string[]
@@ -135,9 +135,7 @@ function extractTask(tableTask: TableTask): CreateTeamProjectIterationsTask | nu
   let iterations: Array<Iteration> = []
   const iterationRows = tableTask.rowsByNamespace['iteration']
   if (iterationRows) {
-    iterations = iterationRows
-      .map(convertRow2Iteration)
-      .filter((it) => it !== null) as Iteration[]
+    iterations = iterationRows.map(convertRow2Iteration).filter((it) => it !== null) as Iteration[]
     if (iterations.length < iterationRows.length) {
       console.log(`- Итераций найдено: ${iterations.length}. Но обработано больше рядов: ${iterationRows.length}❗`)
     } else {

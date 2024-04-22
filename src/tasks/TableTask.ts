@@ -208,9 +208,9 @@ interface Indices {
 
 export class TableTask {
   name: string
-  params: { [key: string]: string }
-  rows: { [key: string]: string }[]
-  rowsByNamespace: { [namespace: string]: { [key: string]: string }[] }
+  params: Row
+  rows: Row[]
+  rowsByNamespace: { [namespace: string]: Row[] }
   columns: { [key: string]: number }
 
   constructor(name: string, params: { [key: string]: string }, namespacedRows: NamespacedRows, indices: Indices) {
@@ -221,44 +221,70 @@ export class TableTask {
     this.columns = indices.columns
   }
 
-  getStringParam(name: string): string | null {
-    return this.getParam(name, (it) => it, null)
+  getParam(name: string): TableTaskValue {
+    return TableTaskValue.extract(this.params, name)
+  }
+}
+
+export class TableTaskValue {
+  value: string
+
+  constructor(value: string) {
+    this.value = value
   }
 
-  getIntParam(name: string): number | null {
-    return this.getParam(name, (it) => parseInt(it, 10), null)
+  getString(): string | null {
+    return this.getCustom(extractString)
   }
 
-  getIntArrayParam(name: string): Array<number> | null {
-    return this.getParam(name, (it) => it.split(',').map(p => parseInt(p.trim(), 10)), null)
+  getInt(): number | null {
+    return this.getCustom(extractInt)
   }
 
-  getBoolParam(name: string): boolean | null {
-    return this.getParam(
-      name,
-      (it) => {
-        if (it.toLowerCase() === 'true') return true
-        if (it.toLowerCase() === 'false') return false
-        return !!parseInt(it, 10)
-      },
-      null,
-    )
+  getIntArray(): Array<number> | null {
+    return this.getCustom(extractIntArray)
   }
 
-  getCustomParam<T>(name: string, process: (it: string) => T | null): T | null {
-    return this.getParam<T | null>(name, process, null)
+  getBool(): boolean | null {
+    return this.getCustom(extractBool)
   }
 
-  getParam<T>(name: string, process: (it: string) => T, defaultValue: T) {
-    const value = this.params[normalizeString(name)]
-    if (value === undefined) return defaultValue
+  getCustom<T>(process: (it: string) => T | null): T | null {
+    return this.get<T | null>(process, null)
+  }
+
+  get<T>(process: (it: string) => T, defaultValue: T) {
+    if (this.value === undefined) return defaultValue
     try {
-      const processedValue = process(value)
+      const processedValue = process(this.value)
       return processedValue !== undefined ? processedValue : defaultValue
     } catch (e) {
       return defaultValue
     }
   }
+
+  static extract(row: Row, name: string) {
+    const value = row[normalizeString(name)]
+    return new TableTaskValue(value)
+  }
+}
+
+function extractIntArray(it: string): Array<number> {
+  return it.split(',').map((p) => parseInt(p.trim(), 10))
+}
+
+function extractBool(it: string): boolean {
+  if (it.toLowerCase() === 'true') return true
+  if (it.toLowerCase() === 'false') return false
+  return !!parseInt(it, 10)
+}
+
+function extractInt(it: string): number {
+  return parseInt(it, 10)
+}
+
+function extractString(it: string): string {
+  return it
 }
 
 interface NamespacedRows {

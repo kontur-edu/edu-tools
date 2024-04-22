@@ -135,31 +135,31 @@ async function processTeam(
 }
 
 function extractTask(tableTask: TableTask): DistributeStudentsIntoTeamsTask | null {
-  const academicYear = tableTask.getCustomParam('academicYear', (it) => parseInt(it.split('/')[0], 10))
+  const academicYear = tableTask.getParam('academicYear').getCustom((it) => parseInt(it.split('/')[0], 10))
   if (academicYear === null) {
     console.log('- academicYear is required❗')
     return null
   }
   console.log(`- academicYear: ${academicYear}`)
 
-  const semester = tableTask.getCustomParam('semester', (it) =>
-    compareNormalized(it, 'fall') ? 1 : compareNormalized(it, 'spring') ? 2 : null,
-  )
+  const semester = tableTask
+    .getParam('semester')
+    .getCustom((it) => (compareNormalized(it, 'fall') ? 1 : compareNormalized(it, 'spring') ? 2 : null))
   if (semester === null) {
     console.log('- semester is required❗')
     return null
   }
   console.log(`- semester: ${semester}`)
 
-  const studyYear = tableTask.getIntParam('studyYear')
+  const studyYear = tableTask.getParam('studyYear').getInt()
   if (studyYear === null) {
     console.log('- studyYear is required❗')
     return null
   }
   console.log(`- studyYear: ${studyYear}`)
 
-  const save = tableTask.getBoolParam('save') || false
-  console.log(save ? `- save mode on ⚡`: `- save mode off`)
+  const save = tableTask.getParam('save').getBool() || false
+  console.log(save ? `- save mode on ⚡` : `- save mode off`)
 
   const students = tableTask.rows.map(convertRow2Student).filter((it) => it !== null) as Student[]
   if (students.length < tableTask.rows.length) {

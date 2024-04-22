@@ -1,6 +1,11 @@
-import { BrsApi, TechnologyCard, TermType } from '../apis/BrsApi.js'
+import { BrsApi, TechnologyCard } from '../apis/BrsApi.js'
 
-export async function fillTechnologyCard(brsApi: BrsApi, card: TechnologyCard, save: boolean = false) {
+export async function fillTechnologyCardAsync(
+  brsApi: BrsApi,
+  card: TechnologyCard,
+  agree: boolean,
+  save: boolean = false,
+) {
   console.log(
     `🚩 Обработка техкарты по предмету "${card.discipline}" для групп "${card.group}" ${card.isModule ? 'из ИТС' : ''}`,
   )
@@ -126,19 +131,35 @@ export async function fillTechnologyCard(brsApi: BrsApi, card: TechnologyCard, s
     factorCount -= 1
   }
 
-  const checkResult = await brsApi.checkTechnologyCardAsync(card);
+  const checkResult = await brsApi.checkTechnologyCardAsync(card)
   if (checkResult.isFilled) {
     console.log(`🟩 Техкарта заполнена корректно`)
     if (checkResult.isAllowedToAgree) {
       console.log(`🟩 Техкарта может быть согласована`)
+      if (agree) {
+        if (card.agreed) {
+          console.log(`🟨 Техкарта уже согласована`)
+        } else {
+          if (save) {
+            await brsApi.agreeTechnologyCardAsync(card, agree)
+          }
+          console.log(`🟩 Техкарта согласована`)
+        }
+      } else {
+        console.log(`🟨 Согласование карты не запрошено`)
+      }
     } else {
       console.log(`🟨 Можно запросить согласование техкарты`)
     }
   } else {
-    console.log(`🟥 Техкарта содержит ошибки`)
-    console.log(`🟥 Для согласования требуется исправить ошибки`)
+    if (save) {
+      console.log(`🟥 Техкарта содержит ошибки`)
+      console.log(`🟥 Для согласования требуется исправить ошибки`)
+    } else {
+      console.log(`🟨 Техкарта содержит ошибки, потому что заполняется только в режиме save`)
+    }
   }
-  
+
   console.log('✅ Обработка техкарты завершена')
   console.log()
 }
