@@ -11,9 +11,6 @@ const TELEGRAM_URL = process.env.TELEGRAM_URL || ''
 const TELEGRAM_NEED_LAUNCH =
   (process.env.TELEGRAM_NEED_LAUNCH && process.env.TELEGRAM_NEED_LAUNCH.toLowerCase() === 'true') || false
 const NOTION_RESOURCES_DB = process.env.NOTION_RESOURCES_DB || ''
-const NOTION_TASKS_DB = process.env.NOTION_TASKS_DB || ''
-const RESOURCE_ICON = 'https://www.notion.so/icons/bookmark_gray.svg'
-const TASK_ICON = 'https://www.notion.so/icons/checkmark_gray.svg'
 
 const bot = new Telegraf(TELEGRAM_TOKEN, {
   handlerTimeout: Infinity,
@@ -35,41 +32,22 @@ bot.on(message('text'), async (ctx) => {
     }
     hideLoader = await showLoader(ctx)
 
-    const preHtmlText = toHTML(ctx.message).trim()
-    const isResource = preHtmlText.startsWith('.')
-    const htmlText = isResource ? preHtmlText.substring(1) : preHtmlText
+    const htmlText = toHTML(ctx.message).trim()
 
     const newLineIndex = htmlText.indexOf('\n')
     const header = 0 < newLineIndex ? htmlText.substring(0, newLineIndex).trim() : htmlText
     const content = 0 < newLineIndex && newLineIndex + 1 < htmlText.length ? htmlText.substring(newLineIndex + 1) : null
 
-    if (isResource) {
-      const notionResponse = await notionApi.addHtmlPageAsync(
-        NOTION_RESOURCES_DB,
-        { type: 'external', external: { url: RESOURCE_ICON } },
-        header ?? 'Ресурс',
-        {},
-        content ?? '',
-      )
-      hideLoader()
+    const notionResponse = await notionApi.addHtmlPageAsync(
+      NOTION_RESOURCES_DB,
+      null, //{ type: 'external', external: { url: RESOURCE_ICON } },
+      header ?? 'Ресурс',
+      {},
+      content ?? '',
+    )
+    hideLoader()
 
-      ctx.reply(`Создан ресурс\n${header}\n${notionResponse.url}`)
-    } else {
-      const notionResponse = await notionApi.addHtmlPageAsync(
-        NOTION_TASKS_DB,
-        { type: 'external', external: { url: TASK_ICON } },
-        header ?? 'Задача',
-        {
-          Приоритет: {
-            select: { name: '🔵' },
-          },
-        },
-        content ?? '',
-      )
-      hideLoader()
-
-      ctx.reply(`Создана задача\n${header}\n${notionResponse.url}`)
-    }
+    ctx.reply(`Создан ресурс\n${header}\n${notionResponse.url}`)
   } catch (e: unknown) {
     if (typeof e === 'string') {
       console.log('Error while processing text', e)
