@@ -77,6 +77,21 @@ export class TeamProjectApiV2 {
     const response = await fetchApiWithBodyAsJsonAsync<object>(this.auth, 'PUT', url, body)
     return response
   }
+
+  async getIterationScoresAsync(iterationId: string): Promise<IterationScores> {
+    const url = `/iterations/${iterationId}/scores`
+    const response = await fetchApiAsJsonAsync<IterationScores>(this.auth, url)
+    return response
+  }
+
+  async putCuratorScoreAsync(iterationId: number, studentId: string, score: number): Promise<object> {
+    const body: ScorePut = {
+      score,
+    }
+    const url = `/iterations/${iterationId}/grades/students/${studentId}`
+    const response = await fetchApiWithBodyAsJsonAsync<object>(this.auth, 'PUT', url, body)
+    return response
+  }
 }
 
 async function fetchApiWithBodyAsJsonAsync<T>(
@@ -226,13 +241,56 @@ export interface Iteration {
   id: number
   title: string
   description: string | null
-  dates: IterationDates
+  dates: Period
   canChange: boolean
   canDelete: boolean
   canCreateTask: boolean
 }
 
-export interface IterationDates {
+export interface IterationScores {
+  isCurator: boolean
+  iteration: IterationScoresIteration
+  gradeFromCurator: null
+  mutualGradingInfo: null
+  thematicGroups: Array<ThematicGroup>
+  curator: null
+  comments: []
+}
+
+export interface IterationScoresIteration {
+  isGradingOpened: boolean // true
+  gradingPeriod: Period
+  gradeFromCurator: null // null
+  mutualGradingInfo: null // null
+  thematicGroups: Array<ThematicGroup>
+  curator: null // null
+  comments: Array<object> // []
+}
+
+export interface ThematicGroup {
+  id: number // 38458,
+  programTitle: string // "Разработка программных продуктов",
+  students: Array<ThematicGroupStudent>
+}
+
+export interface ThematicGroupStudent {
+  studentId: string // "studen195e3pg0000nmtmendjao666tk",
+  person: Person
+  role: string | null // null,
+  score: number | null // 100,
+  comment: null // null
+}
+
+export interface ScorePut {
+  score: number
+}
+
+export interface Person {
+  fullname: string // "Кук Андрей Вадимович",
+  photo: string //null
+}
+
+export interface Period {
   beginning: string // "2023-10-30"
   ending: string // "2023-11-12"
 }
