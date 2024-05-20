@@ -63,11 +63,26 @@ bot.on(message('text'), async (ctx) => {
 })
 
 export const cloudHandler = async function (event: any, context: any) {
-  const message = JSON.parse(event.body)
-  await bot.handleUpdate(message)
-  return {
-    statusCode: 200,
-    body: '',
+  try {
+    if (!event || !event.body) {
+      return {
+        statusCode: 200,
+        body: 'pong',
+      }
+    }
+
+    const message = JSON.parse(event.body)
+    await bot.handleUpdate(message)
+    return {
+      statusCode: 200,
+      body: '',
+    }
+  } catch (e) {
+    console.error(e)
+    return {
+      statusCode: 500,
+      body: '',
+    }
   }
 }
 
