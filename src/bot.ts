@@ -8,8 +8,6 @@ import fetch from 'node-fetch'
 
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || ''
 const TELEGRAM_URL = process.env.TELEGRAM_URL || ''
-const TELEGRAM_NEED_LAUNCH =
-  (process.env.TELEGRAM_NEED_LAUNCH && process.env.TELEGRAM_NEED_LAUNCH.toLowerCase() === 'true') || false
 const NOTION_RESOURCES_DB = process.env.NOTION_RESOURCES_DB || ''
 
 const bot = new Telegraf(TELEGRAM_TOKEN, {
@@ -87,21 +85,13 @@ export const cloudHandler = async function (event: any, context: any) {
 }
 
 export async function cloudRegister() {
-  const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/setWebhook`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: `{"url": "${TELEGRAM_URL}"}`,
-  })
-
+  console.log('cloudRegister')
+  const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/setWebhook?url=${encodeURIComponent(TELEGRAM_URL)}`
+  const response = await fetch(url)
   console.log(response)
 }
 
 export async function localLaunch() {
+  console.log('localLaunch')
   await bot.launch()
-}
-
-if (TELEGRAM_NEED_LAUNCH) {
-  localLaunch()
 }

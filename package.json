@@ -14,7 +14,7 @@
     "build": "rimraf ./build && npx tsc",
     "start": "npm run build && node build/main",
     "bot-dev": "npx nodemon --exec npx ts-node ./src/bot.ts",
-    "bot-start": "npm run build && node build/bot",
+    "bot-start": "npm run build && node build/bot-start",
     "bot-register": "node build/bot-register",
     "lint": "npx eslint ./src",
     "format": "npx eslint ./src --fix"

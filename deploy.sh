@@ -14,7 +14,7 @@ yc serverless function version create \
     --runtime nodejs18 \
     --execution-timeout 120s \
     --memory 512MB \
-    --environment TELEGRAM_TOKEN=${TELEGRAM_TOKEN},TELEGRAM_URL=${TELEGRAM_URL},TELEGRAM_NEED_LAUNCH=false,NOTION_TOKEN=${NOTION_TOKEN},NOTION_RESOURCES_DB=${NOTION_RESOURCES_DB} \
+    --environment TELEGRAM_TOKEN=${TELEGRAM_TOKEN},TELEGRAM_URL=${TELEGRAM_URL},NOTION_TOKEN=${NOTION_TOKEN},NOTION_RESOURCES_DB=${NOTION_RESOURCES_DB} \
     --source-path build
 
 echo "4. Registering at Telegram"
