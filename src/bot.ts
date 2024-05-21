@@ -45,7 +45,7 @@ bot.on(message('text'), async (ctx) => {
     )
     hideLoader()
 
-    ctx.reply(`Создан ресурс\n${header}\n${notionResponse.url}`)
+    ctx.reply(`Создан ресурс\n${header}\n\n${notionResponse.url}`)
   } catch (e: unknown) {
     if (typeof e === 'string') {
       console.log('Error while processing text', e)
