@@ -23,19 +23,19 @@ export class TeamProjectApiV2 {
     semester: Semester,
     pageNumber: number,
     pageSize: number,
-  ): Promise<Workspaces> {
+  ): Promise<Workspaces | null> {
     const url = `/workspaces?status=${status}&year=${year}&semester=${semester}&page=${pageNumber}&size=${pageSize}`
     const response = await fetchApiAsJsonAsync<Workspaces>(this.auth, url)
     return response
   }
 
-  async getIterationsAsync(workspaceId: string): Promise<Array<IterationItem>> {
+  async getIterationsAsync(workspaceId: string): Promise<Array<IterationItem> | null> {
     const url = `/workspaces/${workspaceId}/iterations`
     const response = await fetchApiAsJsonAsync<Array<IterationItem>>(this.auth, url)
     return response
   }
 
-  async getIterationAsync(iterationId: number): Promise<Iteration> {
+  async getIterationAsync(iterationId: number): Promise<Iteration | null> {
     const url = `/iterations/${iterationId}`
     const response = await fetchApiAsJsonAsync<Iteration>(this.auth, url)
     return response
@@ -47,7 +47,7 @@ export class TeamProjectApiV2 {
     description: string,
     dateBegin: JustDate,
     dateEnd: JustDate,
-  ): Promise<object> {
+  ): Promise<object | null> {
     const body: IterationPost = {
       title,
       description: description,
@@ -65,7 +65,7 @@ export class TeamProjectApiV2 {
     description: string | null,
     dateBegin: JustDate,
     dateEnd: JustDate,
-  ): Promise<object> {
+  ): Promise<object | null> {
     const body: IterationPut = {
       id: iterationId,
       title: title,
@@ -81,16 +81,17 @@ export class TeamProjectApiV2 {
   async getIterationScoresAsync(iterationId: string): Promise<IterationScores> {
     const url = `/iterations/${iterationId}/scores`
     const response = await fetchApiAsJsonAsync<IterationScores>(this.auth, url)
-    return response
+    return response!
   }
 
-  async putCuratorScoreAsync(iterationId: number, studentId: string, score: number): Promise<object> {
+  async putCuratorScoreAsync(iterationId: number, studentId: string, score: number): Promise<boolean> {
     const body: ScorePut = {
       score,
     }
     const url = `/iterations/${iterationId}/grades/students/${studentId}`
+    
     const response = await fetchApiWithBodyAsJsonAsync<object>(this.auth, 'PUT', url, body)
-    return response
+    return response !== null
   }
 }
 
@@ -99,7 +100,7 @@ async function fetchApiWithBodyAsJsonAsync<T>(
   method: HttpMethod,
   uri: string,
   body: object,
-): Promise<T> {
+): Promise<T | null> {
   const response = await fetchApiAsJsonAsync<T>(
     auth,
     uri,
@@ -120,13 +121,19 @@ async function fetchApiAsJsonAsync<T>(
   maybeOptions?: RequestOptions,
   maybeHeaders?: RequestHeaders,
   maybeCookies?: RequestCookies,
-): Promise<T> {
+): Promise<T | null> {
   const response = await fetchApiAsync(auth, uri, maybeOptions, maybeHeaders, maybeCookies)
   // const text = await response.text()
   // if (text.trimLeft().startsWith('<!DOCTYPE html>')) {
   //   throw new Error(uri + ' is Forbidden')
   // }
-  return (await response.json()) as T
+  try {
+    const json = await response.json()
+    return json as T
+  }
+  catch (e) {
+    return null
+  }
 }
 
 async function fetchApiAsync(
@@ -299,6 +306,6 @@ type ProjectKind = 'MONOPROGRAM'
 
 type WorkspaceStatus = 'active'
 
-type Semester = 1 | 2
+export type Semester = 1 | 2
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'OPTIONS' | 'HEAD'

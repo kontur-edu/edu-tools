@@ -1,7 +1,7 @@
-import { IterationItem, TeamProjectApiV2, Workspace } from '../apis/TeamProjectApiV2.js'
-import JustDate from '../helpers/JustDate.js'
+import { TeamProjectApiV2, Workspace } from '../apis/TeamProjectApiV2.js'
 import { compareNormalized, startsWithNormalized } from '../helpers/tools.js'
 import { TableTask, TableTaskValue } from './TableTask.js'
+import { WorkspaceInfo } from './WorkspaceInfo.js'
 
 export class SendCuratorMarksTaskExecutor {
   teamProjectApi: TeamProjectApiV2
@@ -20,11 +20,17 @@ export class SendCuratorMarksTaskExecutor {
       return
     }
 
-    const suitableProjects = await this.getSuitableProjectsAsync(task)
+    const workspaceInfos = task.marks.map((it) => it.workspaceInfo).filter((it) => it !== null) as WorkspaceInfo[]
+    const suitableWorkspaces = await WorkspaceInfo.getWorkspacesByInfosAsync(
+      this.teamProjectApi,
+      task.academicYear,
+      task.semester,
+      workspaceInfos,
+    )
 
     let marks = [...task.marks]
-    for (const project of suitableProjects) {
-      marks = await this.executeProjectAsync(project, task, marks)
+    for (const workspace of suitableWorkspaces) {
+      marks = await this.executeProjectAsync(workspace, task, marks)
     }
 
     this.logTotals(marks)
@@ -32,37 +38,10 @@ export class SendCuratorMarksTaskExecutor {
     console.log(`✅ Выполнение задания завершено`)
   }
 
-  async getSuitableProjectsAsync(task: SendCuratorMarksTask) {
-    const pageSize = 100
-    const projects: Workspace[] = []
-    let pageNumber = 1
-    let total = pageSize
-    while ((pageNumber - 1) * pageSize < total) {
-      const r = await this.teamProjectApi.getWorkspacesAsync(
-        'active',
-        task.academicYear,
-        task.semester,
-        pageNumber,
-        pageSize,
-      )
-      projects.push(...r.items)
-      total = r.total
-      pageNumber++
-    }
-
-    const projectIdSet: { [k: string]: boolean } = {}
-    for (const studentMark of task.marks) {
-      projectIdSet[studentMark.projectId] = true
-    }
-    const suitableProjects = projects.filter((p) => projectIdSet[p.id])
-
-    return suitableProjects
-  }
-
   async executeProjectAsync(project: Workspace, task: SendCuratorMarksTask, marks: Array<StudentMark>) {
     console.log('## Проект', project.title, project.instanceNumber)
 
-    const iterations = await this.teamProjectApi.getIterationsAsync(project.id)
+    const iterations = (await this.teamProjectApi.getIterationsAsync(project.id)) || []
     const iteration = iterations[task.iterationNumber - 1]
     if (!iteration) {
       console.log(`❌ Не удалось найти итерацию "${task.iterationNumber}"`)
@@ -81,8 +60,9 @@ export class SendCuratorMarksTaskExecutor {
       return marks
     }
 
+    const studentMarks = task.marks.filter((it) => it.workspaceInfo?.checkMatch(project))
     let projectStudents = [...scores.thematicGroups[0].students]
-    const studentMarks = task.marks.filter((it) => it.projectId === project.id)
+    let failedMarks = 0
     for (const studentMark of studentMarks) {
       const projectStudent = projectStudents.filter((it) =>
         startsWithNormalized(it.person.fullname, studentMark.student),
@@ -95,10 +75,22 @@ export class SendCuratorMarksTaskExecutor {
       if (isNaN(studentMark.mark)) {
         console.log(`🟡 Студент "${studentMark.student}" проигнорирован`)
       } else if (projectStudent.score !== studentMark.mark) {
+        let result = true
         if (task.save) {
-          await this.teamProjectApi.putCuratorScoreAsync(iteration.id, projectStudent.studentId, studentMark.mark)
+          result = await this.teamProjectApi.putCuratorScoreAsync(
+            iteration.id,
+            projectStudent.studentId,
+            studentMark.mark,
+          )
         }
-        console.log(`🟢 Студенту "${studentMark.student}" выставлена оценка ${studentMark.mark}`)
+        if (result) {
+          console.log(`🟢 Студенту "${studentMark.student}" выставлена оценка ${studentMark.mark}`)
+        } else {
+          console.log(
+            `🔴 Студенту "${studentMark.student}" не выставлена оценка ${studentMark.mark}, текущая оцека ${projectStudent.score}`,
+          )
+          failedMarks++
+        }
       } else {
         console.log(`🟡 Студенту "${studentMark.student}" уже выставлена оценка ${studentMark.mark}`)
       }
@@ -115,6 +107,8 @@ export class SendCuratorMarksTaskExecutor {
       }
 
       console.log(`🟥 Не для всех студентов проекта указаны оценки`)
+    } else if (failedMarks > 0) {
+      console.log(`🟥 Не удалось выставить все оценки`)
     } else {
       console.log(`🟩 Всем студентам проекта выставлены оценки`)
     }
@@ -128,7 +122,7 @@ export class SendCuratorMarksTaskExecutor {
     if (marks.length > 0) {
       let errorCount = 0
       for (const studentMark of marks) {
-        if (studentMark.projectUrl && studentMark.projectUrl.length) {
+        if (studentMark.workspaceInfo && studentMark.workspaceInfo.key) {
           console.log(`🔴 Студент "${studentMark.student}" не найден ни в одном из проектов`)
           errorCount++
         } else {
@@ -198,19 +192,15 @@ function convertRow2StudentMark(row: { [key: string]: string }, iterationNumber:
 
   const student = TableTaskValue.extract(row, 'student').getString()
   const curator = TableTaskValue.extract(row, 'curator').getString()
-  const projectUrl = TableTaskValue.extract(row, 'projectUrl').getString()
-  const projectName = TableTaskValue.extract(row, 'projectName').getString()
   const mark = TableTaskValue.extract(row, `iteration${iterationNumber}`).getInt()
 
-  if (student !== null && curator !== null && projectUrl !== null && projectName !== null && mark !== null) {
-    const projectIdMatch = projectUrl.match(/https:\/\/teamproject.urfu.ru\/#\/([0-9abcdefABCDEF\-]+)(\/[a-zA-Z0-9])?/)
-    const projectId = (projectIdMatch && projectIdMatch[1]) || ''
+  if (student !== null && curator !== null && mark !== null) {
+    const workspaceInfo = WorkspaceInfo.extractFromRow(row)
 
     return {
       student,
       curator,
-      projectId,
-      projectUrl,
+      workspaceInfo,
       mark,
     }
   }
@@ -229,7 +219,14 @@ interface SendCuratorMarksTask {
 interface StudentMark {
   student: string
   curator: string
-  projectId: string
-  projectUrl: string
+  workspaceInfo: WorkspaceInfo | null
   mark: number
+}
+
+interface ProjectInfo {
+  url: string | null
+  name: string | null
+  number: number | null
+  id: string | null
+  key: string | null
 }

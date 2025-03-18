@@ -32,9 +32,9 @@ export class DistributeStudentsIntoTeamsTaskExecutor {
       const subgroups = await this.itsApi.getProjectSubgroupsAsync(group.project.PeriodId)
 
       for (const taskStudent of group.taskStudents) {
-        if (subgroups.filter((it) => it.Index === taskStudent.projectteam).length === 0) {
+        if (subgroups.filter((it) => it.Index === taskStudent.projectinstancenumber).length === 0) {
           console.log(
-            `🔴 Not found team "${taskStudent.projectteam}" for student "${taskStudent.fio}" of "${taskStudent.group}"`,
+            `🔴 Not found team "${taskStudent.projectinstancenumber}" for student "${taskStudent.fio}" of "${taskStudent.group}"`,
           )
         }
       }
@@ -81,7 +81,7 @@ async function processTeam(
   group: ProjectGroup,
   subgroup: ProjectSubgroup,
 ) {
-  const teamTaskStudents = group.taskStudents.filter((it) => it.projectteam === subgroup.Index)
+  const teamTaskStudents = group.taskStudents.filter((it) => it.projectinstancenumber === subgroup.Index)
   if (teamTaskStudents.length > 0) {
     console.log(`### Team "${subgroup.Index}"`)
     const studentCollection = await itsApi.getProjectSubgroupStudentsAsync(
@@ -181,14 +181,14 @@ function extractTask(tableTask: TableTask): DistributeStudentsIntoTeamsTask | nu
 }
 
 function convertRow2Student(row: { [key: string]: string }): Student | null {
-  if (!row.fio || !row.group || !row.projectname || !row.projectteam) {
+  if (!row.fio || !row.group || !row.projectname || !row.projectinstancenumber) {
     return null
   }
   return {
     fio: row.fio,
     group: row.group,
     projectname: row.projectname,
-    projectteam: parseInt(row.projectteam || '0', 10),
+    projectinstancenumber: parseInt(row.projectinstancenumber || '0', 10),
   }
 }
 
@@ -205,7 +205,7 @@ interface Student {
   fio: string
   group: string
   projectname: string
-  projectteam: number
+  projectinstancenumber: number
 }
 
 type ProjectGroup = { taskStudents: Array<Student>; project: Project }
