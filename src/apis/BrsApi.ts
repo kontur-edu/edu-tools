@@ -750,6 +750,7 @@ async function requestApiAsync(
         Cookie: `JSESSIONID=${auth.sid}`,
         ...headers,
       },
+      body: null,
       signal: AbortSignal.timeout(timeout),
     })
     return response

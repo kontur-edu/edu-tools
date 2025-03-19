@@ -9,7 +9,7 @@ import buildAutoMarksConfigAsync from './buildAutoMarksConfigAsync.js';
 import { ActualStudent } from './readStudentsAsync.js';
 import { GoogleApi } from '../apis/GoogleApi.js';
 
-export { PutMarksOptions, DisciplineConfig, ControlActionConfig, MarksData };
+export type { PutMarksOptions, DisciplineConfig, ControlActionConfig, MarksData };
 
 export default async function putMarksAutoAsync(
   brsApi: BrsApi,

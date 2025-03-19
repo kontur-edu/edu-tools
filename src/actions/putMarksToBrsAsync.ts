@@ -7,7 +7,7 @@ import putMarksForDisciplineAsync, {
 import { compareNormalized } from '../helpers/tools.js';
 import { ActualStudent } from './readStudentsAsync.js';
 
-export { PutMarksOptions, ControlActionConfig };
+export type { PutMarksOptions, ControlActionConfig };
 
 export default async function putMarksToBrsAsync(
   brsApi: BrsApi,

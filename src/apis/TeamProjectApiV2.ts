@@ -164,6 +164,7 @@ async function fetchApiAsync(
         Cookie: cookieHeader,
         ...headers,
       },
+      body: null,
       signal: AbortSignal.timeout(timeout),
     })
     return response

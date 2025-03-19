@@ -6,7 +6,7 @@ import putMarksToBrsAsync, {
   MarksData,
 } from './putMarksToBrsAsync.js';
 
-export { PutMarksOptions, DisciplineConfig, ControlActionConfig, MarksData };
+export type { PutMarksOptions, DisciplineConfig, ControlActionConfig, MarksData };
 
 export default async function putMarksToBrsManualAsync(
   brsApi: BrsApi,

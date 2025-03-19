@@ -213,6 +213,7 @@ async function fetchApiAsync(
       Cookie: cookieHeader,
       ...headers,
     },
+    body: null,
   })
   return response
 }
