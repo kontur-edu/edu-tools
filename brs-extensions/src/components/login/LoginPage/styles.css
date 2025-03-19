@@ -1,0 +1,18 @@
+.login-page .form {
+  width: 100%;
+  margin-top: 1px;
+}
+
+.login-page .greeting {
+  width: 600px;
+  margin: 0 auto;
+}
+
+.login-page .start-work-wrapper {
+  text-align: center;
+  padding-top: 25px;
+}
+
+.login-page .text-center {
+  text-align: center;
+}
