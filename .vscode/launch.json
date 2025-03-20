@@ -12,7 +12,8 @@
       "program": "${workspaceFolder}/src/main.ts",
       "outFiles": ["${workspaceFolder}/build/**/*.js"],
       "preLaunchTask": "npm: build",
-      "console": "integratedTerminal"
+      "console": "integratedTerminal",
+      "runtimeVersion": "22"
       //"smartStep": true
     },
     {
@@ -23,7 +24,8 @@
       "program": "${workspaceFolder}/src/bot.ts",
       "outFiles": ["${workspaceFolder}/build/**/*.js"],
       "preLaunchTask": "npm: build",
-      "console": "integratedTerminal"
+      "console": "integratedTerminal",
+      "runtimeVersion": "22"
       //"smartStep": true
     }
   ]

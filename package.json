@@ -1,9 +1,13 @@
 {
   "name": "edu-tools",
   "version": "1.0.0",
-  "description": "",
+  "private": true,
+  "description": "Инструменты для работы с образовательными системами",
   "main": "index.js",
   "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "husky": {
     "hooks": {
       "pre-commit": "npm run lint"
@@ -12,20 +16,29 @@
   "scripts": {
     "dev": "npx nodemon",
     "build": "rimraf ./build && npx tsc",
+    "lint": "npx eslint ./src",
+    "format": "npx eslint ./src --fix",
     "start": "npm run build && node build/main",
     "bot-dev": "npx nodemon --exec npx ts-node ./src/bot.ts",
     "bot-start": "npm run build && node build/bot-start",
     "bot-register": "node build/bot-register",
-    "lint": "npx eslint ./src",
-    "format": "npx eslint ./src --fix"
+    "web-start": "react-scripts start",
+    "web-build": "react-scripts build",
+    "web-test": "react-scripts test",
+    "web-eject": "react-scripts eject"
   },
-  "keywords": [],
+  "keywords": ["education", "tools"],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/dotenv-safe": "^8.1.6",
     "@types/node": "^18.11.10",
+    "@types/react": "^18.2.66",
+    "@types/react-dom": "^18.2.22",
     "@typescript-eslint/eslint-plugin": "^5.45.0",
     "@typescript-eslint/parser": "^5.45.0",
+    "ajv": "^8.17.1",
+    "ajv-keywords": "^5.1.0",
     "eslint": "^8.29.0",
     "husky": "^8.0.2",
     "nodemon": "^3.1.9",
@@ -35,10 +48,12 @@
     "typescript": "^5.8.2"
   },
   "dependencies": {
+    "@emotion/react": "latest",
+    "@emotion/styled": "latest",
+    "@mui/material": "next",
     "@notionhq/client": "^2.2.12",
     "@telegraf/entity": "^0.5.0",
     "@tryfabric/martian": "^1.2.0",
-    "@types/dotenv-safe": "^8.1.6",
     "dotenv": "^16.4.5",
     "google-auth-library": "^9.7.0",
     "googleapis": "^134.0.0",
@@ -46,6 +61,22 @@
     "hast-util-to-mdast": "^10.0.0",
     "mdast-util-to-markdown": "^2.1.0",
     "node-fetch": "^3.3.2",
-    "telegraf": "^4.16.0"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-scripts": "^5.0.1",
+    "telegraf": "^4.16.0",
+    "typescript": "^5.3.3"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
   }
 }

@@ -12,6 +12,14 @@ build
 # Dependency directory
 node_modules
 bower_components
+/.pnp
+.pnp.js
+
+# Ignore built ts files
+build/**/*
+
+# Testing
+/coverage
 
 # Editors
 .idea
@@ -21,5 +29,8 @@ bower_components
 .DS_Store
 Thumbs.db
 
-# Ignore built ts files
-build/**/*
+# Misc
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
