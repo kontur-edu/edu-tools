@@ -213,14 +213,13 @@ async function fetchApiAsync(
       Cookie: cookieHeader,
       ...headers,
     },
-    body: null,
   })
   return response
 }
 
 interface RequestOptions {
   method?: string
-  body?: object | string
+  body?: string | null
 }
 
 interface RequestHeaders {

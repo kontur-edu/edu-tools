@@ -164,7 +164,6 @@ async function fetchApiAsync(
         Cookie: cookieHeader,
         ...headers,
       },
-      body: null,
       signal: AbortSignal.timeout(timeout),
     })
     return response
@@ -178,7 +177,7 @@ async function fetchApiAsync(
 
 interface RequestOptions {
   method?: string
-  body?: object | string
+  body?: string | null
   json?: boolean
   simple?: boolean
   resolveWithFullResponse?: boolean
