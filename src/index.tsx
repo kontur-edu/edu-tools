@@ -5,10 +5,11 @@ import { ThemeProvider } from '@mui/material/styles';
 import App from './components/App';
 import theme from './components/theme';
 import { useItsStore } from './stores/ItsStore';
-
+import { useGoogleAuthStore } from './stores/GoogleAuthStore';
 const rootElement = document.getElementById('root');
 const root = ReactDOM.createRoot(rootElement!);
-useItsStore.getState().tryLogInFromCacheAsync();
+useItsStore.getState().tryLoginFromCacheAsync();
+useGoogleAuthStore.getState().tryLoginFromCacheAsync();
 
 root.render(
   <ThemeProvider theme={theme}>
