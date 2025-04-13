@@ -17,7 +17,7 @@ import {
 } from '@mui/material'
 
 import { FormEvent, useEffect, useState } from 'react'
-import { finishLoginAsync, logInAsync, runAutoEnsureAuth, startLoginAsync, startLogoutAsync, stopAutoEnsureAuth, useItsStore } from '../controllers/ItsStore'
+import { useItsStore } from '../stores/ItsStore'
 
 export default function App() {
   return (
@@ -45,6 +45,10 @@ export function ItsAuthSwitch() {
   const isLoggedIn = useItsStore((state) => state.currentAuth !== null)
   const isLoggingIn = useItsStore((state) => state.isLoggingIn)
   const isLoggingOut = useItsStore((state) => state.isLoggingOut)
+  const runAutoEnsureAuth = useItsStore((state) => state.runAutoEnsureAuth)
+  const stopAutoEnsureAuth = useItsStore((state) => state.stopAutoEnsureAuth)
+  const startLoginAsync = useItsStore((state) => state.startLoginAsync)
+  const startLogoutAsync = useItsStore((state) => state.startLogoutAsync)
 
   const disabled = isLoggingIn || isLoggingOut
 
@@ -78,6 +82,8 @@ export function ItsAuthDialog() {
   const ITS_URL = 'https://its.urfu.ru/'
 
   const isLoggingIn = useItsStore((state) => state.isLoggingIn)
+  const logInAsync = useItsStore((state) => state.logInAsync)
+  const finishLoginAsync = useItsStore((state) => state.finishLoginAsync)
 
   const [sessionInfo, setSessionInfo] = useState('')
   const [itsAuth, setItsAuth] = useState('')
