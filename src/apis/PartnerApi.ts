@@ -1,4 +1,3 @@
-import fetch from 'node-fetch'
 const baseUrl = 'https://partner.urfu.ru'
 
 export class PartnerAuth {
@@ -20,7 +19,7 @@ export class PartnerAuth {
 }
 
 export class PartnerApi {
-  auth: PartnerAuth
+  private readonly auth: PartnerAuth
 
   constructor(auth: PartnerAuth) {
     this.auth = auth

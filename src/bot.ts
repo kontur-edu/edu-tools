@@ -4,7 +4,6 @@ import { toHTML } from '@telegraf/entity'
 import 'dotenv/config'
 import { NotionApi, NotionAuth } from './apis/NotionApi.js'
 import { showLoader } from './helpers/TelegramBotHelpers.js'
-import fetch from 'node-fetch'
 
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || ''
 const TELEGRAM_URL = process.env.TELEGRAM_URL || ''

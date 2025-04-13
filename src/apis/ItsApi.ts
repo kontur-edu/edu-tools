@@ -1,5 +1,4 @@
-import fetch, { Response } from 'node-fetch'
-const baseUrl = 'https://its.urfu.ru'
+import { ItsUrlProvider } from "./ItsUrlProvider"
 
 export class ItsAuth {
   sessionInfo: string
@@ -12,10 +11,12 @@ export class ItsAuth {
 }
 
 export class ItsApi {
-  auth: ItsAuth
+  private readonly auth: ItsAuth
+  private readonly urlProvider: ItsUrlProvider
 
-  constructor(auth: ItsAuth) {
+  constructor(auth: ItsAuth, urlProvider: ItsUrlProvider) {
     this.auth = auth
+    this.urlProvider = urlProvider
   }
 
   async getProjectSubgroupsAsync(groupId: string): Promise<Collection<ProjectSubgroup>> {
@@ -39,6 +40,7 @@ export class ItsApi {
     const queryString = `?competitionGroupId=${groupId}&filter=${filter}&group=${group}&page=${page}&start=${start}&limit=${limit}`
 
     const response = await fetchApiAsync(
+      this.urlProvider,
       this.auth,
       '/ProjectSubgroup' + queryString,
       {},
@@ -50,7 +52,7 @@ export class ItsApi {
   async getProjectSubgroupFormAsync(subgroupId: number): Promise<ProjectSubgroupForm> {
     const queryString = `?id=${subgroupId}`
 
-    const response = await fetchApiAsync(this.auth, '/ProjectSubgroup/Edit' + queryString)
+    const response = await fetchApiAsync(this.urlProvider, this.auth, '/ProjectSubgroup/Edit' + queryString)
     const body = await response.text()
 
     const antiforgery = extractAntiforgery(response)
@@ -80,6 +82,7 @@ export class ItsApi {
     }&__RequestVerificationToken=${form.requestVerificationToken}`
 
     const response = await fetchApiAsync(
+      this.urlProvider,
       this.auth,
       `/ProjectSubgroup/Edit?id=${form.id}`,
       {
@@ -103,6 +106,7 @@ export class ItsApi {
     const queryString = `?id=${subgroupId}&hideStudents=${hideStudents}&page=${page}&start=${start}&limit=${limit}`
 
     const response = await fetchApiAsync(
+      this.urlProvider,
       this.auth,
       '/ProjectSubgroup/StudentsAjax' + queryString,
       {},
@@ -114,6 +118,7 @@ export class ItsApi {
     const body = `subgroupId=${subgroupId}&studentId=${studentId}&include=${include}`
 
     await fetchApiAsync(
+      this.urlProvider,
       this.auth,
       '/ProjectSubgroup/StudentMembership',
       {
@@ -188,6 +193,7 @@ function extractSubgroupTeachers(body: string): { selected: boolean; id: string;
 }
 
 async function fetchApiAsync(
+  urlProvider: ItsUrlProvider,
   auth: ItsAuth,
   uri: string,
   maybeOptions?: RequestOptions,
@@ -206,7 +212,7 @@ async function fetchApiAsync(
     .map((k) => `${k}=${cookies[k]}`)
     .join('; ')
 
-  const response = await fetch(baseUrl + uri, {
+  const response = await fetch(urlProvider.baseUrl + uri, {
     method: 'GET',
     ...options,
     headers: {

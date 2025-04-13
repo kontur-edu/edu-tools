@@ -4,7 +4,7 @@ const basePath = './.cache'
 
 const localCache: { [name: string]: object | string } = {}
 
-export class Cache {
+export class FileCache {
   static save(name: string, data: object | string) {
     if (!data) {
       return false

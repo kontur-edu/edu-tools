@@ -27,7 +27,10 @@
     "web-test": "react-scripts test",
     "web-eject": "react-scripts eject"
   },
-  "keywords": ["education", "tools"],
+  "keywords": [
+    "education",
+    "tools"
+  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {
@@ -50,6 +53,7 @@
   "dependencies": {
     "@emotion/react": "latest",
     "@emotion/styled": "latest",
+    "@mui/icons-material": "^7.0.2",
     "@mui/material": "next",
     "@notionhq/client": "^2.2.12",
     "@telegraf/entity": "^0.5.0",

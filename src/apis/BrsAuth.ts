@@ -1,6 +1,5 @@
-import fetch from 'node-fetch'
 import * as fs from 'fs'
-const baseUrl = 'https://brs.urfu.ru'
+import { BrsUrlProvider } from './BrsUrlProvider'
 
 export class BrsAuth {
   sid: string
@@ -11,12 +10,12 @@ export class BrsAuth {
     this.login = login
   }
 
-  static async createAsync(login: string, password: string): Promise<BrsAuth | null> {
-    const sid = await authorizeAsync(login, password)
+  static async createAsync(urlProvider: BrsUrlProvider, login: string, password: string): Promise<BrsAuth | null> {
+    const sid = await authorizeAsync(urlProvider, login, password)
     return sid ? new BrsAuth(sid, login) : null
   }
 
-  static async createByConfigAsync(secretName: string): Promise<BrsAuth | null> {
+  static async createByConfigAsync(urlProvider: BrsUrlProvider, secretName: string): Promise<BrsAuth | null> {
     const secrets = JSON.parse(fs.readFileSync('./secrets/brs.json', 'utf8'))
     const credentials = secrets[secretName] as {
       login: string
@@ -24,15 +23,15 @@ export class BrsAuth {
       sid: string // содержимое Cookie JSSESSIONID, если sid задается, то все login и password не используются
     }
 
-    const sid = credentials.sid ? credentials.sid : await authorizeAsync(credentials.login, credentials.password)
+    const sid = credentials.sid ? credentials.sid : await authorizeAsync(urlProvider, credentials.login, credentials.password)
     const login = credentials.sid ? secretName : credentials.login
     return sid ? new BrsAuth(sid, login) : null
   }
 }
 
-async function authorizeAsync(login: string, password: string): Promise<string | null> {
+async function authorizeAsync(urlProvider: BrsUrlProvider, login: string, password: string): Promise<string | null> {
   const timeout = 30000
-  const response = await fetch(baseUrl + `/mrd/login`, {
+  const response = await fetch(urlProvider.baseUrl + `/mrd/login`, {
     method: 'POST',
     body: `username=${login}&password=${password}`,
     headers: {

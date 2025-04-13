@@ -1,5 +1,4 @@
 import JustDate from '../helpers/JustDate.js'
-import fetch, { Response } from 'node-fetch'
 const baseUrl = 'https://teamproject.urfu.ru/api/v2'
 
 export class TeamProjectAuthV2 {
@@ -11,7 +10,7 @@ export class TeamProjectAuthV2 {
 }
 
 export class TeamProjectApiV2 {
-  auth: TeamProjectAuthV2
+  private readonly auth: TeamProjectAuthV2
 
   constructor(auth: TeamProjectAuthV2) {
     this.auth = auth
@@ -24,7 +23,7 @@ export class TeamProjectApiV2 {
     pageNumber: number,
     pageSize: number,
   ): Promise<Workspaces | null> {
-    const url = `/workspaces?status=${status}&year=${year}&semester=${semester}&page=${pageNumber}&size=${pageSize}`
+    const url = `/catalog?status=${status}&year=${year}&semester=${semester}&page=${pageNumber}&size=${pageSize}`
     const response = await fetchApiAsJsonAsync<Workspaces>(this.auth, url)
     return response
   }

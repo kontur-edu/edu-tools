@@ -18,7 +18,7 @@ export class NotionAuth {
 }
 
 export class NotionApi {
-  notion: Client
+  private readonly notion: Client
 
   constructor(auth: NotionAuth) {
     this.notion = new Client({

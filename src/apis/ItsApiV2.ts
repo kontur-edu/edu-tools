@@ -1,5 +1,4 @@
-import fetch, { Response } from 'node-fetch'
-const baseUrl = 'https://its.urfu.ru'
+import { ItsUrlProvider } from "./ItsUrlProvider.js"
 
 export class ItsAuthV2 {
   sessionInfo: string
@@ -12,10 +11,12 @@ export class ItsAuthV2 {
 }
 
 export class ItsApiV2 {
-  auth: ItsAuthV2
+  private readonly auth: ItsAuthV2
+  private readonly urlProvider: ItsUrlProvider
 
-  constructor(auth: ItsAuthV2) {
+  constructor(auth: ItsAuthV2, urlProvider: ItsUrlProvider) {
     this.auth = auth
+    this.urlProvider = urlProvider
   }
 
   async getProjectListAsync(
@@ -42,6 +43,7 @@ export class ItsApiV2 {
     const queryString = `?filter=${filter}&page=${page}&start=${start}&limit=${limit}`
 
     const response = await fetchApiAsync(
+      this.urlProvider,
       this.auth,
       '/ProjectList' + queryString,
       {},
@@ -57,6 +59,7 @@ export class ItsApiV2 {
     const queryString = `?projectPeriodId=${projectPeriodId}&page=${page}&start=${start}&limit=${limit}`
 
     const response = await fetchApiAsync(
+      this.urlProvider,
       this.auth,
       '/ProjectSubgroupsList' + queryString,
       {},
@@ -73,6 +76,7 @@ export class ItsApiV2 {
     const queryString = `?projectPeriodId=${projectPeriodId}&projectProgramId=${projectProgramId}&subgroupInnerNumber=${subgroupInnerNumber}`
 
     const response = await fetchApiAsync(
+      this.urlProvider,
       this.auth,
       '/ProjectSubgroupStudentsList/Index' + queryString,
       {},
@@ -85,6 +89,7 @@ export class ItsApiV2 {
     const body = `sign=${encodeURIComponent(sign)}&studentId=${studentId}&subgroupId=${subgroupId}`
 
     const response = await fetchApiAsync(
+      this.urlProvider,
       this.auth,
       `/ProjectSubgroupStudentsList/AddStudentToSubgroup`,
       {
@@ -100,6 +105,7 @@ export class ItsApiV2 {
 }
 
 async function fetchApiAsync(
+  urlProvider: ItsUrlProvider,
   auth: ItsAuthV2,
   uri: string,
   maybeOptions?: RequestOptions,
@@ -118,11 +124,12 @@ async function fetchApiAsync(
     .map((k) => `${k}=${cookies[k]}`)
     .join('; ')
 
-  const response = await fetch(baseUrl + uri, {
+  const response = await fetch(urlProvider.baseUrl + uri, {
     method: 'GET',
     ...options,
     headers: {
       Cookie: cookieHeader,
+      "X-Cookie": cookieHeader, // NOTE: для CORS-PROXY
       ...headers,
     },
   })

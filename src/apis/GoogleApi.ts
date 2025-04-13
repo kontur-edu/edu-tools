@@ -2,7 +2,7 @@ import { google } from 'googleapis'
 import { GoogleAuth } from './GoogleAuth.js'
 
 export class GoogleApi {
-  auth: GoogleAuth
+  private readonly auth: GoogleAuth
 
   constructor(auth: GoogleAuth) {
     this.auth = auth

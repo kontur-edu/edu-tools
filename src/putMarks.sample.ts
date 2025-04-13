@@ -10,6 +10,7 @@ import { BrsAuth } from './apis/BrsAuth.js';
 import { FileApi } from './apis/FileApi.js';
 import { GoogleApi } from './apis/GoogleApi.js';
 import { GoogleAuth } from './apis/GoogleAuth.js';
+import { BrsUrlProvider } from './apis/BrsUrlProvider.js';
 
 async function runPutMarksForSample() {
   const login = 'login';
@@ -68,7 +69,7 @@ async function runPutMarksForSample() {
     defaultStudentFailure: StudentFailure.NoFailure,
   } as DisciplineConfig;
 
-  const brsApi = new BrsApi(new BrsAuth(login, sid));
+  const brsApi = new BrsApi(new BrsAuth(login, sid), new BrsUrlProvider(false));
   await putMarksToBrsManualAsync(
     brsApi,
     { actualStudents, disciplineConfig, controlActionConfigs },
@@ -88,7 +89,7 @@ async function runPutMarksAutoForSample() {
   const spreadsheetId = '1Owzl3JfmFASIdC7ZMMw-0kkA3pwFSab1QdVO5dhZoxY';
   const sheetName = 'БРС';
 
-  const brsApi = new BrsApi(new BrsAuth(login, sid));
+  const brsApi = new BrsApi(new BrsAuth(login, sid), new BrsUrlProvider(false));
   const googleApi = new GoogleApi(await GoogleAuth.createAsync('ask-if-not-saved'));
   await putMarksToBrsAutoAsync(
     brsApi,

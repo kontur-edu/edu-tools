@@ -1,13 +1,14 @@
-import fetch, { Response } from 'node-fetch'
 import { BrsAuth } from './BrsAuth.js'
 import { buildFormData, replaceAll } from '../helpers/tools.js'
-const baseUrl = 'https://brs.urfu.ru'
+import { BrsUrlProvider } from './BrsUrlProvider.js'
 
 export class BrsApi {
-  auth: BrsAuth
+  private readonly auth: BrsAuth
+  private readonly urlProvider: BrsUrlProvider
 
-  constructor(auth: BrsAuth) {
+  constructor(auth: BrsAuth, urlProvider: BrsUrlProvider) {
     this.auth = auth
+    this.urlProvider = urlProvider
   }
 
   async getDisciplinesAsync(
@@ -16,21 +17,21 @@ export class BrsApi {
     course: number,
     isModule: boolean,
   ): Promise<Discipline[]> {
-    const total = await getDisciplineTotalAsync(this.auth, year, termType, course, isModule)
-    const result = await getDisciplinesInternalAsync(this.auth, year, termType, course, isModule, total)
+    const total = await getDisciplineTotalAsync(this.urlProvider, this.auth, year, termType, course, isModule)
+    const result = await getDisciplinesInternalAsync(this.urlProvider, this.auth, year, termType, course, isModule, total)
     return result
   }
 
   async getAllStudentMarksAsync(discipline: Discipline): Promise<StudentMark[]> {
     const students = [
-      ...(await getStudentMarksAsync(this.auth, discipline, 'lecture', 'current')),
-      ...(await getStudentMarksAsync(this.auth, discipline, 'lecture', 'intermediate')),
-      ...(await getStudentMarksAsync(this.auth, discipline, 'laboratory', 'current')),
-      ...(await getStudentMarksAsync(this.auth, discipline, 'laboratory', 'intermediate')),
-      ...(await getStudentMarksAsync(this.auth, discipline, 'practice', 'current')),
-      ...(await getStudentMarksAsync(this.auth, discipline, 'practice', 'intermediate')),
-      ...(await getStudentMarksAsync(this.auth, discipline, 'additionalPractice', 'current')),
-      ...(await getStudentMarksAsync(this.auth, discipline, 'additionalPractice', 'intermediate')),
+      ...(await getStudentMarksAsync(this.urlProvider, this.auth, discipline, 'lecture', 'current')),
+      ...(await getStudentMarksAsync(this.urlProvider, this.auth, discipline, 'lecture', 'intermediate')),
+      ...(await getStudentMarksAsync(this.urlProvider, this.auth, discipline, 'laboratory', 'current')),
+      ...(await getStudentMarksAsync(this.urlProvider, this.auth, discipline, 'laboratory', 'intermediate')),
+      ...(await getStudentMarksAsync(this.urlProvider, this.auth, discipline, 'practice', 'current')),
+      ...(await getStudentMarksAsync(this.urlProvider, this.auth, discipline, 'practice', 'intermediate')),
+      ...(await getStudentMarksAsync(this.urlProvider, this.auth, discipline, 'additionalPractice', 'current')),
+      ...(await getStudentMarksAsync(this.urlProvider, this.auth, discipline, 'additionalPractice', 'intermediate')),
     ]
 
     const uniqueStudents: { [id: string]: StudentMark } = {}
@@ -44,14 +45,14 @@ export class BrsApi {
 
   async getAllControlActionsAsync(discipline: Discipline): Promise<ControlAction[]> {
     return [
-      ...(await getControlActionsAsync(this.auth, discipline, 'lecture', 'current')),
-      ...(await getControlActionsAsync(this.auth, discipline, 'lecture', 'intermediate')),
-      ...(await getControlActionsAsync(this.auth, discipline, 'laboratory', 'current')),
-      ...(await getControlActionsAsync(this.auth, discipline, 'laboratory', 'intermediate')),
-      ...(await getControlActionsAsync(this.auth, discipline, 'practice', 'current')),
-      ...(await getControlActionsAsync(this.auth, discipline, 'practice', 'intermediate')),
-      ...(await getControlActionsAsync(this.auth, discipline, 'additionalPractice', 'current')),
-      ...(await getControlActionsAsync(this.auth, discipline, 'additionalPractice', 'intermediate')),
+      ...(await getControlActionsAsync(this.urlProvider, this.auth, discipline, 'lecture', 'current')),
+      ...(await getControlActionsAsync(this.urlProvider, this.auth, discipline, 'lecture', 'intermediate')),
+      ...(await getControlActionsAsync(this.urlProvider, this.auth, discipline, 'laboratory', 'current')),
+      ...(await getControlActionsAsync(this.urlProvider, this.auth, discipline, 'laboratory', 'intermediate')),
+      ...(await getControlActionsAsync(this.urlProvider, this.auth, discipline, 'practice', 'current')),
+      ...(await getControlActionsAsync(this.urlProvider, this.auth, discipline, 'practice', 'intermediate')),
+      ...(await getControlActionsAsync(this.urlProvider, this.auth, discipline, 'additionalPractice', 'current')),
+      ...(await getControlActionsAsync(this.urlProvider, this.auth, discipline, 'additionalPractice', 'intermediate')),
     ]
   }
 
@@ -63,6 +64,7 @@ export class BrsApi {
   ): Promise<void> {
     const body = `markFailure=${studentFailure}&cardType=${cardType}&disciplineLoad=${discipline.disciplineLoad}&studentId=${studentUuid}`
     await requestApiWithJsonResponseAsync(
+      this.urlProvider,
       this.auth,
       `/mrd/mvc/mobile/failure/update`,
       {
@@ -76,15 +78,15 @@ export class BrsApi {
   }
 
   async updateAllMarksAsync(discipline: Discipline): Promise<void> {
-    await updateMarksAsync(this.auth, discipline, 'lecture', 'intermediate')
-    await updateMarksAsync(this.auth, discipline, 'lecture', 'current')
-    await updateMarksAsync(this.auth, discipline, 'lecture', 'intermediate')
-    await updateMarksAsync(this.auth, discipline, 'laboratory', 'current')
-    await updateMarksAsync(this.auth, discipline, 'laboratory', 'intermediate')
-    await updateMarksAsync(this.auth, discipline, 'practice', 'current')
-    await updateMarksAsync(this.auth, discipline, 'practice', 'intermediate')
-    await updateMarksAsync(this.auth, discipline, 'additionalPractice', 'current')
-    await updateMarksAsync(this.auth, discipline, 'additionalPractice', 'intermediate')
+    await updateMarksAsync(this.urlProvider, this.auth, discipline, 'lecture', 'intermediate')
+    await updateMarksAsync(this.urlProvider, this.auth, discipline, 'lecture', 'current')
+    await updateMarksAsync(this.urlProvider, this.auth, discipline, 'lecture', 'intermediate')
+    await updateMarksAsync(this.urlProvider, this.auth, discipline, 'laboratory', 'current')
+    await updateMarksAsync(this.urlProvider, this.auth, discipline, 'laboratory', 'intermediate')
+    await updateMarksAsync(this.urlProvider, this.auth, discipline, 'practice', 'current')
+    await updateMarksAsync(this.urlProvider, this.auth, discipline, 'practice', 'intermediate')
+    await updateMarksAsync(this.urlProvider, this.auth, discipline, 'additionalPractice', 'current')
+    await updateMarksAsync(this.urlProvider, this.auth, discipline, 'additionalPractice', 'intermediate')
   }
 
   async putStudentMarkAsync(
@@ -99,6 +101,7 @@ export class BrsApi {
       isNaN(mark) ? '' : mark.toString()
     }&groupId=${groupId}&cardTypeKey=${cardTypeKey}&disciplineLoadUuid=${disciplineLoadUuid}`
     return requestApiWithJsonResponseAsync<StudentMark>(
+      this.urlProvider,
       this.auth,
       `/mrd/mvc/mobile/studentMarks/put`,
       {
@@ -118,11 +121,11 @@ export class BrsApi {
     isModule: boolean,
     search: string = '',
   ): Promise<TechnologyCard[]> {
-    return getTechnologyCardsAsync(this.auth, year, termType, course, isModule, search)
+    return getTechnologyCardsAsync(this.urlProvider, this.auth, year, termType, course, isModule, search)
   }
 
   async getTechnologyCardIntermediateAsync(technologyCard: TechnologyCard): Promise<TechnologyCardIntermediate | null> {
-    return getTechnologyCardIntermediateAsync(this.auth, technologyCard)
+    return getTechnologyCardIntermediateAsync(this.urlProvider, this.auth, technologyCard)
   }
 
   async putTechnologyCardIntermediateAsync(
@@ -136,11 +139,11 @@ export class BrsApi {
       maxValue: intermediate.maxValue,
       disciplineLoad: intermediate.disciplineLoad,
     }
-    return postFormWithJsonResponseAsync(this.auth, `/mrd/mvc/mobile/technologyCard/items/update`, body)
+    return postFormWithJsonResponseAsync(this.urlProvider, this.auth, `/mrd/mvc/mobile/technologyCard/items/update`, body)
   }
 
   async getTechnologyCardFactorsAsync(technologyCard: TechnologyCard): Promise<TechnologyCardFactor[] | null> {
-    return getTechnologyCardFactorsAsync(this.auth, technologyCard)
+    return getTechnologyCardFactorsAsync(this.urlProvider, this.auth, technologyCard)
   }
 
   async updateTechnologyCardFactorsAsync(
@@ -157,14 +160,14 @@ export class BrsApi {
       intermediate: intermediate,
       total: total,
     }
-    return postFormWithJsonResponseAsync(this.auth, `/mrd/mvc/mobile/technologyCard/factors/update`, body)
+    return postFormWithJsonResponseAsync(this.urlProvider, this.auth, `/mrd/mvc/mobile/technologyCard/factors/update`, body)
   }
 
   async getTechnologyCardLoadsAsync(
     technologyCard: TechnologyCard,
     technologyCardType: CardType,
   ): Promise<TechnologyCardLoad[] | null> {
-    return await getTechnologyCardLoadsAsync(this.auth, technologyCard, technologyCardType)
+    return await getTechnologyCardLoadsAsync(this.urlProvider, this.auth, technologyCard, technologyCardType)
   }
 
   async deleteTechnologyCardLoadAsync(load: TechnologyCardLoad): Promise<boolean> {
@@ -172,6 +175,7 @@ export class BrsApi {
       code: load.code,
     }
     const result = await postFormWithJsonResponseAsync<{ errorMessage?: string }>(
+      this.urlProvider,
       this.auth,
       `/mrd/mvc/mobile/technologyCard/items/delete`,
       body,
@@ -193,6 +197,7 @@ export class BrsApi {
       maxValue: maxValue,
     }
     const result = await postFormWithJsonResponseAsync<{ uuid: string }>(
+      this.urlProvider,
       this.auth,
       `/mrd/mvc/mobile/technologyCard/items/add`,
       body,
@@ -214,6 +219,7 @@ export class BrsApi {
       maxValue: maxValue,
     }
     const result = await postFormWithJsonResponseAsync<{ uuid: string }>(
+      this.urlProvider,
       this.auth,
       `/mrd/mvc/mobile/technologyCard/items/update`,
       body,
@@ -223,6 +229,7 @@ export class BrsApi {
 
   async checkTechnologyCardAsync(technologyCard: TechnologyCard): Promise<TechnologyCardCheck> {
     const response = await requestApiWithTextResponseAsync(
+      this.urlProvider,
       this.auth,
       `/mrd/mvc/mobile/view/technologyCard/${technologyCard.disciplineLoad}/agreed/`,
     )
@@ -260,11 +267,12 @@ export class BrsApi {
       agreed: agreed,
       disciplineLoad: technologyCard.disciplineLoad,
     }
-    await postFormWithTextResponseAsync(this.auth, `/mrd/mvc/mobile/technologyCard/doAgreed`, body)
+    await postFormWithTextResponseAsync(this.urlProvider, this.auth, `/mrd/mvc/mobile/technologyCard/doAgreed`, body)
   }
 }
 
 async function getDisciplinesInternalAsync(
+  urlProvider: BrsUrlProvider,
   auth: BrsAuth,
   year: number,
   termType: TermType,
@@ -275,6 +283,7 @@ async function getDisciplinesInternalAsync(
   const queryString = `?year=${year}&termType=${termType}&course=${course}&total=${total}&page=1&pageSize=${total}&search=`
   if (isModule) {
     const paging = await requestApiWithJsonResponseAsync<Paging<Discipline>>(
+      urlProvider,
       auth,
       '/mrd/mvc/mobile/module/fetch' + queryString,
     )
@@ -285,6 +294,7 @@ async function getDisciplinesInternalAsync(
     return disciplines
   } else {
     const paging = await requestApiWithJsonResponseAsync<Paging<Discipline>>(
+      urlProvider,
       auth,
       '/mrd/mvc/mobile/discipline/fetch' + queryString,
     )
@@ -297,6 +307,7 @@ async function getDisciplinesInternalAsync(
 }
 
 async function getDisciplineTotalAsync(
+  urlProvider: BrsUrlProvider,
   auth: BrsAuth,
   year: number,
   termType: TermType,
@@ -305,11 +316,12 @@ async function getDisciplineTotalAsync(
 ) {
   const moduleParameter = isModule ? '&its=true' : ''
   const queryString = `?year=${year}&termType=${termType}&course=${course}` + moduleParameter
-  const total = await requestApiWithJsonResponseAsync<number>(auth, '/mrd/mvc/mobile/discipline/amount' + queryString)
+  const total = await requestApiWithJsonResponseAsync<number>(urlProvider, auth, '/mrd/mvc/mobile/discipline/amount' + queryString)
   return total
 }
 
 async function getStudentMarksAsync(
+  urlProvider: BrsUrlProvider,
   auth: BrsAuth,
   discipline: Discipline,
   cardType: CardType,
@@ -323,6 +335,7 @@ async function getStudentMarksAsync(
 
   const groupPart = isModule ? `techgroup=${techgroup}` : `groupUuid=${groupUuid}`
   return requestApiWithJsonResponseAsync<StudentMark[]>(
+    urlProvider,
     auth,
     `/mrd/mvc/mobile/studentMarks/fetch?disciplineLoad=${disciplineLoad}&${groupPart}` +
       `&cardType=${cardType}&hasTest=false&isTotal=${isTotal}` +
@@ -332,6 +345,7 @@ async function getStudentMarksAsync(
 }
 
 async function getControlActionsAsync(
+  urlProvider: BrsUrlProvider,
   auth: BrsAuth,
   discipline: Discipline,
   cardType: CardType,
@@ -344,6 +358,7 @@ async function getControlActionsAsync(
   const modulePart = isModule ? '/module' : ''
   const groupPart = isModule ? techgroup : groupUuid
   const response = await requestApiWithTextResponseAsync(
+    urlProvider,
     auth,
     `/mrd/mvc/mobile/view/mark/${disciplineLoad}/${groupPart}/teachers${modulePart}/${cardType}/${markType}`,
   )
@@ -372,7 +387,7 @@ async function getControlActionsAsync(
   return result as ControlAction[]
 }
 
-async function updateMarksAsync(auth: BrsAuth, discipline: Discipline, cardType: CardType, markType: MarkType) {
+async function updateMarksAsync(urlProvider: BrsUrlProvider, auth: BrsAuth, discipline: Discipline, cardType: CardType, markType: MarkType) {
   const { disciplineLoad, isModule } = discipline
   const groupUuid = discipline.groupHistoryId
   const techgroup = discipline.groupId
@@ -385,6 +400,7 @@ async function updateMarksAsync(auth: BrsAuth, discipline: Discipline, cardType:
     `&intermediate=${markType === 'intermediate'}` +
     `&selectedTeachers=null&showActiveStudents=true`
   return requestApiWithTextResponseAsync(
+    urlProvider,
     auth,
     `/mrd/mvc/mobile/updateMarks${modulePart}`,
     {
@@ -398,6 +414,7 @@ async function updateMarksAsync(auth: BrsAuth, discipline: Discipline, cardType:
 }
 
 async function getTechnologyCardsAsync(
+  urlProvider: BrsUrlProvider,
   auth: BrsAuth,
   year: number,
   termType: TermType,
@@ -410,6 +427,7 @@ async function getTechnologyCardsAsync(
   )}`
   if (isModule) {
     const cards = await requestApiWithJsonResponseAsync<Array<TechnologyCard>>(
+      urlProvider,
       auth,
       '/mrd/mvc/mobile/technologyCard/module/fetch' + queryString,
     )
@@ -419,6 +437,7 @@ async function getTechnologyCardsAsync(
     return cards
   } else {
     const paging = await requestApiWithJsonResponseAsync<Paging<TechnologyCard>>(
+      urlProvider,
       auth,
       '/mrd/mvc/mobile/technologyCard/discipline/page' + queryString,
     )
@@ -431,12 +450,14 @@ async function getTechnologyCardsAsync(
 }
 
 async function getTechnologyCardLoadsAsync(
+  urlProvider: BrsUrlProvider,
   auth: BrsAuth,
   technologyCard: TechnologyCard,
   cardType: CardType,
 ): Promise<TechnologyCardLoad[] | null> {
   // var dataItems = [{"controlActionURL":null,"code":"8aca614b8b040471018b60c50f1c0f89","endDate":"24.12.2023","maxValue":100,"technologyCardTypeName":"практические занятия","standart":1,"technologyCardType":"practice","hasMarks":false,"name":"зачет","intermediate":1,"action":"prz","startDate":"01.09.2023","intermediateName":"Промежуточная"},{"controlActionURL":null,"code":"8aca614b8b040471018b60c512aa0f8a","endDate":"24.12.2023","maxValue":20,"technologyCardTypeName":"практические занятия","standart":1,"technologyCardType":"practice","hasMarks":false,"name":"домашняя работа","intermediate":0,"action":"prdr","startDate":"01.09.2023","intermediateName":"Текущая"},{"controlActionURL":null,"code":"8aca614b8b040471018b60c512b90f8b","endDate":"24.12.2023","maxValue":20,"technologyCardTypeName":"практические занятия","standart":1,"technologyCardType":"practice","hasMarks":false,"name":"домашняя работа","intermediate":0,"action":"prdr","startDate":"01.09.2023","intermediateName":"Текущая"},{"controlActionURL":null,"code":"8aca614b8b040471018b60c512b90f8c","endDate":"24.12.2023","maxValue":20,"technologyCardTypeName":"практические занятия","standart":1,"technologyCardType":"practice","hasMarks":false,"name":"домашняя работа","intermediate":0,"action":"prdr","startDate":"01.09.2023","intermediateName":"Текущая"},{"controlActionURL":null,"code":"8aca614b8b040471018b60c512b90f8d","endDate":"24.12.2023","maxValue":20,"technologyCardTypeName":"практические занятия","standart":1,"technologyCardType":"practice","hasMarks":false,"name":"контрольная работа","intermediate":0,"action":"prkr","startDate":"01.09.2023","intermediateName":"Текущая"},{"controlActionURL":null,"code":"8aca614b8b040471018b60c512c90f8e","endDate":"24.12.2023","maxValue":20,"technologyCardTypeName":"практические занятия","standart":1,"technologyCardType":"practice","hasMarks":false,"name":"контрольная работа","intermediate":0,"action":"prkr","startDate":"01.09.2023","intermediateName":"Текущая"}];
   const response = await requestApiWithTextResponseAsync(
+    urlProvider,
     auth,
     `/mrd/mvc/mobile/view/technologyCard/${technologyCard.disciplineLoad}/loadtype/${cardType}`,
   )
@@ -458,10 +479,12 @@ async function getTechnologyCardLoadsAsync(
 }
 
 async function getTechnologyCardFactorsAsync(
+  urlProvider: BrsUrlProvider,
   auth: BrsAuth,
   technologyCard: TechnologyCard,
 ): Promise<TechnologyCardFactor[] | null> {
   const response = await requestApiWithTextResponseAsync(
+    urlProvider,
     auth,
     `/mrd/mvc/mobile/view/technologyCard/${technologyCard.disciplineLoad}/factors`,
   )
@@ -526,10 +549,12 @@ function extractTechnologyCardFactors(lines: string[]): TechnologyCardFactor[] |
 }
 
 async function getTechnologyCardIntermediateAsync(
+  urlProvider: BrsUrlProvider,
   auth: BrsAuth,
   technologyCard: TechnologyCard,
 ): Promise<TechnologyCardIntermediate | null> {
   const response = await requestApiWithTextResponseAsync(
+    urlProvider,
     auth,
     `/mrd/mvc/mobile/view/technologyCard/${technologyCard.disciplineLoad}/intermediate`,
   )
@@ -678,8 +703,9 @@ function extractCurrentIntermediateCardType(lines: Array<string>, code: string):
   return null
 }
 
-async function postFormWithJsonResponseAsync<T>(auth: BrsAuth, uri: string, body: any) {
+async function postFormWithJsonResponseAsync<T>(urlProvider: BrsUrlProvider, auth: BrsAuth, uri: string, body: any) {
   const response = await requestApiWithJsonResponseAsync<T>(
+    urlProvider,
     auth,
     uri,
     {
@@ -693,8 +719,9 @@ async function postFormWithJsonResponseAsync<T>(auth: BrsAuth, uri: string, body
   return response
 }
 
-async function postFormWithTextResponseAsync(auth: BrsAuth, uri: string, body: any) {
+async function postFormWithTextResponseAsync(urlProvider: BrsUrlProvider, auth: BrsAuth, uri: string, body: any) {
   const response = await requestApiWithTextResponseAsync(
+    urlProvider,
     auth,
     uri,
     {
@@ -709,12 +736,13 @@ async function postFormWithTextResponseAsync(auth: BrsAuth, uri: string, body: a
 }
 
 async function requestApiWithJsonResponseAsync<T>(
+  urlProvider: BrsUrlProvider,
   auth: BrsAuth,
   uri: string,
   options?: RequestOptions,
   headers?: RequestHeaders,
 ): Promise<T> {
-  const response = await requestApiAsync(auth, uri, options, headers)
+  const response = await requestApiAsync(urlProvider, auth, uri, options, headers)
   if (response.headers.get('Content-Type')?.startsWith('application/json')) {
     const json = await response.json()
     return json as T
@@ -725,22 +753,24 @@ async function requestApiWithJsonResponseAsync<T>(
 }
 
 async function requestApiWithTextResponseAsync(
+  urlProvider: BrsUrlProvider,
   auth: BrsAuth,
   uri: string,
   options?: RequestOptions,
   headers?: RequestHeaders,
 ): Promise<string> {
-  const response = await requestApiAsync(auth, uri, options, headers)
+  const response = await requestApiAsync(urlProvider, auth, uri, options, headers)
   return await response.text()
 }
 
 async function requestApiAsync(
+  urlProvider: BrsUrlProvider,
   auth: BrsAuth,
   uri: string,
   options?: RequestOptions,
   headers?: RequestHeaders,
 ): Promise<Response> {
-  const url = baseUrl + uri
+  const url = urlProvider.baseUrl + uri
   const timeout = 30000
   try {
     const response = await fetch(url, {
@@ -748,6 +778,7 @@ async function requestApiAsync(
       ...options,
       headers: {
         Cookie: `JSESSIONID=${auth.sid}`,
+        "X-Cookie": `JSESSIONID=${auth.sid}`, // NOTE: для CORS-PROXY
         ...headers,
       },
       signal: AbortSignal.timeout(timeout),
