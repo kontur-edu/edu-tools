@@ -16,143 +16,103 @@ import {
   CircularProgress,
 } from '@mui/material'
 
-import { ItsController } from '../controllers/ItsController'
 import { FormEvent, useEffect, useState } from 'react'
+import { finishLoginAsync, logInAsync, runAutoEnsureAuth, startLoginAsync, startLogoutAsync, stopAutoEnsureAuth, useItsStore } from '../controllers/ItsStore'
 
-export default function App({ itsController }: { itsController: ItsController }) {
+export default function App() {
   return (
     <Container maxWidth="sm">
       <Box sx={{ my: 4 }}>
         <Typography variant="h4" component="h1" sx={{ mb: 2 }}>
           EduTools
         </Typography>
-        <AuthPanel itsController={itsController} />
+        <AuthPanel />
       </Box>
     </Container>
   )
 }
 
-export function AuthPanel({ itsController }: { itsController: ItsController }) {
+export function AuthPanel() {
   return (
     <Box sx={{ my: 4 }}>
-      <ItsAuthSwitch itsController={itsController} />
-      <ItsAuthDialog itsController={itsController} />
+      <ItsAuthSwitch />
+      <ItsAuthDialog />
     </Box>
   )
 }
 
-export function ItsAuthSwitch({ itsController }: { itsController: ItsController }) {
-  const [disabled, setDisabled] = useState(false)
-  const [isAuthEnabled, setIsAuthEnabled] = useState(false)
+export function ItsAuthSwitch() {
+  const isLoggedIn = useItsStore((state) => state.currentAuth !== null)
+  const isLoggingIn = useItsStore((state) => state.isLoggingIn)
+  const isLoggingOut = useItsStore((state) => state.isLoggingOut)
 
-  const handleIsAuthEnabled = (itsController: ItsController) => {
-    if (itsController.isLoggedIn()) {
-      setIsAuthEnabled(true)
-      itsController.runAutoEnsureAuth()
-    } else {
-      setIsAuthEnabled(false)
-      itsController.stopAutoEnsureAuth()
-    }
-  }
-
-  const handleIsLoggingInAndOut = (itsController: ItsController) => {
-    setDisabled(itsController.isLoggingIn || itsController.isLoggingOut)
-  }
+  const disabled = isLoggingIn || isLoggingOut
 
   useEffect(() => {
-    handleIsAuthEnabled(itsController)
-    const unsubscribeAuthChanged = itsController.onAuthChanged.on(() => {
-      handleIsAuthEnabled(itsController)
-    })
-
-    handleIsLoggingInAndOut(itsController)
-    const unsubscribeIsLoggingInChanged = itsController.onIsLoggingInChanged.on(() => {
-      handleIsLoggingInAndOut(itsController)
-    })
-    const unsubscribeIsLoggingOutChanged = itsController.onIsLoggingOutChanged.on(() => {
-      handleIsLoggingInAndOut(itsController)
-    })
-
-    return () => {
-      unsubscribeAuthChanged()
-      unsubscribeIsLoggingInChanged()
-      unsubscribeIsLoggingOutChanged()
+    if (isLoggedIn) {
+      runAutoEnsureAuth()
+    } else {
+      stopAutoEnsureAuth()
     }
-  }, [itsController])
+  }, [isLoggedIn])
 
   const handleToggle = () => {
-    if (itsController.isLoggedIn()) {
-      itsController.startLogoutAsync()
+    if (isLoggedIn) {
+      startLogoutAsync()
     } else {
-      itsController.startLoginAsync()
+      startLoginAsync()
     }
   }
 
   return (
     <FormControlLabel
-      control={<Switch checked={isAuthEnabled} onChange={handleToggle} disabled={disabled} />}
+      control={<Switch checked={isLoggedIn} onChange={handleToggle} disabled={disabled} />}
       label="ИТС"
     />
   )
 }
 
-export function ItsAuthDialog({ itsController }: { itsController: ItsController }) {
+export function ItsAuthDialog() {
   const ITS_AUTH_FILL_INSTRUCTIONS =
     'https://docs.google.com/document/d/1btXePo-5bE8RyX7RFXnBuS-UN9SmwUithpc_UXhAWsg/edit'
   const ITS_URL = 'https://its.urfu.ru/'
 
-  const [isDialogOpened, setIsDialogOpened] = useState(false)
+  const isLoggingIn = useItsStore((state) => state.isLoggingIn)
+
   const [sessionInfo, setSessionInfo] = useState('')
   const [itsAuth, setItsAuth] = useState('')
   const [dialogErrorText, setDialogErrorText] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const isDialogSubmitDisabled = !sessionInfo || !itsAuth || isLoading
 
+  const isDialogOpened = isLoggingIn
+
   useEffect(() => {
-    setIsLoggingIn(itsController.isLoggingIn)
-
-    const unsubscribeIsLoggingInChanged = itsController.onIsLoggingInChanged.on(() => {
-      setIsLoggingIn(itsController.isLoggingIn)
-    })
-
-    return () => {
-      unsubscribeIsLoggingInChanged()
-    }
-  }, [itsController])
-
-  function setIsLoggingIn(value: boolean) {
-    if (value) {
-      setIsDialogOpened(true)
-      setDialogErrorText('')
-    } else {
-      setIsDialogOpened(false)
-      setDialogErrorText('')
+    setDialogErrorText('')
+    if (!isLoggingIn) {
       setSessionInfo('')
       setItsAuth('')
     }
-  }
+  }, [isLoggingIn])
 
   const handeDialogSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    handleLogin()
-  }
 
-  const handleDialogCancel = () => {
-    if (!isLoading) {
-      itsController.finishLoginAsync()
-    }
-  }
-
-  const handleLogin = () => {
     setIsLoading(true)
-    itsController.logInAsync(sessionInfo, itsAuth).then((result) => {
+    logInAsync(sessionInfo, itsAuth).then((result) => {
       setIsLoading(false)
       if (result) {
-        itsController.finishLoginAsync()
+        finishLoginAsync()
       } else {
         setDialogErrorText('Ошибка при входе в ИТС')
       }
     })
+  }
+
+  const handleDialogCancel = () => {
+    if (!isLoading) {
+      finishLoginAsync()
+    }
   }
 
   return (
