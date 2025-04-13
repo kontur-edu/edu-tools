@@ -26,98 +26,65 @@ export default function App({ itsController }: { itsController: ItsController })
         <Typography variant="h4" component="h1" sx={{ mb: 2 }}>
           EduTools
         </Typography>
-        <ItsAuthPanel itsController={itsController} />
+        <AuthPanel itsController={itsController} />
       </Box>
     </Container>
   )
 }
 
-export function ItsAuthPanel({ itsController }: { itsController: ItsController }) {
-  const [isLoggingIn, setIsLoggingIn] = useState(false)
-  const [isLoggingOut, setIsLoggingOut] = useState(false)
-
-  const handleWantToLogin = () => {
-    if (isLoggingOut) {
-      return
-    }
-
-    setIsLoggingIn(true)
-  }
-
-  const handleWantToLogout = () => {
-    if (isLoggingIn) {
-      return
-    }
-
-    setIsLoggingOut(true)
-    itsController.logOutAsync().then(() => {
-      setIsLoggingOut(false)
-    });
-  }
-
-  const handleLoggingInFinished = () => {
-    setIsLoggingIn(false)
-  }
-
+export function AuthPanel({ itsController }: { itsController: ItsController }) {
   return (
     <Box sx={{ my: 4 }}>
-      <ItsSwitch
-        itsController={itsController}
-        disabled={isLoggingIn || isLoggingOut}
-        onWantToLogin={handleWantToLogin}
-        onWantToLogout={handleWantToLogout}
-      />
-      <ItsAuthDialog
-        itsController={itsController}
-        isLoggingIn={isLoggingIn}
-        onLoggingInFinished={handleLoggingInFinished}
-      />
+      <ItsAuthSwitch itsController={itsController} />
+      <ItsAuthDialog itsController={itsController} />
     </Box>
   )
 }
 
-export function ItsSwitch({
-  itsController,
-  disabled,
-  onWantToLogin,
-  onWantToLogout,
-}: {
-  itsController: ItsController
-  disabled: boolean
-  onWantToLogin: () => void
-  onWantToLogout: () => void
-}) {
+export function ItsAuthSwitch({ itsController }: { itsController: ItsController }) {
+  const [disabled, setDisabled] = useState(false)
   const [isAuthEnabled, setIsAuthEnabled] = useState(false)
 
-  useEffect(() => {
-    setIsAuthEnabled(itsController.isLoggedIn())
+  const handleIsAuthEnabled = (itsController: ItsController) => {
+    if (itsController.isLoggedIn()) {
+      setIsAuthEnabled(true)
+      itsController.runAutoEnsureAuth()
+    } else {
+      setIsAuthEnabled(false)
+      itsController.stopAutoEnsureAuth()
+    }
+  }
 
-    const unsubscribe = itsController.onAuthChanged.on(() => {
-      if (itsController.isLoggedIn()) {
-        setIsAuthEnabled(true)
-        itsController.runAutoEnsureAuth()
-      } else {
-        setIsAuthEnabled(false)
-        itsController.stopAutoEnsureAuth()
-      }
+  const handleIsLoggingInAndOut = (itsController: ItsController) => {
+    setDisabled(itsController.isLoggingIn || itsController.isLoggingOut)
+  }
+
+  useEffect(() => {
+    handleIsAuthEnabled(itsController)
+    const unsubscribeAuthChanged = itsController.onAuthChanged.on(() => {
+      handleIsAuthEnabled(itsController)
     })
 
-    return unsubscribe
+    handleIsLoggingInAndOut(itsController)
+    const unsubscribeIsLoggingInChanged = itsController.onIsLoggingInChanged.on(() => {
+      handleIsLoggingInAndOut(itsController)
+    })
+    const unsubscribeIsLoggingOutChanged = itsController.onIsLoggingOutChanged.on(() => {
+      handleIsLoggingInAndOut(itsController)
+    })
+
+    return () => {
+      unsubscribeAuthChanged()
+      unsubscribeIsLoggingInChanged()
+      unsubscribeIsLoggingOutChanged()
+    }
   }, [itsController])
 
   const handleToggle = () => {
-    if (isAuthEnabled) {
-      if (itsController.isLoggedIn()) {
-        onWantToLogout && onWantToLogout()
-      } else {
-        setIsAuthEnabled(false)
-      }
+    if (itsController.isLoggedIn()) {
+      itsController.startLogoutAsync()
     } else {
-      if (!itsController.isLoggedIn()) {
-        onWantToLogin && onWantToLogin()
-      } else {
-        setIsAuthEnabled(true)
-      }
+      itsController.startLoginAsync()
     }
   }
 
@@ -129,15 +96,7 @@ export function ItsSwitch({
   )
 }
 
-export function ItsAuthDialog({
-  itsController,
-  isLoggingIn,
-  onLoggingInFinished,
-}: {
-  itsController: ItsController
-  isLoggingIn: boolean
-  onLoggingInFinished: () => void
-}) {
+export function ItsAuthDialog({ itsController }: { itsController: ItsController }) {
   const ITS_AUTH_FILL_INSTRUCTIONS =
     'https://docs.google.com/document/d/1btXePo-5bE8RyX7RFXnBuS-UN9SmwUithpc_UXhAWsg/edit'
   const ITS_URL = 'https://its.urfu.ru/'
@@ -150,7 +109,19 @@ export function ItsAuthDialog({
   const isDialogSubmitDisabled = !sessionInfo || !itsAuth || isLoading
 
   useEffect(() => {
-    if (isLoggingIn) {
+    setIsLoggingIn(itsController.isLoggingIn)
+
+    const unsubscribeIsLoggingInChanged = itsController.onIsLoggingInChanged.on(() => {
+      setIsLoggingIn(itsController.isLoggingIn)
+    })
+
+    return () => {
+      unsubscribeIsLoggingInChanged()
+    }
+  }, [itsController])
+
+  function setIsLoggingIn(value: boolean) {
+    if (value) {
       setIsDialogOpened(true)
       setDialogErrorText('')
     } else {
@@ -159,7 +130,7 @@ export function ItsAuthDialog({
       setSessionInfo('')
       setItsAuth('')
     }
-  }, [isLoggingIn])
+  }
 
   const handeDialogSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -168,7 +139,7 @@ export function ItsAuthDialog({
 
   const handleDialogCancel = () => {
     if (!isLoading) {
-      onLoggingInFinished && onLoggingInFinished()
+      itsController.finishLoginAsync()
     }
   }
 
@@ -177,7 +148,7 @@ export function ItsAuthDialog({
     itsController.logInAsync(sessionInfo, itsAuth).then((result) => {
       setIsLoading(false)
       if (result) {
-        onLoggingInFinished && onLoggingInFinished()
+        itsController.finishLoginAsync()
       } else {
         setDialogErrorText('Ошибка при входе в ИТС')
       }

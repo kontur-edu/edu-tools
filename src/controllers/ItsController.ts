@@ -4,53 +4,94 @@ import LocalEvent from "../helpers/LocalEvent";
 import { BrowserCache, StorageType } from "../helpers/BrowserCache";
 
 export class ItsController {
-  private readonly urlProvider: ItsUrlProvider;
-  private currentAuth: ItsAuthV2 | null = null;
-  private autoCheckAuthTimeout: any;
-  onAuthChanged: LocalEvent = new LocalEvent();
+  private readonly urlProvider: ItsUrlProvider
+  private currentAuth: ItsAuthV2 | null = null
+  private autoCheckAuthTimeout: any
+  onAuthChanged: LocalEvent = new LocalEvent()
+  
+  isLoggingIn: boolean
+  onIsLoggingInChanged: LocalEvent = new LocalEvent()
+  setIsLoggingIn(value: boolean) {
+    this.isLoggingIn = value
+    this.onIsLoggingInChanged.emit(value)
+  }
+  
+  isLoggingOut: boolean
+  onIsLoggingOutChanged: LocalEvent = new LocalEvent()
+  setIsLoggingOut(value: boolean) {
+    this.isLoggingOut = value
+    this.onIsLoggingOutChanged.emit(value)
+  }
 
   constructor(urlProvider: ItsUrlProvider) {
     this.urlProvider = urlProvider;
+    this.isLoggingIn = false
+    this.isLoggingOut = false
   }
 
   getApi(): ItsApiV2 | null {
     if (this.currentAuth === null) {
       return null
     }
-    return new ItsApiV2(this.currentAuth, this.urlProvider);
+    return new ItsApiV2(this.currentAuth, this.urlProvider)
   }
 
   isLoggedIn(): boolean {
-    return this.currentAuth !== null;
+    return this.currentAuth !== null
+  }
+
+  async startLoginAsync() {
+    if (this.isLoggingOut) {
+      return
+    }
+
+    this.setIsLoggingIn(true)
   }
 
   async logInAsync(sessionInfo: string, itsAuth: string): Promise<boolean> {
-    const auth = new ItsAuthV2(sessionInfo, itsAuth);
-    const result = await this.checkAuthAsync(auth);
+    const auth = new ItsAuthV2(sessionInfo, itsAuth)
+    const result = await this.checkAuthAsync(auth)
     if (result) {
-      this.currentAuth = auth;
-      this.onAuthChanged.emit(true);
-      BrowserCache.save('itsAuth', auth, StorageType.LocalAndSession);
-      return true;
+      this.currentAuth = auth
+      this.onAuthChanged.emit(true)
+      BrowserCache.save('itsAuth', auth, StorageType.LocalAndSession)
+      return true
     } else {
-      return false;
+      return false
     }
   }
 
   async tryLogInFromCacheAsync(): Promise<boolean> {
-    const auth = BrowserCache.read<ItsAuthV2>('itsAuth', StorageType.LocalAndSession);
+    const auth = BrowserCache.read<ItsAuthV2>('itsAuth', StorageType.LocalAndSession)
     if (auth) {
-      return this.logInAsync(auth.sessionInfo, auth.itsAuth);
+      return this.logInAsync(auth.sessionInfo, auth.itsAuth)
     }
-    return false;
+    return false
+  }
+
+  async finishLoginAsync() {
+    this.setIsLoggingIn(false)
+  }
+
+  async startLogoutAsync() {
+    if (this.isLoggingIn) {
+      return
+    }
+
+    try {
+      this.setIsLoggingOut(true)
+      await this.logOutAsync()
+    } finally {
+      this.setIsLoggingOut(false)
+    }
   }
 
   async logOutAsync(): Promise<boolean> {
     const result = this.currentAuth !== null;
-    this.currentAuth = null;
-    this.onAuthChanged.emit(false);
-    BrowserCache.clear('itsAuth', StorageType.LocalAndSession);
-    return result;
+    this.currentAuth = null
+    this.onAuthChanged.emit(false)
+    BrowserCache.clear('itsAuth', StorageType.LocalAndSession)
+    return result
   }
 
   async ensureAuthAsync(): Promise<boolean> {
@@ -59,9 +100,9 @@ export class ItsController {
     }
     const result = await this.checkAuthAsync(this.currentAuth);
     if (!result) {
-      await this.logOutAsync();
+      await this.logOutAsync()
     }
-    return result;
+    return result
   }
 
   private async checkAuthAsync(auth: ItsAuthV2): Promise<boolean> {
@@ -80,8 +121,8 @@ export class ItsController {
     }
 
     this.autoCheckAuthTimeout = setTimeout(async () => {
-      await this.ensureAuthAsync();
-    }, 60 * 1000);
+      await this.ensureAuthAsync()
+    }, 60 * 1000)
   }
 
   stopAutoEnsureAuth(): void {
