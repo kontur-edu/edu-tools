@@ -1,5 +1,5 @@
+import React from 'react'
 import { FormEvent, useEffect, useState } from 'react'
-import { useItsStore } from '../../stores/ItsStore'
 import {
   CircularProgress,
   DialogActions,
@@ -12,7 +12,7 @@ import {
   Link,
   TextField,
 } from '@mui/material'
-import React from 'react'
+import { useItsStore } from '../../stores/ItsStore'
 
 export function ItsAuthDialog() {
   const ITS_AUTH_FILL_INSTRUCTIONS =

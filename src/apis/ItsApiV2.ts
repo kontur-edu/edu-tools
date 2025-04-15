@@ -1,14 +1,5 @@
+import { ItsAuthV2 } from "./ItsAuthV2.js"
 import { ItsUrlProvider } from "./ItsUrlProvider.js"
-
-export class ItsAuthV2 {
-  sessionInfo: string
-  itsAuth: string
-
-  constructor(sessionInfo: string, itsAuth: string) {
-    this.sessionInfo = sessionInfo
-    this.itsAuth = itsAuth
-  }
-}
 
 export class ItsApiV2 {
   private readonly auth: ItsAuthV2

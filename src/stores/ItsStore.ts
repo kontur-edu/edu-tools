@@ -1,6 +1,7 @@
 import { create, StoreApi } from "zustand"
 import { combine } from 'zustand/middleware'
-import { ItsApiV2, ItsAuthV2 } from "../apis/ItsApiV2"
+import { ItsApiV2 } from "../apis/ItsApiV2"
+import { ItsAuthV2 } from "../apis/ItsAuthV2"
 import { ItsUrlProvider } from "../apis/ItsUrlProvider"
 import { BrowserCache, StorageType } from "../helpers/BrowserCache"
 
@@ -13,6 +14,7 @@ const initialState = {
 }
 
 function createActions(set: StoreApi<typeof initialState>['setState'], get: StoreApi<typeof initialState>['getState']) {
+
   function startLoginAsync() {
     const { isLoggingOut } = get()
     if (isLoggingOut) {
@@ -32,13 +34,13 @@ function createActions(set: StoreApi<typeof initialState>['setState'], get: Stor
     }
     try {
       set({ isLoggingOut: true })
-      logOutAsync()
+      logoutAsync()
     } finally {
       set({ isLoggingOut: false })
     }
   }
 
-  async function logInAsync(sessionInfo: string, itsAuth: string): Promise<boolean> {
+  async function loginAsync(sessionInfo: string, itsAuth: string): Promise<boolean> {
     const auth = new ItsAuthV2(sessionInfo, itsAuth)
     const { urlProvider } = get()
     const result = await checkAuthAsync(urlProvider, auth)
@@ -51,15 +53,15 @@ function createActions(set: StoreApi<typeof initialState>['setState'], get: Stor
     }
   }
 
-  async function tryLogInFromCacheAsync(): Promise<boolean> {
+  async function tryLoginFromCacheAsync(): Promise<boolean> {
     const auth = BrowserCache.read<ItsAuthV2>('itsAuth', StorageType.LocalAndSession)
     if (auth) {
-      return logInAsync(auth.sessionInfo, auth.itsAuth)
+      return loginAsync(auth.sessionInfo, auth.itsAuth)
     }
     return false
   }
 
-  async function logOutAsync(): Promise<boolean> {
+  async function logoutAsync(): Promise<boolean> {
     const result = get().currentAuth !== null;
     set({ currentAuth: null })
     BrowserCache.clear('itsAuth', StorageType.LocalAndSession)
@@ -73,7 +75,7 @@ function createActions(set: StoreApi<typeof initialState>['setState'], get: Stor
     }
     const result = await checkAuthAsync(urlProvider, currentAuth);
     if (!result) {
-      await logOutAsync()
+      await logoutAsync()
     }
     return result
   }
@@ -111,9 +113,9 @@ function createActions(set: StoreApi<typeof initialState>['setState'], get: Stor
     startLoginAsync,
     finishLoginAsync,
     startLogoutAsync,
-    logInAsync,
-    tryLogInFromCacheAsync,
-    logOutAsync,
+    loginAsync,
+    tryLoginFromCacheAsync,
+    logoutAsync,
     ensureAuthAsync,
     runAutoEnsureAuth,
     stopAutoEnsureAuth,
