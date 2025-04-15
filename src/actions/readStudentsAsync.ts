@@ -1,6 +1,6 @@
 import { StudentFailure } from '../apis/BrsApi.js';
 import { FileApi } from '../apis/FileApi.js';
-import { GoogleApi } from '../apis/GoogleApi.js';
+import { NodeGoogleApi } from '../apis/NodeGoogleApi.js';
 import { parseStudentFailure } from '../helpers/BrsHelpers.js';
 
 export interface ActualStudent {
@@ -12,7 +12,7 @@ export interface ActualStudent {
 }
 
 export async function fromSpreadsheetAsync(
-  googleApi: GoogleApi,
+  googleApi: NodeGoogleApi,
   spreadsheetId: string,
   readRange: string,
   fullNameIndex: number = 0,

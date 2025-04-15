@@ -6,12 +6,12 @@ import {
 } from './putMarksToBrsAsync.js';
 import * as readStudents from './readStudentsAsync.js';
 import { ActualStudent } from './readStudentsAsync.js';
-import { GoogleApi } from '../apis/GoogleApi.js';
+import { NodeGoogleApi } from '../apis/NodeGoogleApi.js';
 import { normalizeString, compareNormalized } from '../helpers/tools.js';
 import { parseStudentFailure } from '../helpers/BrsHelpers.js';
 
 export default async function buildAutoMarksConfigAsync(
-  googleApi: GoogleApi,
+  googleApi: NodeGoogleApi,
   spreadsheetId: string,
   sheetName: string,
   isSuitableDiscipline: ((d: Discipline) => boolean) | null = null,
@@ -50,7 +50,7 @@ export default async function buildAutoMarksConfigAsync(
 }
 
 async function readRowsFromSpreadsheetAsync(
-  googleApi: GoogleApi,
+  googleApi: NodeGoogleApi,
   spreadsheetId: string,
   sheetName: string
 ) {

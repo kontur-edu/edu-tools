@@ -8,8 +8,8 @@ import { TeamProjectAuthV2 } from './apis/TeamProjectAuthV2.js'
 import { TeamProjectApiV2 } from './apis/TeamProjectApiV2.js'
 import { TeamProjectUrlProvider } from './apis/TeamProjectUrlProvider.js'
 import { TableTaskReader, TableTaskWriter } from './tasks/TableTask.js'
-import { GoogleApi } from './apis/GoogleApi.js'
-import { GoogleAuth } from './apis/GoogleAuth.js'
+import { NodeGoogleApi } from './apis/NodeGoogleApi.js'
+import { NodeGoogleAuth } from './apis/NodeGoogleAuth.js'
 import { DistributeStudentsIntoTeamsTaskExecutor } from './tasks/DistributeStudentsIntoTeamsTask.js'
 import { BrsApi, TechnologyCard, TermType } from './apis/BrsApi.js'
 import { BrsAuth } from './apis/BrsAuth.js'
@@ -75,8 +75,8 @@ async function fillTechnologyCards() {
 }
 
 async function createTeamProjectIterationsAsync() {
-  const googleAuth = await GoogleAuth.createAsync('ask')
-  const taskReader = new TableTaskReader(new GoogleApi(googleAuth))
+  const googleAuth = await NodeGoogleAuth.createAsync('ask')
+  const taskReader = new TableTaskReader(new NodeGoogleApi(googleAuth))
   const task = await taskReader.readTaskAsync('1oJcZnb909lF2VCyPgxacBIbTqMvNlmLKKY-ZHOpTxWI', 'Создание итераций')
   if (task === null) return
 
@@ -87,8 +87,8 @@ async function createTeamProjectIterationsAsync() {
 }
 
 async function distributeStudentsIntoTeamsAsync() {
-  const googleAuth = await GoogleAuth.createAsync('ask-if-not-saved')
-  const taskReader = new TableTaskReader(new GoogleApi(googleAuth))
+  const googleAuth = await NodeGoogleAuth.createAsync('ask-if-not-saved')
+  const taskReader = new TableTaskReader(new NodeGoogleApi(googleAuth))
   // const task = await taskReader.readTaskAsync('1F56jrKpF5NGpZccI2rIgByj8QAIaRASDOWxnslEtJ3k', 'Регистрация команд')
   // const task = await taskReader.readTaskAsync('1aLlE3N0twr8b3bbvEFf5ldAPxw5ICU8rrimejCZ2QTU', 'Все студенты')
   // const task = await taskReader.readTaskAsync('1sl6Yo4Hlz7rsVyJZUhCMMf_8xhFJUbcTJvB_NnIvP2M', 'Регистрация команд') // 3 курс
@@ -103,8 +103,8 @@ async function distributeStudentsIntoTeamsAsync() {
 }
 
 async function sendCuratorMarksAsync() {
-  const googleAuth = await GoogleAuth.createAsync('ask-if-not-saved')
-  const taskReader = new TableTaskReader(new GoogleApi(googleAuth))
+  const googleAuth = await NodeGoogleAuth.createAsync('ask-if-not-saved')
+  const taskReader = new TableTaskReader(new NodeGoogleApi(googleAuth))
 
   //Проектный практикум курс 3-4
   const task = await taskReader.readTaskAsync('19C8YE8KT61C8VuFt-WpcN2bh9NNgnTy--fRDKvE8470', 'Участники')
@@ -130,8 +130,8 @@ async function createTechnologyCardsAsync() {
   const sheetName = 'Создание техкарт курсов по выбору'
   //const sheetName = 'Создание техкарт основных курсов'
 
-  const googleAuth = await GoogleAuth.createAsync('ask-if-not-saved')
-  const googleApi = new GoogleApi(googleAuth)
+  const googleAuth = await NodeGoogleAuth.createAsync('ask-if-not-saved')
+  const googleApi = new NodeGoogleApi(googleAuth)
   const taskReader = new TableTaskReader(googleApi)
   const task = await taskReader.readTaskAsync(spreadsheetId, sheetName)
   if (task === null) return
@@ -150,8 +150,8 @@ async function exportTechnologyCardsAsync() {
   // const sheetName = 'Основные курсы'
   const sheetName = 'Курсы по выбору'
 
-  const googleAuth = await GoogleAuth.createAsync('ask-if-not-saved')
-  const googleApi = new GoogleApi(googleAuth)
+  const googleAuth = await NodeGoogleAuth.createAsync('ask-if-not-saved')
+  const googleApi = new NodeGoogleApi(googleAuth)
   const taskReader = new TableTaskReader(googleApi)
   const taskWriter = new TableTaskWriter(googleApi, spreadsheetId, sheetName)
   const task = await taskReader.readTaskAsync(spreadsheetId, sheetName)

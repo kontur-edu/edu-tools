@@ -8,8 +8,8 @@ import * as readStudents from './actions/readStudentsAsync.js';
 import { BrsApi } from './apis/BrsApi.js';
 import { BrsAuth } from './apis/BrsAuth.js';
 import { FileApi } from './apis/FileApi.js';
-import { GoogleApi } from './apis/GoogleApi.js';
-import { GoogleAuth } from './apis/GoogleAuth.js';
+import { NodeGoogleApi } from './apis/NodeGoogleApi.js';
+import { NodeGoogleAuth } from './apis/NodeGoogleAuth.js';
 import { BrsUrlProvider } from './apis/BrsUrlProvider.js';
 
 async function runPutMarksForSample() {
@@ -87,7 +87,7 @@ async function runPutMarksAutoForSample() {
   const sheetName = 'БРС';
 
   const brsApi = new BrsApi(new BrsAuth(sid), new BrsUrlProvider(false));
-  const googleApi = new GoogleApi(await GoogleAuth.createAsync('ask-if-not-saved'));
+  const googleApi = new NodeGoogleApi(await NodeGoogleAuth.createAsync('ask-if-not-saved'));
   await putMarksToBrsAutoAsync(
     brsApi,
     googleApi,

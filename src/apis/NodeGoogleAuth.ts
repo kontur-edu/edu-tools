@@ -9,16 +9,16 @@ const PROJECT_CONFIG_PATH = './secrets/google.json'
 
 export type AuthorizePolicy = 'always-new' | 'ask' | 'ask-if-not-saved' | 'only-saved'
 
-export class GoogleAuth {
+export class NodeGoogleAuth {
   authClient: OAuth2Client
 
   constructor(authClient: OAuth2Client) {
     this.authClient = authClient
   }
 
-  static async createAsync(policy: AuthorizePolicy): Promise<GoogleAuth> {
+  static async createAsync(policy: AuthorizePolicy): Promise<NodeGoogleAuth> {
     const authClient = await authorizeAsync(policy)
-    return new GoogleAuth(authClient)
+    return new NodeGoogleAuth(authClient)
   }
 }
 

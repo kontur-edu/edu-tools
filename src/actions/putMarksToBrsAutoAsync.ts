@@ -7,13 +7,13 @@ import putMarksToBrsAsync, {
 } from './putMarksToBrsAsync.js';
 import buildAutoMarksConfigAsync from './buildAutoMarksConfigAsync.js';
 import { ActualStudent } from './readStudentsAsync.js';
-import { GoogleApi } from '../apis/GoogleApi.js';
+import { NodeGoogleApi } from '../apis/NodeGoogleApi.js';
 
 export type { PutMarksOptions, DisciplineConfig, ControlActionConfig, MarksData };
 
 export default async function putMarksAutoAsync(
   brsApi: BrsApi,
-  googleApi: GoogleApi,
+  googleApi: NodeGoogleApi,
   spreadsheetId: string,
   sheetName: string,
   options: PutMarksOptions,
