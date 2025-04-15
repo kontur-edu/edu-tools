@@ -13,7 +13,6 @@ import { GoogleAuth } from './apis/GoogleAuth.js';
 import { BrsUrlProvider } from './apis/BrsUrlProvider.js';
 
 async function runPutMarksForSample() {
-  const login = 'login';
   const sid = 'sid';
   const dataCsv = './data/students2.csv'
 
@@ -69,7 +68,7 @@ async function runPutMarksForSample() {
     defaultStudentFailure: StudentFailure.NoFailure,
   } as DisciplineConfig;
 
-  const brsApi = new BrsApi(new BrsAuth(login, sid), new BrsUrlProvider(false));
+  const brsApi = new BrsApi(new BrsAuth(sid), new BrsUrlProvider(false));
   await putMarksToBrsManualAsync(
     brsApi,
     { actualStudents, disciplineConfig, controlActionConfigs },
@@ -81,15 +80,13 @@ async function runPutMarksForSample() {
 }
 
 async function runPutMarksAutoForSample() {
-  const login = 'login';
   const sid = 'sid';
-  const secretName = 'username-from-brs.json';
   // Пример таблицы для автоматической конфигурации
   // https://docs.google.com/spreadsheets/d/1Owzl3JfmFASIdC7ZMMw-0kkA3pwFSab1QdVO5dhZoxY/edit?usp=sharing
   const spreadsheetId = '1Owzl3JfmFASIdC7ZMMw-0kkA3pwFSab1QdVO5dhZoxY';
   const sheetName = 'БРС';
 
-  const brsApi = new BrsApi(new BrsAuth(login, sid), new BrsUrlProvider(false));
+  const brsApi = new BrsApi(new BrsAuth(sid), new BrsUrlProvider(false));
   const googleApi = new GoogleApi(await GoogleAuth.createAsync('ask-if-not-saved'));
   await putMarksToBrsAutoAsync(
     brsApi,

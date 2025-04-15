@@ -19,7 +19,7 @@ export class CorsProxyUrlProvider {
         }
 
         const result = { ...headers }
-        result['X-Cookies'] = result['Cookie']
+        result['X-Cookie'] = result['Cookie']
         delete result['Cookie']
         result['X-Authorization'] = result['Authorization']
         delete result['Authorization']

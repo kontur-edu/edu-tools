@@ -1,31 +1,15 @@
-import * as fs from 'fs'
 import { BrsUrlProvider } from './BrsUrlProvider'
 
 export class BrsAuth {
   sid: string
-  login: string
 
-  constructor(sid: string, login: string) {
+  constructor(sid: string) {
     this.sid = sid
-    this.login = login
   }
 
   static async createAsync(urlProvider: BrsUrlProvider, login: string, password: string): Promise<BrsAuth | null> {
     const sid = await authorizeAsync(urlProvider, login, password)
-    return sid ? new BrsAuth(sid, login) : null
-  }
-
-  static async createByConfigAsync(urlProvider: BrsUrlProvider, secretName: string): Promise<BrsAuth | null> {
-    const secrets = JSON.parse(fs.readFileSync('./secrets/brs.json', 'utf8'))
-    const credentials = secrets[secretName] as {
-      login: string
-      password: string
-      sid: string // содержимое Cookie JSSESSIONID, если sid задается, то все login и password не используются
-    }
-
-    const sid = credentials.sid ? credentials.sid : await authorizeAsync(urlProvider, credentials.login, credentials.password)
-    const login = credentials.sid ? secretName : credentials.login
-    return sid ? new BrsAuth(sid, login) : null
+    return sid ? new BrsAuth(sid) : null
   }
 }
 

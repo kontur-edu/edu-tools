@@ -13,7 +13,10 @@ import { GoogleAuthButton } from './GoogleAuth/GoogleAuthButton'
 import { ShowIfGoogleAuth } from './GoogleAuth/ShowIfGoogleAuth'
 import { TeamProjectAuthSwitch } from './TeamProjectAuth/TeamProjectAuthSwitch'
 import { TeamProjectAuthDialog } from './TeamProjectAuth/TeamProjectAuthDialog'
-
+import { BrsAuthSwitch } from './BrsAuth/BrsAuthSwitch'
+import { BrsAuthDialog } from './BrsAuth/BrsAuthDialog'
+import { PartnerAuthSwitch } from './PartnerAuth/PartnerAuthSwitch'
+import { PartnerAuthDialog } from './PartnerAuth/PartnerAuthDialog'
 const GOOGLE_CLIENT_ID = "122993083593-pacve8csj86voko30ia65raeg0ncrtuv.apps.googleusercontent.com"
 
 export default function App() {
@@ -29,6 +32,10 @@ export default function App() {
               <GoogleAuthPanel />
             </Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2}}>
+              <BrsAuthSwitch />
+              <BrsAuthDialog />
+              <PartnerAuthSwitch />
+              <PartnerAuthDialog />
               <ItsAuthSwitch />
               <ItsAuthDialog />
               <TeamProjectAuthSwitch />

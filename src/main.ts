@@ -35,11 +35,8 @@ async function main() {
 
 async function fillTechnologyCards() {
   const urlProvider = new BrsUrlProvider(false)
-  const auth = await BrsAuth.createByConfigAsync(urlProvider, 'domashnikh')
-  if (auth === null) {
-    console.log('incorrect auth')
-    return
-  }
+  const sid = '1234567890'
+  const auth = new BrsAuth(sid)
   const brsApi = new BrsApi(auth, urlProvider)
 
   const allCards: Array<TechnologyCard> = [
@@ -141,11 +138,8 @@ async function createTechnologyCardsAsync() {
   if (task === null) return
 
   const urlProvider = new BrsUrlProvider(false)
-  const auth = await BrsAuth.createByConfigAsync(urlProvider, 'domashnikh')
-  if (auth === null) {
-    console.log('incorrect auth')
-    return
-  }
+  const sid = '1234567890'
+  const auth = new BrsAuth(sid)
   const brsApi = new BrsApi(auth, urlProvider)
 
   const executor = new CreateTechnologyCardsTaskExecutor(brsApi)
@@ -165,11 +159,8 @@ async function exportTechnologyCardsAsync() {
   if (task === null) return
 
   const urlProvider = new BrsUrlProvider(false)
-  const auth = await BrsAuth.createByConfigAsync(urlProvider, 'domashnikh')
-  if (auth === null) {
-    console.log('incorrect auth')
-    return
-  }
+  const sid = '1234567890'
+  const auth = new BrsAuth(sid)
   const brsApi = new BrsApi(auth, urlProvider)
 
   const executor = new ExportTechnologyCardsTaskExecutor(brsApi, taskWriter)

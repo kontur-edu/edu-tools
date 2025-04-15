@@ -5,17 +5,17 @@ import { TeamProjectUrlProvider } from "../apis/TeamProjectUrlProvider"
 import { TeamProjectAuthV2 } from "../apis/TeamProjectAuthV2"
 import { BrowserCache, StorageType } from "../helpers/BrowserCache"
 
+const urlProvider = new TeamProjectUrlProvider(true)
 
 const initialState = {
   currentAuth: null as TeamProjectAuthV2 | null,
   isLoggingIn: false,
   isLoggingOut: false,
-  autoCheckAuthTimeout: null as NodeJS.Timeout | null,
-  urlProvider: new TeamProjectUrlProvider(true),
+  autoCheckAuthTimeout: null as NodeJS.Timeout | null
 }
 
 function createActions(set: StoreApi<typeof initialState>['setState'], get: StoreApi<typeof initialState>['getState']) {
-
+  
   function startLoginAsync() {
     const { isLoggingOut } = get()
     if (isLoggingOut) {
@@ -47,7 +47,6 @@ function createActions(set: StoreApi<typeof initialState>['setState'], get: Stor
     }
 
     const auth = new TeamProjectAuthV2(authJwt)
-    const { urlProvider } = get()
     const result = await checkAuthAsync(urlProvider, auth)
     if (result) {
       set({ currentAuth: auth })
@@ -74,7 +73,7 @@ function createActions(set: StoreApi<typeof initialState>['setState'], get: Stor
   }
 
   async function ensureAuthAsync(): Promise<boolean> {
-    const { currentAuth, urlProvider } = get()
+    const { currentAuth } = get()
     if (currentAuth === null) {
       return false
     }
@@ -107,7 +106,7 @@ function createActions(set: StoreApi<typeof initialState>['setState'], get: Stor
   }
 
   function getApi(): TeamProjectApiV2 | null {
-    const { currentAuth, urlProvider } = get()
+    const { currentAuth } = get()
     if (currentAuth === null) {
       return null
     }

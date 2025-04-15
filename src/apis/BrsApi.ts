@@ -1,6 +1,6 @@
-import { BrsAuth } from './BrsAuth.js'
-import { buildFormData, replaceAll } from '../helpers/tools.js'
-import { BrsUrlProvider } from './BrsUrlProvider.js'
+import { buildFormData, replaceAll } from '../helpers/tools'
+import { BrsAuth } from './BrsAuth'
+import { BrsUrlProvider } from './BrsUrlProvider'
 
 export class BrsApi {
   private readonly auth: BrsAuth
@@ -119,7 +119,7 @@ export class BrsApi {
     termType: TermType,
     course: number,
     isModule: boolean,
-    search: string = '',
+    search = '',
   ): Promise<TechnologyCard[]> {
     return getTechnologyCardsAsync(this.urlProvider, this.auth, year, termType, course, isModule, search)
   }
@@ -326,8 +326,8 @@ async function getStudentMarksAsync(
   discipline: Discipline,
   cardType: CardType,
   markType: MarkType,
-  isTotal: boolean = false,
-  showActiveStudents: boolean = false,
+  isTotal = false,
+  showActiveStudents = false,
 ) {
   const { disciplineLoad, isModule } = discipline
   const groupUuid = discipline.groupHistoryId
@@ -420,7 +420,7 @@ async function getTechnologyCardsAsync(
   termType: TermType,
   course: number,
   isModule: boolean,
-  search: string = '',
+  search = '',
 ): Promise<TechnologyCard[]> {
   const queryString = `?year=${year}&termType=${termType}&course=${course}&page=1&pageSize=1000&search=${encodeURIComponent(
     search,

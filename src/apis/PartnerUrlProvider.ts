@@ -1,4 +1,4 @@
-import { CorsProxyUrlProvider } from "../helpers/CorsProxyUrlProvider";
+import { CorsProxyUrlProvider } from '../helpers/CorsProxyUrlProvider'
 
 const PARTNER_BASE_URL = 'https://partner.urfu.ru'
 

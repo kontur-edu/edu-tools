@@ -5,12 +5,13 @@ import { ItsAuthV2 } from "../apis/ItsAuthV2"
 import { ItsUrlProvider } from "../apis/ItsUrlProvider"
 import { BrowserCache, StorageType } from "../helpers/BrowserCache"
 
+const urlProvider = new ItsUrlProvider(true)
+
 const initialState = {
   currentAuth: null as ItsAuthV2 | null,
   isLoggingIn: false,
   isLoggingOut: false,
-  autoCheckAuthTimeout: null as NodeJS.Timeout | null,
-  urlProvider: new ItsUrlProvider(true),
+  autoCheckAuthTimeout: null as NodeJS.Timeout | null
 }
 
 function createActions(set: StoreApi<typeof initialState>['setState'], get: StoreApi<typeof initialState>['getState']) {
@@ -42,7 +43,6 @@ function createActions(set: StoreApi<typeof initialState>['setState'], get: Stor
 
   async function loginAsync(sessionInfo: string, itsAuth: string): Promise<boolean> {
     const auth = new ItsAuthV2(sessionInfo, itsAuth)
-    const { urlProvider } = get()
     const result = await checkAuthAsync(urlProvider, auth)
     if (result) {
       set({ currentAuth: auth })
@@ -69,7 +69,7 @@ function createActions(set: StoreApi<typeof initialState>['setState'], get: Stor
   }
 
   async function ensureAuthAsync(): Promise<boolean> {
-    const { currentAuth, urlProvider } = get()
+    const { currentAuth } = get()
     if (currentAuth === null) {
       return false
     }
@@ -102,7 +102,7 @@ function createActions(set: StoreApi<typeof initialState>['setState'], get: Stor
   }
 
   function getApi(): ItsApiV2 | null {
-    const { currentAuth, urlProvider } = get()
+    const { currentAuth } = get()
     if (currentAuth === null) {
       return null
     }
