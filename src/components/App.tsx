@@ -14,6 +14,8 @@ import { BrsAuthDialog } from './BrsAuth/BrsAuthDialog'
 import { PartnerAuthSwitch } from './PartnerAuth/PartnerAuthSwitch'
 import { PartnerAuthDialog } from './PartnerAuth/PartnerAuthDialog'
 import { useState } from 'react'
+import { BrowserGoogleApi } from '../apis/BrowserGoogleApi'
+import { useGoogleAuthStore } from '../stores/GoogleAuthStore'
 const GOOGLE_CLIENT_ID = '122993083593-pacve8csj86voko30ia65raeg0ncrtuv.apps.googleusercontent.com'
 
 export default function App() {
@@ -72,14 +74,39 @@ export default function App() {
 
 function SpreadsheetForm() {
   const [isLoading, setIsLoading] = useState(false)
+  
+  const [spreadsheetUrl, setSpreadsheetUrl] = useState('')
+  const [data, setData] = useState<any>(null)
+  const [error, setError] = useState<string | null>(null)
+  const { token } = useGoogleAuthStore()
 
-  const handleDialogSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleDialogSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setIsLoading(true)
-    // Здесь будет логика обработки формы
-    setTimeout(() => {
+    setError(null)
+    setData(null)
+    
+    try {
+      // Извлекаем ID таблицы из URL
+      const spreadsheetId = spreadsheetUrl.match(/\/d\/([a-zA-Z0-9-_]+)/)?.[1]
+      if (!spreadsheetId) {
+        throw new Error('Неверный формат ссылки на таблицу')
+      }
+
+      if (!token) {
+        throw new Error('Требуется авторизация')
+      }
+
+      const googleApi = new BrowserGoogleApi(token.access_token)
+      const spreadsheet = googleApi.openSpreadsheet(spreadsheetId)
+      const meta = await spreadsheet.getMetaAsync()
+      console.log(meta)
+      setData(meta)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Произошла неизвестная ошибка')
+    } finally {
       setIsLoading(false)
-    }, 1000)
+    }
   }
 
   return (
@@ -97,14 +124,26 @@ function SpreadsheetForm() {
             placeholder="Ссылка вида https://docs.google.com/spreadsheets/d/sjwa1/edit#gid=0"
             sx={{ mr: 2 }}
             required
+            value={spreadsheetUrl}
+            onChange={(e) => setSpreadsheetUrl(e.target.value)}
           />
           <Button variant="contained" color="primary" type="submit" disabled={isLoading}>
             Загрузить
           </Button>
         </Box>
+        {error && (
+          <Box sx={{ mt: 2, color: 'error.main' }}>
+            <Typography color="error">{error}</Typography>
+          </Box>
+        )}
         <Box sx={{ display: 'flex', width: '100%', justifyContent: 'center', mt: 4 }}>
           {isLoading && <CircularProgress color="primary" size={150} className="progress" />}
         </Box>
+        {data && (
+          <Box sx={{ mt: 4 }}>
+            <Typography variant="h6">Данные успешно загружены</Typography>
+          </Box>
+        )}
       </form>
     </>
   )

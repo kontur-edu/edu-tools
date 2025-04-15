@@ -1,6 +1,6 @@
 import { google } from 'googleapis'
 import { NodeGoogleAuth as NodeGoogleAuth } from './NodeGoogleAuth.js'
-import { GoogleApi, Spreadsheet, ValueRange } from './GoogleApi.js'
+import { GoogleApi, Spreadsheet, SpreadsheetMeta, ValueRange } from './GoogleApi.js'
 
 export class NodeGoogleApi implements GoogleApi {
   private readonly auth: NodeGoogleAuth
@@ -11,6 +11,14 @@ export class NodeGoogleApi implements GoogleApi {
 
   openSpreadsheet(spreadsheetId: string): Spreadsheet {
     const authClient = this.auth.authClient
+
+    async function getMetaAsync() {
+      const sheets = google.sheets({ version: 'v4', auth: authClient })
+      const response = await sheets.spreadsheets.get({
+        spreadsheetId
+      })
+      return response.data as SpreadsheetMeta
+    }
 
     async function readAsync(range: string) {
       const sheets = google.sheets({ version: 'v4', auth: authClient })
@@ -50,6 +58,7 @@ export class NodeGoogleApi implements GoogleApi {
     }
 
     return {
+      getMetaAsync,
       readAsync,
       writeAsync,
       appendAsync,

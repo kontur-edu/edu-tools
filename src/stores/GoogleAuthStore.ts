@@ -39,16 +39,22 @@ function createActions(set: StoreApi<typeof initialState>['setState'], get: Stor
       return false
     }
 
+    return await loadUserInfoByTokenAsync(token)
+  }
+
+  async function loadUserInfoByTokenAsync(token: TokenResponse) {
     try {
       const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
         headers: { Authorization: `Bearer ${token.access_token}` },
       })
       const data = await res.json()
-      set({ userInfo: {
-        email: data.email,
-        name: data.name,
-        picture: data.picture,
-      }});
+      set({
+        userInfo: {
+          email: data.email,
+          name: data.name,
+          picture: data.picture,
+        }
+      });
       return true
     } catch (error) {
       console.error('Ошибка загрузки информации о пользователе:', error)
@@ -57,13 +63,13 @@ function createActions(set: StoreApi<typeof initialState>['setState'], get: Stor
   }
 
   async function tryLoginFromCacheAsync(): Promise<boolean> {
-    const token = BrowserCache.read('google_token', StorageType.LocalAndSession)
+    const token = BrowserCache.read('google_token', StorageType.LocalAndSession) as TokenResponse | null
     if (!!token) {
-      const success = await loadUserInfoAsync()
+      const success = await loadUserInfoByTokenAsync(token)
       if (success) {
         set({
           isAuthenticated: true,
-          token: token as TokenResponse,
+          token: token,
         })
         return true
       }
