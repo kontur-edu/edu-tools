@@ -206,10 +206,10 @@ async function fetchApiAsync(
   const response = await fetch(urlProvider.baseUrl + uri, {
     method: 'GET',
     ...options,
-    headers: {
+    headers: urlProvider.prepareHeaders({
       Cookie: cookieHeader,
       ...headers,
-    },
+    }),
   })
   return response
 }

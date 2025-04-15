@@ -15,9 +15,9 @@ export class PartnerApi {
     const cookieHeader = `key=${this.auth.key}`
     const response = await fetch(this.urlProvider.baseUrl + uri, {
       method: 'GET',
-      headers: {
+      headers: this.urlProvider.prepareHeaders({
         Cookie: cookieHeader,
-      },
+      }),
     })
     if (response.status === 200) {
       return (await response.json()) as Project

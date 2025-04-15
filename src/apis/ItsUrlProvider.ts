@@ -1,14 +1,9 @@
+import { CorsProxyUrlProvider } from "../helpers/CorsProxyUrlProvider";
+
 const ITS_BASE_URL = 'https://its.urfu.ru'
-const CORS_PROXY = "https://bbamc5stve2edro7t455.containers.yandexcloud.net";
 
-export class ItsUrlProvider {
-    private readonly withProxy: boolean;
-
+export class ItsUrlProvider extends CorsProxyUrlProvider {
     constructor(withProxy: boolean) {
-        this.withProxy = withProxy;
-    }
-
-    get baseUrl() {
-        return this.withProxy ? `${CORS_PROXY}/${ITS_BASE_URL}` : ITS_BASE_URL;
+        super(ITS_BASE_URL, withProxy)
     }
 }

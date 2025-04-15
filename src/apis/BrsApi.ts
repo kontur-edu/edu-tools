@@ -776,11 +776,10 @@ async function requestApiAsync(
     const response = await fetch(url, {
       method: 'GET',
       ...options,
-      headers: {
+      headers: urlProvider.prepareHeaders({
         Cookie: `JSESSIONID=${auth.sid}`,
-        "X-Cookie": `JSESSIONID=${auth.sid}`, // NOTE: для CORS-PROXY
         ...headers,
-      },
+      }),
       signal: AbortSignal.timeout(timeout),
     })
     return response

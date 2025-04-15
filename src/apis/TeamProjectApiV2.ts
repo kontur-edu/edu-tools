@@ -161,10 +161,10 @@ async function fetchApiAsync(
     const response = await fetch(url, {
       method: 'GET',
       ...options,
-      headers: {
+      headers: urlProvider.prepareHeaders({
         Cookie: cookieHeader,
         ...headers,
-      },
+      }),
       signal: AbortSignal.timeout(timeout),
     })
     return response
@@ -186,6 +186,7 @@ interface RequestOptions {
 
 interface RequestHeaders {
   Authorization?: string
+  'X-Authorization'?: string
   'Content-Type'?: string
   'X-Requested-With'?: 'XMLHttpRequest'
 }

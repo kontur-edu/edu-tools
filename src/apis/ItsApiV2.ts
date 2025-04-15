@@ -118,11 +118,10 @@ async function fetchApiAsync(
   const response = await fetch(urlProvider.baseUrl + uri, {
     method: 'GET',
     ...options,
-    headers: {
+    headers: urlProvider.prepareHeaders({
       Cookie: cookieHeader,
-      "X-Cookie": cookieHeader, // NOTE: для CORS-PROXY
       ...headers,
-    },
+    }),
   })
   return response
 }
