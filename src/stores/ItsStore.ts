@@ -41,8 +41,8 @@ function createActions(set: StoreApi<typeof initialState>['setState'], get: Stor
     }
   }
 
-  async function loginAsync(sessionInfo: string, itsAuth: string): Promise<boolean> {
-    const auth = new ItsAuthV2(sessionInfo, itsAuth)
+  async function loginAsync(itsAuth: string): Promise<boolean> {
+    const auth = new ItsAuthV2(itsAuth)
     const result = await checkAuthAsync(urlProvider, auth)
     if (result) {
       set({ currentAuth: auth })
@@ -56,7 +56,7 @@ function createActions(set: StoreApi<typeof initialState>['setState'], get: Stor
   async function tryLoginFromCacheAsync(): Promise<boolean> {
     const auth = BrowserCache.read<ItsAuthV2>('itsAuth', StorageType.LocalAndSession)
     if (auth) {
-      return loginAsync(auth.sessionInfo, auth.itsAuth)
+      return loginAsync(auth.itsAuth)
     }
     return false
   }

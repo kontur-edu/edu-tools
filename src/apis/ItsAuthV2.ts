@@ -1,9 +1,7 @@
 export class ItsAuthV2 {
-  sessionInfo: string
   itsAuth: string
 
-  constructor(sessionInfo: string, itsAuth: string) {
-    this.sessionInfo = sessionInfo
+  constructor(itsAuth: string) {
     this.itsAuth = itsAuth
   }
 }

@@ -109,7 +109,6 @@ async function fetchApiAsync(
 
   const cookies = maybeCookies || {}
   cookies['ItsAuth'] = auth.itsAuth
-  cookies['sessionInfo'] = auth.sessionInfo
 
   const cookieHeader = Object.keys(cookies)
     .map((k) => `${k}=${cookies[k]}`)

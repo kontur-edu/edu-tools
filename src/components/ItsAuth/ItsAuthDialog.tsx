@@ -23,18 +23,16 @@ export function ItsAuthDialog() {
   const loginAsync = useItsStore((state) => state.loginAsync)
   const finishLoginAsync = useItsStore((state) => state.finishLoginAsync)
 
-  const [sessionInfo, setSessionInfo] = useState('')
   const [itsAuth, setItsAuth] = useState('')
   const [dialogErrorText, setDialogErrorText] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const isDialogSubmitDisabled = !sessionInfo || !itsAuth || isLoading
+  const isDialogSubmitDisabled = !itsAuth || isLoading
 
   const isDialogOpened = isLoggingIn
 
   useEffect(() => {
     setDialogErrorText('')
     if (!isLoggingIn) {
-      setSessionInfo('')
       setItsAuth('')
     }
   }, [isLoggingIn])
@@ -43,7 +41,7 @@ export function ItsAuthDialog() {
     e.preventDefault()
 
     setIsLoading(true)
-    loginAsync(sessionInfo, itsAuth).then((result) => {
+    loginAsync(itsAuth).then((result) => {
       setIsLoading(false)
       if (result) {
         finishLoginAsync()
@@ -64,15 +62,6 @@ export function ItsAuthDialog() {
       <form onSubmit={handeDialogSubmit}>
         <DialogTitle>Вход в ИТС</DialogTitle>
         <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="sessionInfo"
-            fullWidth
-            value={sessionInfo}
-            onChange={(e) => setSessionInfo(e.target.value)}
-            disabled={isLoading}
-          />
           <TextField
             margin="dense"
             label="ItsAuth"
