@@ -11,7 +11,8 @@ import { ItsAuthSwitch } from './ItsAuth/ItsAuthSwitch'
 import { ItsAuthDialog } from './ItsAuth/ItsAuthDialog'
 import { GoogleAuthButton } from './GoogleAuth/GoogleAuthButton'
 import { ShowIfGoogleAuth } from './GoogleAuth/ShowIfGoogleAuth'
-import { GoogleAuthUserInfo } from './GoogleAuth/GoogleAuthUserInfo'
+import { TeamProjectAuthSwitch } from './TeamProjectAuth/TeamProjectAuthSwitch'
+import { TeamProjectAuthDialog } from './TeamProjectAuth/TeamProjectAuthDialog'
 
 const GOOGLE_CLIENT_ID = "122993083593-pacve8csj86voko30ia65raeg0ncrtuv.apps.googleusercontent.com"
 
@@ -29,11 +30,9 @@ export default function App() {
             </Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2}}>
               <ItsAuthSwitch />
-              <ItsAuthSwitch />
-              <ItsAuthSwitch />
-              <ItsAuthSwitch />
-
               <ItsAuthDialog />
+              <TeamProjectAuthSwitch />
+              <TeamProjectAuthDialog />
             </Box>
             <Routes>
               <Route path="/" element={
