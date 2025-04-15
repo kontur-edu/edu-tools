@@ -1,6 +1,12 @@
 import { NotionApi, NotionAuth } from './apis/NotionApi.js'
+import { PartnerApi } from './apis/PartnerApi.js'
+import { PartnerUrlProvider } from './apis/PartnerUrlProvider.js'
+import { PartnerAuth } from './apis/PartnerAuth.js'
 import { ItsApiV2 } from './apis/ItsApiV2.js'
 import { ItsAuthV2 } from './apis/ItsAuthV2.js'
+import { TeamProjectAuthV2 } from './apis/TeamProjectAuthV2.js'
+import { TeamProjectApiV2 } from './apis/TeamProjectApiV2.js'
+import { TeamProjectUrlProvider } from './apis/TeamProjectUrlProvider.js'
 import { TableTaskReader, TableTaskWriter } from './tasks/TableTask.js'
 import { GoogleApi } from './apis/GoogleApi.js'
 import { GoogleAuth } from './apis/GoogleAuth.js'
@@ -78,7 +84,7 @@ async function createTeamProjectIterationsAsync() {
   if (task === null) return
 
   const authJwt = 'Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJmRXFJMlNLVm85X19yXzZMZ1hYZVloaEVSSG5jR19VdEVhNVgxT2VLQk5ZIn0.eyJleHAiOjE3NDQ0MDY5NjYsImlhdCI6MTc0NDM3MDk2NiwiYXV0aF90aW1lIjoxNzQ0MzcwOTY2LCJqdGkiOiJiZDMxYzdmYy1iNTkxLTQxMzctOWUyMi1mZDhiMDQwY2E4ZDIiLCJpc3MiOiJodHRwczovL2tleXMudXJmdS5ydS9hdXRoL3JlYWxtcy91cmZ1LWxrIiwic3ViIjoiZDVkYzUyYTYtYWZkYS00MzNiLTgwZjItMTMwMGY0MDYzODU5IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoidGVhbXBybyIsIm5vbmNlIjoiZDU2NzVlZjgtYTA0YS00ODg0LTk5MTgtZjE2ZjM2MTA2YjlhIiwic2Vzc2lvbl9zdGF0ZSI6IjMzYWQ3ZDljLTc4ZWUtNGE4Yy05MmFmLWU4YzcwM2Q3ZmUyZCIsInNjb3BlIjoib3BlbmlkIGxrLW1hcGVycyIsInNpZCI6IjMzYWQ3ZDljLTc4ZWUtNGE4Yy05MmFmLWU4YzcwM2Q3ZmUyZCIsInVzZXIiOnsicGVyc29uIjp7ImlkIjoiSS5BLkRvbWFzaG5pa2giLCJndWlkIjoiYjY0M2QzOWEtN2I3Yi00OTdiLTg4MTctZTFlNzBiMjA1MWE1IiwidGl0bGUiOiLQlNC-0LzQsNGI0L3QuNGFINCY0LLQsNC9INCQ0LvQtdC60YHQtdC10LLQuNGHIiwibGFzdE5hbWUiOiLQlNC-0LzQsNGI0L3QuNGFIiwiZmlyc3ROYW1lIjoi0JjQstCw0L0iLCJtaWRkbGVOYW1lIjoi0JDQu9C10LrRgdC10LXQstC40YciLCJlbWFpbCI6ImkuYS5kb21hc2huaWtoQHVyZnUucnUifSwicm9sZXMiOlt7InVzZXJUeXBlIjoiRW1wbG95ZWUiLCJpZCI6IjJhNzNkODEzLWEwNTgtMTFlZC05ZGMyLTI0OGEwN2Q3YmZlMSIsImVtcGxveW1lbnRUeXBlIjoi0JLQvdC10YjQvdC10LUg0YHQvtCy0LzQtdGB0YLQuNGC0LXQu9GM0YHRgtCy0L4iLCJwb3N0Ijoi0KHRgtCw0YDRiNC40Lkg0L_RgNC10L_QvtC00LDQstCw0YLQtdC70YwiLCJjYXRlZ29yeSI6ItCf0J_QoSIsInJhdGUiOjAuMjUsImRpdmlzaW9uSWQiOiI1N2E4OTBlNi04NmViLTQ0NTEtYWI2Zi05NDhhZGYxMmIyMjQiLCJkaXZpc2lvblRpdGxlIjoi0JTQtdC_0LDRgNGC0LDQvNC10L3RgiDQvNCw0YLQtdC80LDRgtC40LrQuCwg0LzQtdGF0LDQvdC40LrQuCDQuCDQutC-0LzQv9GM0Y7RgtC10YDQvdGL0YUg0L3QsNGD0LoifV19fQ.mVSI003TFNbEn4BJ4bZKW4o7AcWWE5ZqRpkTkZcQkCLc__JTR6oS8sIwJ1l7MJnYbVtv89s2N6209pw4bvfQn6qSrO8p3xNu897Iw9ib9cmKOnGxOsSpW8fGkrQpuCIlP3vWbEMXyuj_Rq81EMWSmPsKCbQxI5ubYkv4EXJJeDt8pCxUaFmlBGjksQlZ8c8f6U5g9qbJqI5DV-zBNTYkhvOak6iZLUWfnxJADrKWlU4lbl0Ve-arRnqyl86XfJA7iFNkaIIjUjimqt9T4tp7_js1ncbd2QKfRZumgSIFvaV9h28Yp7Vn1ym3H13LtqzYjqJukf46MegMQgQUkIs70A'
-  const teamProjectApi = new TeamProjectApiV2(new TeamProjectAuthV2(authJwt))
+  const teamProjectApi = new TeamProjectApiV2(new TeamProjectAuthV2(authJwt), new TeamProjectUrlProvider(false))
   const executor = new CreateTeamProjectIterationsTaskExecutor(teamProjectApi)
   await executor.executeAsync(task)
 }
@@ -103,22 +109,22 @@ async function distributeStudentsIntoTeamsAsync() {
 async function sendCuratorMarksAsync() {
   const googleAuth = await GoogleAuth.createAsync('ask-if-not-saved')
   const taskReader = new TableTaskReader(new GoogleApi(googleAuth))
-  
+
   //Проектный практикум курс 3-4
   const task = await taskReader.readTaskAsync('19C8YE8KT61C8VuFt-WpcN2bh9NNgnTy--fRDKvE8470', 'Участники')
-  
+
   //Проектный практикум курс 2
   //const task = await taskReader.readTaskAsync('1QgjRk0MqpHmR3sBJ65lzptGtpsdlLETLCPCAdggOW6w', 'Оценивание команд')
 
   //Проектный практикум курс 1
   //const task = await taskReader.readTaskAsync('1quWHq3S93L-aYKvBbo0t6R7yjxYMz-iCimL2FAerHtA', 'Участники')
 
-  
+
 
   if (task === null) return
 
   const authJwt = 'Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJmRXFJMlNLVm85X19yXzZMZ1hYZVloaEVSSG5jR19VdEVhNVgxT2VLQk5ZIn0.eyJleHAiOjE3Mzc2MTE1NjEsImlhdCI6MTczNzU4MTY3NCwiYXV0aF90aW1lIjoxNzM3NTc1NTYxLCJqdGkiOiI4ZGM3ZjVjMy05OTZmLTRhNzktYTI5OC02ODc5OTFjZmEyYzkiLCJpc3MiOiJodHRwczovL2tleXMudXJmdS5ydS9hdXRoL3JlYWxtcy91cmZ1LWxrIiwic3ViIjoiZDVkYzUyYTYtYWZkYS00MzNiLTgwZjItMTMwMGY0MDYzODU5IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoidGVhbXBybyIsIm5vbmNlIjoiY2Q3NzNhM2UtNjU4ZS00MmM0LTkyMjQtYTIwMmY5ZDFlNDBkIiwic2Vzc2lvbl9zdGF0ZSI6ImUxM2E4ZjM0LWMxYTgtNDk4MC1hNWIyLTUwOGMyZTFjNGExOCIsInNjb3BlIjoib3BlbmlkIGxrLW1hcGVycyIsInNpZCI6ImUxM2E4ZjM0LWMxYTgtNDk4MC1hNWIyLTUwOGMyZTFjNGExOCIsInVzZXIiOnsicGVyc29uIjp7ImlkIjoiSS5BLkRvbWFzaG5pa2giLCJndWlkIjoiYjY0M2QzOWEtN2I3Yi00OTdiLTg4MTctZTFlNzBiMjA1MWE1IiwidGl0bGUiOiLQlNC-0LzQsNGI0L3QuNGFINCY0LLQsNC9INCQ0LvQtdC60YHQtdC10LLQuNGHIiwibGFzdE5hbWUiOiLQlNC-0LzQsNGI0L3QuNGFIiwiZmlyc3ROYW1lIjoi0JjQstCw0L0iLCJtaWRkbGVOYW1lIjoi0JDQu9C10LrRgdC10LXQstC40YciLCJlbWFpbCI6ImkuYS5kb21hc2huaWtoQHVyZnUucnUifSwicm9sZXMiOlt7InVzZXJUeXBlIjoiRW1wbG95ZWUiLCJpZCI6IjJhNzNkODEzLWEwNTgtMTFlZC05ZGMyLTI0OGEwN2Q3YmZlMSIsImVtcGxveW1lbnRUeXBlIjoi0JLQvdC10YjQvdC10LUg0YHQvtCy0LzQtdGB0YLQuNGC0LXQu9GM0YHRgtCy0L4iLCJwb3N0Ijoi0KHRgtCw0YDRiNC40Lkg0L_RgNC10L_QvtC00LDQstCw0YLQtdC70YwiLCJjYXRlZ29yeSI6ItCf0J_QoSIsInJhdGUiOjAuMjUsImRpdmlzaW9uSWQiOiI1N2E4OTBlNi04NmViLTQ0NTEtYWI2Zi05NDhhZGYxMmIyMjQiLCJkaXZpc2lvblRpdGxlIjoi0JTQtdC_0LDRgNGC0LDQvNC10L3RgiDQvNCw0YLQtdC80LDRgtC40LrQuCwg0LzQtdGF0LDQvdC40LrQuCDQuCDQutC-0LzQv9GM0Y7RgtC10YDQvdGL0YUg0L3QsNGD0LoifV19fQ.Vv6WZZmYOREu8CFa351xae1IxF2Gi9sM32qIkt00TUVAOppE-9O6Qr1ynvIVkgvzNUC2RxA7UsH2D7CK4Ye5enNWdKlfcNF0ADIir6x3-eEs8t0w8KTDTonAQHqeDwkUjfMcirj-AYL626LiSkumqHmj0WV37A75Ih_TtjdWfKq_alRhCCi4HU7a-bCjQOh0OOFJCgYCsdp-tTua-wyx2z9wtBfZYSkP9Zh7whlVrEAo-1sd8-vwOyNcvGqeSWVQzdKef5bM5FsowXSoIaEsV3VvzO4Nuo_lQAbf8cXmC_5qKJFXuCA5QfY4kAIZG2rRT8-PuMyvE-Aja3vBWagAWw'
-  const teamProjectApi = new TeamProjectApiV2(new TeamProjectAuthV2(authJwt))
+  const teamProjectApi = new TeamProjectApiV2(new TeamProjectAuthV2(authJwt), new TeamProjectUrlProvider(false))
   const executor = new SendCuratorMarksTaskExecutor(teamProjectApi)
   await executor.executeAsync(task)
 }
@@ -172,7 +178,7 @@ async function exportTechnologyCardsAsync() {
 
 async function cloneProjects() {
   const notionApi = new NotionApi(new NotionAuth())
-  const partnerApi = new PartnerApi(new PartnerAuth(''))
+  const partnerApi = new PartnerApi(new PartnerAuth(''), new PartnerUrlProvider(false))
 
   const projectUrls: Array<string> = [
     // 'https://partner.urfu.ru/ptraining/services/learning/#/passport/7823',

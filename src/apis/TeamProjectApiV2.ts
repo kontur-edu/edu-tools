@@ -1,19 +1,14 @@
 import JustDate from '../helpers/JustDate.js'
-const baseUrl = 'https://teamproject.urfu.ru/api/v2'
-
-export class TeamProjectAuthV2 {
-  authJwt: string
-
-  constructor(authJwt: string) {
-    this.authJwt = authJwt
-  }
-}
+import { TeamProjectAuthV2 } from './TeamProjectAuthV2.js'
+import { TeamProjectUrlProvider } from './TeamProjectUrlProvider'
 
 export class TeamProjectApiV2 {
   private readonly auth: TeamProjectAuthV2
+  private readonly urlProvider: TeamProjectUrlProvider
 
-  constructor(auth: TeamProjectAuthV2) {
+  constructor(auth: TeamProjectAuthV2, urlProvider: TeamProjectUrlProvider) {
     this.auth = auth
+    this.urlProvider = urlProvider
   }
 
   async getWorkspacesAsync(
@@ -24,19 +19,19 @@ export class TeamProjectApiV2 {
     pageSize: number,
   ): Promise<Workspaces | null> {
     const url = `/catalog?status=${status}&year=${year}&semester=${semester}&page=${pageNumber}&size=${pageSize}`
-    const response = await fetchApiAsJsonAsync<Workspaces>(this.auth, url)
+    const response = await fetchApiAsJsonAsync<Workspaces>(this.urlProvider, this.auth, url)
     return response
   }
 
   async getIterationsAsync(workspaceId: string): Promise<Array<IterationItem> | null> {
     const url = `/workspaces/${workspaceId}/iterations`
-    const response = await fetchApiAsJsonAsync<Array<IterationItem>>(this.auth, url)
+    const response = await fetchApiAsJsonAsync<Array<IterationItem>>(this.urlProvider, this.auth, url)
     return response
   }
 
   async getIterationAsync(iterationId: number): Promise<Iteration | null> {
     const url = `/iterations/${iterationId}`
-    const response = await fetchApiAsJsonAsync<Iteration>(this.auth, url)
+    const response = await fetchApiAsJsonAsync<Iteration>(this.urlProvider, this.auth, url)
     return response
   }
 
@@ -54,7 +49,7 @@ export class TeamProjectApiV2 {
       ending: dateEnd.toDashedString(),
     }
     const url = `/workspaces/${workspaceId}/iterations`
-    const response = await fetchApiWithBodyAsJsonAsync<object>(this.auth, 'POST', url, body)
+    const response = await fetchApiWithBodyAsJsonAsync<object>(this.urlProvider, this.auth, 'POST', url, body)
     return response
   }
 
@@ -73,14 +68,14 @@ export class TeamProjectApiV2 {
       ending: dateEnd.toDashedString(),
     }
     const url = `/iterations/${iterationId}`
-    const response = await fetchApiWithBodyAsJsonAsync<object>(this.auth, 'PUT', url, body)
+    const response = await fetchApiWithBodyAsJsonAsync<object>(this.urlProvider, this.auth, 'PUT', url, body)
     return response
   }
 
-  async getIterationScoresAsync(iterationId: string): Promise<IterationScores> {
+  async getIterationScoresAsync(iterationId: string): Promise<IterationScores | null> {
     const url = `/iterations/${iterationId}/scores`
-    const response = await fetchApiAsJsonAsync<IterationScores>(this.auth, url)
-    return response!
+    const response = await fetchApiAsJsonAsync<IterationScores>(this.urlProvider, this.auth, url)
+    return response
   }
 
   async putCuratorScoreAsync(iterationId: number, studentId: string, score: number): Promise<boolean> {
@@ -88,19 +83,21 @@ export class TeamProjectApiV2 {
       score,
     }
     const url = `/iterations/${iterationId}/grades/students/${studentId}`
-    
-    const response = await fetchApiWithBodyAsJsonAsync<object>(this.auth, 'PUT', url, body)
+
+    const response = await fetchApiWithBodyAsJsonAsync<object>(this.urlProvider, this.auth, 'PUT', url, body)
     return response !== null
   }
 }
 
 async function fetchApiWithBodyAsJsonAsync<T>(
+  urlProvider: TeamProjectUrlProvider,
   auth: TeamProjectAuthV2,
   method: HttpMethod,
   uri: string,
   body: object,
 ): Promise<T | null> {
   const response = await fetchApiAsJsonAsync<T>(
+    urlProvider,
     auth,
     uri,
     {
@@ -115,19 +112,23 @@ async function fetchApiWithBodyAsJsonAsync<T>(
 }
 
 async function fetchApiAsJsonAsync<T>(
+  urlProvider: TeamProjectUrlProvider,
   auth: TeamProjectAuthV2,
   uri: string,
   maybeOptions?: RequestOptions,
   maybeHeaders?: RequestHeaders,
   maybeCookies?: RequestCookies,
 ): Promise<T | null> {
-  const response = await fetchApiAsync(auth, uri, maybeOptions, maybeHeaders, maybeCookies)
+  const response = await fetchApiAsync(urlProvider, auth, uri, maybeOptions, maybeHeaders, maybeCookies)
   // const text = await response.text()
   // if (text.trimLeft().startsWith('<!DOCTYPE html>')) {
   //   throw new Error(uri + ' is Forbidden')
   // }
   try {
     const json = await response.json()
+    if (json.errorCode) {
+      return null
+    }
     return json as T
   }
   catch (e) {
@@ -136,6 +137,7 @@ async function fetchApiAsJsonAsync<T>(
 }
 
 async function fetchApiAsync(
+  urlProvider: TeamProjectUrlProvider,
   auth: TeamProjectAuthV2,
   uri: string,
   maybeOptions?: RequestOptions,
@@ -153,7 +155,7 @@ async function fetchApiAsync(
     .map((k) => `${k}=${cookies[k]}`)
     .join('; ')
 
-  const url = baseUrl + uri
+  const url = urlProvider.baseUrl + uri
   const timeout = 30000
   try {
     const response = await fetch(url, {

@@ -1,34 +1,19 @@
-const baseUrl = 'https://partner.urfu.ru'
-
-export class PartnerAuth {
-  key: string
-
-  constructor(cookie: string) {
-    const parts = cookie.split(';')
-    if (parts.length === 1 && parts[0].indexOf('=') < 0) {
-      this.key = cookie
-    } else {
-      const kvs = parts.map((p) => p.split('=').map((x) => x.trim()))
-      const parsedCookie = {} as { [k: string]: string }
-      for (const kv of kvs) {
-        parsedCookie[kv[0]] = kv[1]
-      }
-      this.key = parsedCookie['key']
-    }
-  }
-}
+import { PartnerAuth } from "./PartnerAuth"
+import { PartnerUrlProvider } from "./PartnerUrlProvider"
 
 export class PartnerApi {
   private readonly auth: PartnerAuth
+  private readonly urlProvider: PartnerUrlProvider
 
-  constructor(auth: PartnerAuth) {
+  constructor(auth: PartnerAuth, urlProvider: PartnerUrlProvider) {
     this.auth = auth
+    this.urlProvider = urlProvider
   }
 
   async getProjectAsync(id: number): Promise<Project | null> {
     const uri = `/learning/request/${id}/`
     const cookieHeader = `key=${this.auth.key}`
-    const response = await fetch(baseUrl + uri, {
+    const response = await fetch(this.urlProvider.baseUrl + uri, {
       method: 'GET',
       headers: {
         Cookie: cookieHeader,
