@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export CONTAINER_REPOSITORY_NAME=cr.yandex/crprkhjar1gq4t8h8u0t/brs-extensions-proxy:latest
+export CONTAINER_REPOSITORY_NAME=cr.yandex/crprkhjar1gq4t8h8u0t/cors-proxy:latest
 export SERVERLESS_CONTAINER_ID=bbamc5stve2edro7t455
 export FOLDER_ID=b1gupi6tnkioua1397gl
 export SA_ID=aje2oovtau2cioluf9tp

@@ -309,6 +309,9 @@ function getHandler(options, proxy) {
         if (req.headers['x-cookie'])
               req.headers.cookie = req.headers['x-cookie'];
 
+        if (req.headers['x-authorization'])
+            req.headers.authorization = req.headers['x-authorization'];
+
         var cors_headers = withCORS({}, req);
         if (req.method === 'OPTIONS') {
             // Pre-flight request. Reply successfully:
