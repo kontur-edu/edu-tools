@@ -58,7 +58,7 @@ export function TeamProjectAuthDialog() {
   }
 
   return (
-    <Dialog open={isDialogOpened} onClose={handleDialogCancel}>
+    <Dialog open={isDialogOpened} onClose={handleDialogCancel} maxWidth="xs" fullWidth>
       <form onSubmit={handeDialogSubmit}>
         <DialogTitle>Вход в TeamProject</DialogTitle>
         <DialogContent>
@@ -94,7 +94,7 @@ export function TeamProjectAuthDialog() {
             </Box>
           )}
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button disabled={isDialogSubmitDisabled} type="submit" variant="contained" color="primary">
             Войти
           </Button>

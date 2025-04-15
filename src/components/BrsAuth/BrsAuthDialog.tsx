@@ -58,7 +58,7 @@ export function BrsAuthDialog() {
   }
 
   return (
-    <Dialog open={isDialogOpened} onClose={handleDialogCancel}>
+    <Dialog open={isDialogOpened} onClose={handleDialogCancel} maxWidth="xs" fullWidth>
       <form onSubmit={handeDialogSubmit}>
         <DialogTitle>Вход в БРС</DialogTitle>
         <DialogContent>
@@ -93,7 +93,7 @@ export function BrsAuthDialog() {
             </Box>
           )}
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button disabled={isDialogSubmitDisabled} type="submit" variant="contained" color="primary">
             Войти
           </Button>

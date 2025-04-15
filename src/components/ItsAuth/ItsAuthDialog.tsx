@@ -58,7 +58,7 @@ export function ItsAuthDialog() {
   }
 
   return (
-    <Dialog open={isDialogOpened} onClose={handleDialogCancel}>
+    <Dialog open={isDialogOpened} onClose={handleDialogCancel} maxWidth="xs" fullWidth>
       <form onSubmit={handeDialogSubmit}>
         <DialogTitle>Вход в ИТС</DialogTitle>
         <DialogContent>
@@ -93,7 +93,7 @@ export function ItsAuthDialog() {
             </Box>
           )}
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button disabled={isDialogSubmitDisabled} type="submit" variant="contained" color="primary">
             Войти
           </Button>
