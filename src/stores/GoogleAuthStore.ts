@@ -36,29 +36,37 @@ function createActions(set: StoreApi<typeof initialState>['setState'], get: Stor
   async function loadUserInfoAsync() {
     const { token } = get()
     if (!token) {
-      return
+      return false
     }
 
-    const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-      headers: { Authorization: `Bearer ${token.access_token}` },
-    })
-    const data = await res.json()
-    set({ userInfo: {
-      email: data.email,
-      name: data.name,
-      picture: data.picture,
-    }});
+    try {
+      const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${token.access_token}` },
+      })
+      const data = await res.json()
+      set({ userInfo: {
+        email: data.email,
+        name: data.name,
+        picture: data.picture,
+      }});
+      return true
+    } catch (error) {
+      console.error('Ошибка загрузки информации о пользователе:', error)
+      return false
+    }
   }
 
   async function tryLoginFromCacheAsync(): Promise<boolean> {
     const token = BrowserCache.read('google_token', StorageType.LocalAndSession)
     if (!!token) {
-      set({
-        isAuthenticated: true,
-        token: token as TokenResponse,
-      })
-      await loadUserInfoAsync()
-      return true
+      const success = await loadUserInfoAsync()
+      if (success) {
+        set({
+          isAuthenticated: true,
+          token: token as TokenResponse,
+        })
+        return true
+      }
     }
     return false
   }
