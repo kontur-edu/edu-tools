@@ -18,10 +18,10 @@
     "build": "rimraf ./build && npx tsc",
     "lint": "npx eslint ./src",
     "format": "npx eslint ./src --fix",
-    "start": "npm run build && node build/main",
+    "start": "npm run build && node --loader ./loader.js build/main",
     "bot-dev": "npx nodemon --exec npx ts-node ./src/bot.ts",
-    "bot-start": "npm run build && node build/bot-start",
-    "bot-register": "node build/bot-register",
+    "bot-start": "npm run build && node --loader ./loader.js build/bot-start",
+    "bot-register": "node --loader ./loader.js build/bot-register",
     "web-start": "react-scripts start",
     "web-build": "react-scripts build",
     "web-test": "react-scripts test",
@@ -71,7 +71,6 @@
     "react-router-dom": "^7.5.0",
     "react-scripts": "^5.0.1",
     "telegraf": "^4.16.0",
-    "typescript": "^5.3.3",
     "zustand": "^5.0.3"
   },
   "browserslist": {
