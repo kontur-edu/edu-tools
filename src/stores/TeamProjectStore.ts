@@ -42,12 +42,16 @@ function createActions(set: StoreApi<typeof initialState>['setState'], get: Stor
   }
 
   async function loginAsync(authJwt: string): Promise<boolean> {
+    if (authJwt.startsWith('Bearer ')) {
+      authJwt = authJwt.slice('Bearer '.length)
+    }
+
     const auth = new TeamProjectAuthV2(authJwt)
     const { urlProvider } = get()
     const result = await checkAuthAsync(urlProvider, auth)
     if (result) {
       set({ currentAuth: auth })
-      BrowserCache.save('itsAuth', auth, StorageType.LocalAndSession)
+      BrowserCache.save('teamProjectAuth', auth, StorageType.LocalAndSession)
       return true
     } else {
       return false
