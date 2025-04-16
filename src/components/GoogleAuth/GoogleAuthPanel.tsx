@@ -1,9 +1,9 @@
 import React from 'react'
-import { useGoogleAuthStore } from '../../stores/GoogleAuthStore'
+import { useGoogleStore } from '../../stores/GoogleStore'
 import { GoogleAuthButton } from './GoogleAuthButton'
 import { GoogleAuthUserInfo } from './GoogleAuthUserInfo'
 
 export function GoogleAuthPanel() {
-  const { isAuthenticated } = useGoogleAuthStore()
+  const { isAuthenticated } = useGoogleStore()
   return isAuthenticated ? <GoogleAuthUserInfo /> : <GoogleAuthButton />
 }

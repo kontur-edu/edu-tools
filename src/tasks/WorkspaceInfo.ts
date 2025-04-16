@@ -1,5 +1,5 @@
-import { Semester, TeamProjectApiV2, Workspace } from '../apis/TeamProjectApiV2.js'
-import { TableTaskValue } from './TableTask.js'
+import { Semester, TeamProjectApiV2, Workspace } from '../apis/TeamProjectApiV2'
+import { TableTaskValue } from './TableTask'
 
 export class WorkspaceInfo {
   url: string | null

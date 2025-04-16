@@ -1,9 +1,9 @@
 import { Avatar, Box, Button, Typography } from "@mui/material";
-import { useGoogleAuthStore } from "../../stores/GoogleAuthStore";
+import { useGoogleStore } from "../../stores/GoogleStore";
 import React from "react";
 
 export function GoogleAuthUserInfo() {
-  const { userInfo, clearAuth } = useGoogleAuthStore();
+  const { userInfo, clearAuth } = useGoogleStore();
 
   const handleLogout = () => {
     clearAuth();

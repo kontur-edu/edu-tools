@@ -1,6 +1,6 @@
-import { ItsApiV2, Project, ProjectSubgroup, StudentInProjectSubgroup } from '../apis/ItsApiV2.js'
-import { compareNormalized, startsWithNormalized } from '../helpers/tools.js'
-import { TableTask } from './TableTask.js'
+import { ItsApiV2, Project, ProjectSubgroup, StudentInProjectSubgroup } from '../apis/ItsApiV2'
+import { compareNormalized, startsWithNormalized } from '../helpers/tools'
+import { TableTask } from './TableTask'
 
 export class DistributeStudentsIntoTeamsTaskExecutor {
   itsApi: ItsApiV2

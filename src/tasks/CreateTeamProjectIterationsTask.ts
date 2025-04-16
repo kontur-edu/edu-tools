@@ -1,8 +1,8 @@
-import { IterationItem, TeamProjectApiV2, Workspace } from '../apis/TeamProjectApiV2.js'
-import JustDate from '../helpers/JustDate.js'
-import { compareNormalized } from '../helpers/tools.js'
-import { TableTask } from './TableTask.js'
-import { WorkspaceInfo } from './WorkspaceInfo.js'
+import { IterationItem, TeamProjectApiV2, Workspace } from '../apis/TeamProjectApiV2'
+import JustDate from '../helpers/JustDate'
+import { compareNormalized } from '../helpers/tools'
+import { TableTask } from './TableTask'
+import { WorkspaceInfo } from './WorkspaceInfo'
 
 export class CreateTeamProjectIterationsTaskExecutor {
   teamProjectApi: TeamProjectApiV2

@@ -1,8 +1,18 @@
 import * as React from 'react'
-import { Container, Typography, Box, TextField, Button, CircularProgress } from '@mui/material'
+import {
+  Container,
+  Typography,
+  Box,
+  TextField,
+  Button,
+  CircularProgress,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogActions,
+} from '@mui/material'
 import { GoogleAuthPanel } from './GoogleAuth/GoogleAuthPanel'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { GoogleOAuthProvider } from '@react-oauth/google'
 import { ItsAuthSwitch } from './ItsAuth/ItsAuthSwitch'
 import { ItsAuthDialog } from './ItsAuth/ItsAuthDialog'
 import { GoogleAuthButton } from './GoogleAuth/GoogleAuthButton'
@@ -13,14 +23,25 @@ import { BrsAuthSwitch } from './BrsAuth/BrsAuthSwitch'
 import { BrsAuthDialog } from './BrsAuth/BrsAuthDialog'
 import { PartnerAuthSwitch } from './PartnerAuth/PartnerAuthSwitch'
 import { PartnerAuthDialog } from './PartnerAuth/PartnerAuthDialog'
-import { useState } from 'react'
-import { BrowserGoogleApi } from '../apis/BrowserGoogleApi'
-import { useGoogleAuthStore } from '../stores/GoogleAuthStore'
-const GOOGLE_CLIENT_ID = '122993083593-pacve8csj86voko30ia65raeg0ncrtuv.apps.googleusercontent.com'
+import { useEffect, useState } from 'react'
+import { useGoogleStore } from '../stores/GoogleStore'
+import { GoogleAuthProvider } from './GoogleAuth/GoogleAuthProvider'
+import { SendCuratorMarksTaskExecutor } from '../tasks/SendCuratorMarksTask'
+import { useTeamProjectStore } from '../stores/TeamProjectStore'
+import { TableTask, TableTaskReader } from '../tasks/TableTask'
+import { CustomTableTaskLogger } from '../tasks/TableTaskLogger'
 
 export default function App() {
+  const [task, setTask] = useState<TableTask | null>(null)
+  const [taskExecutionState, setTaskExecution] = useState<'try' | 'save' | null>(null)
+
+  const handleTaskLoaded = (task: TableTask): void => {
+    setTask(task)
+    setTaskExecution(null)
+  }
+
   return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID || ''}>
+    <GoogleAuthProvider>
       <BrowserRouter>
         <Container maxWidth="md">
           <Box sx={{ my: 4 }}>
@@ -59,7 +80,34 @@ export default function App() {
                       </Box>
                     </ShowIfGoogleAuth>
                     <ShowIfGoogleAuth is={true}>
-                      <SpreadsheetForm />
+                      <SpreadsheetForm onTaskLoaded={handleTaskLoaded} disabled={!!taskExecutionState} />
+                      {task && (
+                        <Box sx={{ mt: 2, display: 'flex', gap: 2, justifyContent: 'center' }}>
+                          <Button
+                            variant="contained"
+                            color="primary"
+                            disabled={!!taskExecutionState}
+                            onClick={() => setTaskExecution('try')}
+                          >
+                            Попробовать сделать хорошо
+                          </Button>
+                          <Button
+                            variant="contained"
+                            color="warning"
+                            disabled={!!taskExecutionState}
+                            onClick={() => setTaskExecution('save')}
+                          >
+                            Сделать хорошо
+                          </Button>
+                        </Box>
+                      )}
+                      {task && (
+                        <TaskExecutionDialog
+                          task={task}
+                          taskExecutionState={taskExecutionState}
+                          onFinish={() => setTaskExecution(null)}
+                        />
+                      )}
                     </ShowIfGoogleAuth>
                   </>
                 }
@@ -68,24 +116,89 @@ export default function App() {
           </Box>
         </Container>
       </BrowserRouter>
-    </GoogleOAuthProvider>
+    </GoogleAuthProvider>
   )
 }
 
-function SpreadsheetForm() {
+function TaskExecutionDialog({
+  task,
+  taskExecutionState,
+  onFinish,
+}: {
+  task: TableTask
+  taskExecutionState: 'try' | 'save' | null
+  onFinish?: () => void
+}) {
+  const isOpened = taskExecutionState !== null
+  const [isExecuting, setIsExecuting] = useState(false)
+  const [content, setContent] = useState('')
+
+  const getTeamProjectApi = useTeamProjectStore((state) => state.getApi)
+
+  useEffect(() => {
+    setIsExecuting(true)
+
+    try {
+      if (taskExecutionState === 'try' || taskExecutionState === 'save') {
+        setContent('')
+
+        const teamProjectApi = getTeamProjectApi()
+        if (!teamProjectApi) {
+          setContent('Требуется авторизация...')
+          setIsExecuting(false)
+          return
+        }
+
+        const appendText = (message?: string) => {
+          setContent((prev) => prev + (message ? message + '\n' : '\n'))
+        }
+        const logger = new CustomTableTaskLogger(appendText)
+        const forceSave = taskExecutionState === 'save' ? true : taskExecutionState === 'try' ? false : null
+        const executor = new SendCuratorMarksTaskExecutor(teamProjectApi, logger)
+        executor.executeAsync(task, forceSave).then(() => {
+          setIsExecuting(false)
+        })
+      }
+    } catch (error) {
+      console.error(error)
+      setIsExecuting(false)
+    }
+  }, [taskExecutionState])
+
+  const handleCloseDialog = () => {
+    if (isExecuting) return
+
+    onFinish && onFinish()
+  }
+
+  return (
+    <Dialog open={isOpened} onClose={handleCloseDialog} fullWidth maxWidth="md">
+      <DialogTitle>Выполнение задания</DialogTitle>
+      <DialogContent>
+        <TextField autoFocus margin="dense" fullWidth multiline rows={20} variant="outlined" value={content} />
+      </DialogContent>
+      <DialogActions sx={{ justifyContent: 'center' }}>
+        <Button onClick={handleCloseDialog} disabled={isExecuting} color="primary" variant="contained">
+          ОК
+        </Button>
+      </DialogActions>
+    </Dialog>
+  )
+}
+
+function SpreadsheetForm({ onTaskLoaded, disabled }: { onTaskLoaded: (task: TableTask) => void; disabled: boolean }) {
   const [isLoading, setIsLoading] = useState(false)
-  
+
   const [spreadsheetUrl, setSpreadsheetUrl] = useState('')
-  const [data, setData] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
-  const { token } = useGoogleAuthStore()
+
+  const getGoogleApi = useGoogleStore((state) => state.getApi)
 
   const handleDialogSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setIsLoading(true)
     setError(null)
-    setData(null)
-    
+
     try {
       // Извлекаем ID таблицы из URL
       const spreadsheetId = spreadsheetUrl.match(/\/d\/([a-zA-Z0-9-_]+)/)?.[1]
@@ -93,17 +206,23 @@ function SpreadsheetForm() {
         throw new Error('Неверный формат ссылки на таблицу')
       }
 
-      if (!token) {
+      const googleApi = getGoogleApi()
+
+      if (!googleApi) {
         throw new Error('Требуется авторизация')
       }
 
-      const googleApi = new BrowserGoogleApi(token.access_token)
-      const spreadsheet = googleApi.openSpreadsheet(spreadsheetId)
-      const meta = await spreadsheet.getMetaAsync()
-      console.log(meta)
-      setData(meta)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Произошла неизвестная ошибка')
+      const taskReader = new TableTaskReader(googleApi)
+      // todo: сделать другой выбор листа
+      const task = await taskReader.readTaskAsync(spreadsheetId, 'Участники')
+      if (!task) {
+        throw new Error('Не удалось прочитать задание')
+      } else {
+        onTaskLoaded(task)
+      }
+    } catch (error) {
+      console.error(error)
+      setError(error instanceof Error ? error.message : 'Произошла неизвестная ошибка')
     } finally {
       setIsLoading(false)
     }
@@ -127,7 +246,7 @@ function SpreadsheetForm() {
             value={spreadsheetUrl}
             onChange={(e) => setSpreadsheetUrl(e.target.value)}
           />
-          <Button variant="contained" color="primary" type="submit" disabled={isLoading}>
+          <Button variant="contained" color="primary" type="submit" disabled={isLoading || disabled}>
             Загрузить
           </Button>
         </Box>
@@ -139,11 +258,6 @@ function SpreadsheetForm() {
         <Box sx={{ display: 'flex', width: '100%', justifyContent: 'center', mt: 4 }}>
           {isLoading && <CircularProgress color="primary" size={150} className="progress" />}
         </Box>
-        {data && (
-          <Box sx={{ mt: 4 }}>
-            <Typography variant="h6">Данные успешно загружены</Typography>
-          </Box>
-        )}
       </form>
     </>
   )

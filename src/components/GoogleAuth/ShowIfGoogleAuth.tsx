@@ -1,8 +1,8 @@
 import React from "react";
-import { useGoogleAuthStore } from "../../stores/GoogleAuthStore";
+import { useGoogleStore } from "../../stores/GoogleStore";
 
 export function ShowIfGoogleAuth({ is, children }: { is: boolean; children: React.ReactNode }) {
-  const { isAuthenticated } = useGoogleAuthStore()
+  const { isAuthenticated } = useGoogleStore()
 
   if (isAuthenticated === is) {
     return <>{children}</>

@@ -1,6 +1,6 @@
-import { BrsApi, TechnologyCard } from '../apis/BrsApi.js'
-import { TableTask, TableTaskValue } from './TableTask.js'
-import { fillTechnologyCardAsync } from '../actions/fillTechnologyCardAsync.js'
+import { BrsApi, TechnologyCard } from '../apis/BrsApi'
+import { TableTask, TableTaskValue } from './TableTask'
+import { fillTechnologyCardAsync } from '../actions/fillTechnologyCardAsync'
 
 export class CreateTechnologyCardsTaskExecutor {
   brsApi: BrsApi

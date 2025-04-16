@@ -1,5 +1,5 @@
-import { GoogleApi } from '../apis/GoogleApi.js'
-import { normalizeString } from '../helpers/tools.js'
+import { GoogleApi } from '../apis/GoogleApi'
+import { normalizeString } from '../helpers/tools'
 
 export class TableTaskWriter {
   googleApi: GoogleApi
@@ -128,7 +128,7 @@ async function readRowsAsync(
   const result: { [key: string]: string }[] = []
   for (const row of rows) {
     const rowObject: { [key: string]: string } = {}
-    for (let columnKey in indices.columns) {
+    for (const columnKey in indices.columns) {
       const columnIndex = indices.columns[columnKey] - indices.leftIndex
       const columnValue = row[columnIndex]?.trim()
       rowObject[columnKey] = columnValue
@@ -148,7 +148,7 @@ function distributeRowsByNamespace(rows: Row[]): NamespacedRows {
     const root: Row = {}
     const byNamespace: { [n: string]: Row } = {}
 
-    for (let key in row) {
+    for (const key in row) {
       const parts = key.split('.')
       if (parts.length === 1) {
         root[key] = row[key]
@@ -178,7 +178,7 @@ function distributeRowsByNamespace(rows: Row[]): NamespacedRows {
   }
 }
 
-function buildDataRange(sheetName: string, leftIndex: number, rightIndex: number, topIndex: number = 1) {
+function buildDataRange(sheetName: string, leftIndex: number, rightIndex: number, topIndex = 1) {
   if (!Number.isFinite(leftIndex) || !Number.isFinite(rightIndex)) {
     return `${sheetName}!A${topIndex + 1}:A`
   }

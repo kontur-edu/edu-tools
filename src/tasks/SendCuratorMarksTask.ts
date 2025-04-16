@@ -1,22 +1,25 @@
-import { TeamProjectApiV2, Workspace } from '../apis/TeamProjectApiV2.js'
-import { compareNormalized, startsWithNormalized } from '../helpers/tools.js'
-import { TableTask, TableTaskValue } from './TableTask.js'
-import { WorkspaceInfo } from './WorkspaceInfo.js'
+import { TeamProjectApiV2, Workspace } from '../apis/TeamProjectApiV2'
+import { compareNormalized, startsWithNormalized } from '../helpers/tools'
+import { TableTask, TableTaskValue } from './TableTask'
+import { ConsoleTableTaskLogger, TableTaskLogger } from './TableTaskLogger'
+import { WorkspaceInfo } from './WorkspaceInfo'
 
 export class SendCuratorMarksTaskExecutor {
   teamProjectApi: TeamProjectApiV2
+  tableTaskLogger: TableTaskLogger
 
-  constructor(teamProjectApi: TeamProjectApiV2) {
+  constructor(teamProjectApi: TeamProjectApiV2, tableTaskLogger?: TableTaskLogger) {
     this.teamProjectApi = teamProjectApi
+    this.tableTaskLogger = tableTaskLogger || new ConsoleTableTaskLogger()
   }
 
-  async executeAsync(tableTask: TableTask) {
-    console.log(`🚩 Выполнение задания "${tableTask.name}"`)
+  async executeAsync(tableTask: TableTask, forceSave: boolean | null = null) {
+    this.tableTaskLogger.log(`🚩 Executing task "${tableTask.name}"`)
 
-    const task = extractTask(tableTask)
+    const task = extractTask(tableTask, this.tableTaskLogger, forceSave)
     if (!task) {
-      console.log(`❌ Выполнение задания остановлено`)
-      console.log()
+      this.tableTaskLogger.log(`❌ Execution has been stopped`)
+      this.tableTaskLogger.log()
       return
     }
 
@@ -35,28 +38,28 @@ export class SendCuratorMarksTaskExecutor {
 
     this.logTotals(marks)
 
-    console.log(`✅ Выполнение задания завершено`)
+    this.tableTaskLogger.log(`✅ Execution has been finished`)
   }
 
   async executeProjectAsync(project: Workspace, task: SendCuratorMarksTask, marks: Array<StudentMark>) {
-    console.log('## Проект', project.title, project.instanceNumber)
+    this.tableTaskLogger.log(`## Project "${project.title}" ${project.instanceNumber}`)
 
     const iterations = (await this.teamProjectApi.getIterationsAsync(project.id)) || []
     const iteration = iterations[task.iterationNumber - 1]
     if (!iteration) {
-      console.log(`❌ Не удалось найти итерацию "${task.iterationNumber}"`)
-      console.log()
+      this.tableTaskLogger.log(`❌ Не удалось найти итерацию "${task.iterationNumber}"`)
+      this.tableTaskLogger.log()
       return marks
     }
     const scores = await this.teamProjectApi.getIterationScoresAsync(iteration.id.toString())
     if (!scores) {
-      console.log(`❌ Не удалось получить оценки для итерации "${task.iterationNumber}"`)
-      console.log()
+      this.tableTaskLogger.log(`❌ Failed to get scores for iteration "${task.iterationNumber}"`)
+      this.tableTaskLogger.log()
       return marks
     }
     if (!scores.thematicGroups || !scores.thematicGroups[0] || !scores.thematicGroups[0].students) {
-      console.log(`❌ Не удалось получить списка студентов проекта`)
-      console.log()
+      this.tableTaskLogger.log(`❌ Failed to get list of project students`)
+      this.tableTaskLogger.log()
       return marks
     }
 
@@ -68,12 +71,12 @@ export class SendCuratorMarksTaskExecutor {
         startsWithNormalized(it.person.fullname, studentMark.student),
       )[0]
       if (!projectStudent) {
-        console.log(`🟡 Студент "${studentMark.student}" не найден в указанном проекте`)
+        this.tableTaskLogger.log(`🟡 Student "${studentMark.student}" not found in specified project`)
         continue
       }
 
       if (isNaN(studentMark.mark)) {
-        console.log(`🟡 Студент "${studentMark.student}" проигнорирован`)
+        this.tableTaskLogger.log(`🟡 Student "${studentMark.student}" ignored`)
       } else if (projectStudent.score !== studentMark.mark) {
         let result = true
         if (task.save) {
@@ -84,15 +87,15 @@ export class SendCuratorMarksTaskExecutor {
           )
         }
         if (result) {
-          console.log(`🟢 Студенту "${studentMark.student}" выставлена оценка ${studentMark.mark}`)
+          this.tableTaskLogger.log(`🟢 Student "${studentMark.student}" has been rated ${studentMark.mark}`)
         } else {
-          console.log(
-            `🔴 Студенту "${studentMark.student}" не выставлена оценка ${studentMark.mark}, текущая оцека ${projectStudent.score}`,
+          this.tableTaskLogger.log(
+            `🔴 Student "${studentMark.student}" not rated ${studentMark.mark}, current score ${projectStudent.score}`,
           )
           failedMarks++
         }
       } else {
-        console.log(`🟡 Студенту "${studentMark.student}" уже выставлена оценка ${studentMark.mark}`)
+        this.tableTaskLogger.log(`🟡 Student "${studentMark.student}" already has been rated ${studentMark.mark}`)
       }
 
       projectStudents = projectStudents.filter((it) => it.studentId !== projectStudent.studentId)
@@ -101,79 +104,82 @@ export class SendCuratorMarksTaskExecutor {
 
     if (projectStudents.length > 0) {
       for (const projectStudent of projectStudents) {
-        console.log(
-          `🔴 Студент "${projectStudent.person.fullname}" найден в проекте, но для него не была указана оценка`,
+        this.tableTaskLogger.log(
+          `🔴 Student "${projectStudent.person.fullname}" found in project, but no rating was specified`,
         )
       }
 
-      console.log(`🟥 Не для всех студентов проекта указаны оценки`)
+      this.tableTaskLogger.log(`🟥 Not all project students have been rated`)
     } else if (failedMarks > 0) {
-      console.log(`🟥 Не удалось выставить все оценки`)
+      this.tableTaskLogger.log(`🟥 Failed to rate all students`)
     } else {
-      console.log(`🟩 Всем студентам проекта выставлены оценки`)
+      this.tableTaskLogger.log(`🟩 All project students have been rated`)
     }
-    console.log()
+    this.tableTaskLogger.log()
 
     return marks
   }
 
   logTotals(marks: Array<StudentMark>) {
-    console.log(`# Итоги`)
+    this.tableTaskLogger.log(`# Totals`)
     if (marks.length > 0) {
       let errorCount = 0
       for (const studentMark of marks) {
         if (studentMark.workspaceInfo && studentMark.workspaceInfo.key) {
-          console.log(`🔴 Студент "${studentMark.student}" не найден ни в одном из проектов`)
+          this.tableTaskLogger.log(`🔴 Student "${studentMark.student}" not found in any project`)
           errorCount++
         } else {
-          console.log(`🟡 Студент "${studentMark.student}" без проекта проигнорирован`)
+          this.tableTaskLogger.log(`🟡 Student "${studentMark.student}" without project ignored`)
         }
       }
 
       if (errorCount > 0) {
-        console.log(`🟥 Не все студенты найдены в проектах`)
+        this.tableTaskLogger.log(`🟥 Not all students found in projects`)
       } else {
-        console.log(`🟨 Все студенты найдены в проектах, кроме студентов без проектов`)
+        this.tableTaskLogger.log(`🟨 All students found in projects, except students without projects`)
       }
     } else {
-      console.log(`🟩 Все студенты найдены в проектах`)
+      this.tableTaskLogger.log(`🟩 All students found in projects`)
     }
-    console.log()
+    this.tableTaskLogger.log()
   }
 }
 
-function extractTask(tableTask: TableTask): SendCuratorMarksTask | null {
+function extractTask(tableTask: TableTask, tableTaskLogger: TableTaskLogger, forceSave: boolean | null): SendCuratorMarksTask | null {
   const academicYear = tableTask.getParam('academicYear').getCustom((it) => parseInt(it.split('/')[0], 10))
   if (academicYear === null) {
-    console.log('- academicYear необходим❗')
+    tableTaskLogger.log('- academicYear required❗')
     return null
   }
-  console.log(`- academicYear: ${academicYear}`)
+  tableTaskLogger.log(`- academicYear: ${academicYear}`)
 
   const semester = tableTask
     .getParam('semester')
     .getCustom((it) => (compareNormalized(it, 'fall') ? 1 : compareNormalized(it, 'spring') ? 2 : null))
   if (semester === null) {
-    console.log('- semester необходим❗')
+    tableTaskLogger.log('- semester required❗')
     return null
   }
-  console.log(`- semester: ${semester}`)
+  tableTaskLogger.log(`- semester: ${semester}`)
 
-  const save = tableTask.getParam('save').getBool() || false
-  console.log(save ? `- режим save включен ⚡` : `- режим save выключен`)
+  let save = tableTask.getParam('save').getBool() || false
+  if (forceSave !== null) {
+    save = forceSave
+  }
+  tableTaskLogger.log(save ? `- режим save включен ⚡` : `- режим save выключен`)
 
   const iterationNumber = tableTask.getParam('iterationNumber').getInt()
   if (iterationNumber === null) {
-    console.log('- iterationNumber необходим❗')
+    tableTaskLogger.log('- iterationNumber required❗')
     return null
   }
-  console.log(`- iterationNumber: ${iterationNumber}`)
+  tableTaskLogger.log(`- iterationNumber: ${iterationNumber}`)
 
   const marks = tableTask.rows
     .map((it) => convertRow2StudentMark(it, iterationNumber))
     .filter((it) => it !== null) as StudentMark[]
 
-  console.log()
+  tableTaskLogger.log()
 
   return {
     name: tableTask.name,

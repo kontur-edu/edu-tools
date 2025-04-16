@@ -1,6 +1,8 @@
 import { create, StoreApi } from 'zustand'
 import { combine } from 'zustand/middleware'
 import { BrowserCache, StorageType } from '../helpers/BrowserCache';
+import { BrowserGoogleApi } from '../apis/BrowserGoogleApi';
+import { GoogleApi } from '../apis/GoogleApi';
 
 interface TokenResponse {
   access_token: string;
@@ -77,7 +79,15 @@ function createActions(set: StoreApi<typeof initialState>['setState'], get: Stor
     return false
   }
 
-  return { setAuth, clearAuth, loadUserInfoAsync, tryLoginFromCacheAsync };
+  function getApi(): GoogleApi | null {
+    const { token } = get()
+    if (!token) {
+      return null
+    }
+    return new BrowserGoogleApi(token.access_token)
+  }
+
+  return { setAuth, clearAuth, loadUserInfoAsync, tryLoginFromCacheAsync, getApi };
 }
 
-export const useGoogleAuthStore = create(combine(initialState, createActions));
+export const useGoogleStore = create(combine(initialState, createActions));

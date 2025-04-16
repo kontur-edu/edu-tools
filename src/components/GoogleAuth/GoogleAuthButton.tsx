@@ -1,10 +1,10 @@
 import { useGoogleLogin } from "@react-oauth/google";
-import { useGoogleAuthStore } from "../../stores/GoogleAuthStore";
+import { useGoogleStore } from "../../stores/GoogleStore";
 import { Button } from "@mui/material";
 import React from "react";
 
 export function GoogleAuthButton() {
-  const { setAuth, loadUserInfoAsync } = useGoogleAuthStore();
+  const { setAuth, loadUserInfoAsync } = useGoogleStore();
   const login = useGoogleLogin({
     onSuccess: (tokenResponse) => {
       setAuth(tokenResponse);

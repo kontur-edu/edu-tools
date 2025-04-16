@@ -5,7 +5,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import App from './components/App';
 import theme from './components/theme';
 import { useItsStore } from './stores/ItsStore';
-import { useGoogleAuthStore } from './stores/GoogleAuthStore';
+import { useGoogleStore } from './stores/GoogleStore';
 import { useBrsStore } from './stores/BrsStore';
 import { useTeamProjectStore } from './stores/TeamProjectStore';
 import { usePartnerStore } from './stores/PartnerStore';
@@ -15,7 +15,7 @@ useItsStore.getState().tryLoginFromCacheAsync();
 useBrsStore.getState().tryLoginFromCacheAsync();
 useTeamProjectStore.getState().tryLoginFromCacheAsync();
 usePartnerStore.getState().tryLoginFromCacheAsync();
-useGoogleAuthStore.getState().tryLoginFromCacheAsync();
+useGoogleStore.getState().tryLoginFromCacheAsync();
 
 root.render(
   <ThemeProvider theme={theme}>

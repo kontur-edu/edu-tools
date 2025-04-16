@@ -1,23 +1,26 @@
-import { BrsApi } from '../apis/BrsApi.js'
-import { TableTask, TableTaskWriter } from './TableTask.js'
-import { compareNormalized } from '../helpers/tools.js'
+import { BrsApi } from '../apis/BrsApi'
+import { TableTask, TableTaskWriter } from './TableTask'
+import { compareNormalized } from '../helpers/tools'
+import { ConsoleTableTaskLogger, TableTaskLogger } from './TableTaskLogger'
 
 export class ExportTechnologyCardsTaskExecutor {
   brsApi: BrsApi
   tableTaskWriter: TableTaskWriter
+  tableTaskLogger: TableTaskLogger
 
-  constructor(brsApi: BrsApi, tableTaskWriter: TableTaskWriter) {
+  constructor(brsApi: BrsApi, tableTaskWriter: TableTaskWriter, tableTaskLogger?: TableTaskLogger) {
     this.brsApi = brsApi
     this.tableTaskWriter = tableTaskWriter
+    this.tableTaskLogger = tableTaskLogger || new ConsoleTableTaskLogger()
   }
 
   async executeAsync(tableTask: TableTask) {
-    console.log(`🚩 Executing task "${tableTask.name}"`)
+    this.tableTaskLogger.log(`🚩 Executing task "${tableTask.name}"`)
 
-    const task = extractTask(tableTask)
+    const task = extractTask(tableTask, this.tableTaskLogger)
     if (!task) {
-      console.log(`❌ Execution has been stopped`)
-      console.log()
+      this.tableTaskLogger.log(`❌ Execution has been stopped`)
+      this.tableTaskLogger.log()
       return
     }
 
@@ -61,37 +64,37 @@ export class ExportTechnologyCardsTaskExecutor {
 
     await this.tableTaskWriter.batchWriteAsync(task.outputColumn, 0, values)
 
-    console.log(`✅ Execution has been completed`)
-    console.log()
+    this.tableTaskLogger.log(`✅ Execution has been completed`)
+    this.tableTaskLogger.log()
   }
 }
 
-function extractTask(tableTask: TableTask): ExportTechnologyCardsTask | null {
+function extractTask(tableTask: TableTask, tableTaskLogger: TableTaskLogger): ExportTechnologyCardsTask | null {
   const academicYear = tableTask.getParam('academicYear').getCustom((it) => parseInt(it.split('/')[0], 10))
   if (academicYear === null) {
-    console.log('- academicYear is required❗')
+    tableTaskLogger.log('- academicYear is required❗')
     return null
   }
-  console.log(`- academicYear: ${academicYear}`)
+  tableTaskLogger.log(`- academicYear: ${academicYear}`)
 
   const semester = tableTask
     .getParam('semester')
     .getCustom((it) => (compareNormalized(it, 'fall') ? 1 : compareNormalized(it, 'spring') ? 2 : null))
   if (semester === null) {
-    console.log('- semester is required❗')
+    tableTaskLogger.log('- semester is required❗')
     return null
   }
-  console.log(`- semester: ${semester}`)
+  tableTaskLogger.log(`- semester: ${semester}`)
 
   const studyYears = tableTask.getParam('studyYears').getIntArray()
   if (studyYears === null) {
-    console.log('- studyYears is required❗')
+    tableTaskLogger.log('- studyYears is required❗')
     return null
   }
-  console.log(`- studyYears: ${studyYears.join(', ')}`)
+  tableTaskLogger.log(`- studyYears: ${studyYears.join(', ')}`)
 
   const isModule = tableTask.getParam('ismodule').getBool() || false
-  console.log(`- isModule: ${isModule}`)
+  tableTaskLogger.log(`- isModule: ${isModule}`)
 
   return {
     name: tableTask.name,
