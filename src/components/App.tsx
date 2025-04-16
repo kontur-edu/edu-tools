@@ -23,7 +23,7 @@ import { BrsAuthSwitch } from './BrsAuth/BrsAuthSwitch'
 import { BrsAuthDialog } from './BrsAuth/BrsAuthDialog'
 import { PartnerAuthSwitch } from './PartnerAuth/PartnerAuthSwitch'
 import { PartnerAuthDialog } from './PartnerAuth/PartnerAuthDialog'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useGoogleStore } from '../stores/GoogleStore'
 import { GoogleAuthProvider } from './GoogleAuth/GoogleAuthProvider'
 import { SendCuratorMarksTaskExecutor } from '../tasks/SendCuratorMarksTask'
@@ -35,7 +35,12 @@ export default function App() {
   const [task, setTask] = useState<TableTask | null>(null)
   const [taskExecutionState, setTaskExecution] = useState<'try' | 'save' | null>(null)
 
-  const handleTaskLoaded = (task: TableTask): void => {
+  const handleTaskLoading = () => {
+    setTask(null)
+    setTaskExecution(null)
+  }
+
+  const handleTaskLoaded = (task: TableTask | null): void => {
     setTask(task)
     setTaskExecution(null)
   }
@@ -80,7 +85,7 @@ export default function App() {
                       </Box>
                     </ShowIfGoogleAuth>
                     <ShowIfGoogleAuth is={true}>
-                      <SpreadsheetForm onTaskLoaded={handleTaskLoaded} disabled={!!taskExecutionState} />
+                      <SpreadsheetForm onTaskLoading={handleTaskLoading} onTaskLoaded={handleTaskLoaded} disabled={!!taskExecutionState} />
                       {task && (
                         <Box sx={{ mt: 2, display: 'flex', gap: 2, justifyContent: 'center' }}>
                           <Button
@@ -109,7 +114,7 @@ export default function App() {
                         />
                       )}
                     </ShowIfGoogleAuth>
-                  </>
+                  </>                  
                 }
               />
             </Routes>
@@ -132,6 +137,7 @@ function TaskExecutionDialog({
   const isOpened = taskExecutionState !== null
   const [isExecuting, setIsExecuting] = useState(false)
   const [content, setContent] = useState('')
+  const textFieldRef = useRef<HTMLDivElement>(null)
 
   const getTeamProjectApi = useTeamProjectStore((state) => state.getApi)
 
@@ -151,6 +157,16 @@ function TaskExecutionDialog({
 
         const appendText = (message?: string) => {
           setContent((prev) => prev + (message ? message + '\n' : '\n'))
+
+          // Прокрутка к последней строке после обновления контента
+          setTimeout(() => {
+            if (textFieldRef.current) {
+              const textarea = textFieldRef.current.querySelector('textarea')
+              if (textarea) {
+                textarea.scrollTop = textarea.scrollHeight
+              }
+            }
+          }, 0)
         }
         const logger = new CustomTableTaskLogger(appendText)
         const forceSave = taskExecutionState === 'save' ? true : taskExecutionState === 'try' ? false : null
@@ -160,7 +176,6 @@ function TaskExecutionDialog({
         })
       }
     } catch (error) {
-      console.error(error)
       setIsExecuting(false)
     }
   }, [taskExecutionState])
@@ -175,7 +190,16 @@ function TaskExecutionDialog({
     <Dialog open={isOpened} onClose={handleCloseDialog} fullWidth maxWidth="md">
       <DialogTitle>Выполнение задания</DialogTitle>
       <DialogContent>
-        <TextField autoFocus margin="dense" fullWidth multiline rows={20} variant="outlined" value={content} />
+        <TextField 
+          autoFocus 
+          margin="dense" 
+          fullWidth 
+          multiline 
+          rows={20} 
+          variant="outlined" 
+          value={content} 
+          ref={textFieldRef}
+        />
       </DialogContent>
       <DialogActions sx={{ justifyContent: 'center' }}>
         <Button onClick={handleCloseDialog} disabled={isExecuting} color="primary" variant="contained">
@@ -186,7 +210,7 @@ function TaskExecutionDialog({
   )
 }
 
-function SpreadsheetForm({ onTaskLoaded, disabled }: { onTaskLoaded: (task: TableTask) => void; disabled: boolean }) {
+function SpreadsheetForm({ onTaskLoading, onTaskLoaded, disabled }: { onTaskLoading: () => void; onTaskLoaded: (task: TableTask | null) => void; disabled: boolean }) {
   const [isLoading, setIsLoading] = useState(false)
 
   const [spreadsheetUrl, setSpreadsheetUrl] = useState('')
@@ -198,14 +222,9 @@ function SpreadsheetForm({ onTaskLoaded, disabled }: { onTaskLoaded: (task: Tabl
     e.preventDefault()
     setIsLoading(true)
     setError(null)
+    onTaskLoading()
 
     try {
-      // Извлекаем ID таблицы из URL
-      const spreadsheetId = spreadsheetUrl.match(/\/d\/([a-zA-Z0-9-_]+)/)?.[1]
-      if (!spreadsheetId) {
-        throw new Error('Неверный формат ссылки на таблицу')
-      }
-
       const googleApi = getGoogleApi()
 
       if (!googleApi) {
@@ -213,15 +232,15 @@ function SpreadsheetForm({ onTaskLoaded, disabled }: { onTaskLoaded: (task: Tabl
       }
 
       const taskReader = new TableTaskReader(googleApi)
-      // todo: сделать другой выбор листа
-      const task = await taskReader.readTaskAsync(spreadsheetId, 'Участники')
+
+      const task = await taskReader.readTaskByUrlAsync(spreadsheetUrl)
       if (!task) {
+        onTaskLoaded(null)
         throw new Error('Не удалось прочитать задание')
       } else {
         onTaskLoaded(task)
       }
     } catch (error) {
-      console.error(error)
       setError(error instanceof Error ? error.message : 'Произошла неизвестная ошибка')
     } finally {
       setIsLoading(false)

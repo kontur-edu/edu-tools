@@ -37,3 +37,37 @@ export interface SheetProperties {
   sheetType: string;
   title: string;
 }
+
+export async function getSheetNameAsync(
+  googleApi: GoogleApi,
+  spreadsheetId: string,
+  sheetId: string | null
+): Promise<string | null> {
+  try {
+    const meta = await googleApi.openSpreadsheet(spreadsheetId).getMetaAsync();
+    const sheets = meta.sheets.map((it) => it.properties);
+    const maybeSheet = sheetId
+      ? sheets.filter((s) => s.sheetId.toString() === sheetId)[0]
+      : sheets[0];
+    if (!maybeSheet) {
+      return null;
+    }
+    return maybeSheet.title;
+  } catch (e: any) {
+    return null;
+  }
+}
+
+export function parseSpreadsheetUrl(url: string): { spreadsheetId: string; sheetId: string | null } | null {
+  const regExp = /d\/(?<spreadsheetId>[a-zA-Z0-9-_]+)\/edit(\?gid=(?<querySheetId>[0-9]+))?(#gid=(?<hashSheetId>[0-9]+))?/;
+  const spreadsheetInfo = url.match(regExp);
+
+  if (!spreadsheetInfo?.groups || !spreadsheetInfo.groups.spreadsheetId) {
+    return null;
+  }
+
+  const spreadsheetId = spreadsheetInfo.groups.spreadsheetId;
+  const sheetId = spreadsheetInfo.groups.hashSheetId || spreadsheetInfo.groups.querySheetId || null;
+
+  return { spreadsheetId, sheetId };
+}

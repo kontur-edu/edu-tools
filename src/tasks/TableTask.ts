@@ -1,4 +1,4 @@
-import { GoogleApi } from '../apis/GoogleApi'
+import { getSheetNameAsync, GoogleApi, parseSpreadsheetUrl } from '../apis/GoogleApi'
 import { normalizeString } from '../helpers/tools'
 
 export class TableTaskWriter {
@@ -40,7 +40,20 @@ export class TableTaskReader {
     this.googleApi = googleApi
   }
 
-  async readTaskAsync(spreadsheetId: string, sheetName: string): Promise<TableTask | null> {
+  async readTaskByUrlAsync(spreadsheetUrl: string): Promise<TableTask | null> {
+    const { spreadsheetId, sheetId } = parseSpreadsheetUrl(spreadsheetUrl) || {}
+    if (!spreadsheetId) {
+      return null
+    }
+    const sheetName = sheetId ? await getSheetNameAsync(this.googleApi, spreadsheetId, sheetId) : null
+    if (!sheetName) {
+      return null
+    }
+
+    return this.readTaskBySheetNameAsync(spreadsheetId, sheetName)
+  }
+
+  async readTaskBySheetNameAsync(spreadsheetId: string, sheetName: string): Promise<TableTask | null> {
     const headRows = await readHeadRowsFromSpreadsheetAsync(this.googleApi, spreadsheetId, sheetName)
     const header = getHeader(headRows)
     const indices = buildIndicesBy(header)
