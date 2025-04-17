@@ -1,3 +1,5 @@
+#!/bin/bash
+
 echo "1. Building sources"
 npm run build
 cp package.json build

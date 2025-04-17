@@ -23,7 +23,7 @@
     "bot-start": "npm run build && node --loader ./loader.js build/bot-start",
     "bot-register": "node --loader ./loader.js build/bot-register",
     "web-start": "react-scripts start",
-    "web-build": "react-scripts build",
+    "web-build": "rimraf ./build && react-scripts build",
     "web-test": "react-scripts test",
     "web-eject": "react-scripts eject"
   },
