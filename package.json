@@ -5,6 +5,8 @@
   "description": "Инструменты для работы с образовательными системами",
   "main": "index.js",
   "type": "module",
+  "homepage": "https://edu-tools.fiit-urfu-cloud.ru",
+  "privacyPolicy": "https://edu-tools.fiit-urfu-cloud.ru/privacy",
   "engines": {
     "node": ">=22.0.0"
   },

@@ -12,7 +12,7 @@ import {
   DialogActions,
 } from '@mui/material'
 import { GoogleAuthPanel } from './GoogleAuth/GoogleAuthPanel'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Link as RouterLink } from 'react-router-dom'
 import { ItsAuthSwitch } from './ItsAuth/ItsAuthSwitch'
 import { ItsAuthDialog } from './ItsAuth/ItsAuthDialog'
 import { GoogleAuthButton } from './GoogleAuth/GoogleAuthButton'
@@ -30,6 +30,8 @@ import { SendCuratorMarksTaskExecutor } from '../tasks/SendCuratorMarksTask'
 import { useTeamProjectStore } from '../stores/TeamProjectStore'
 import { TableTask, TableTaskReader } from '../tasks/TableTask'
 import { CustomTableTaskLogger } from '../tasks/TableTaskLogger'
+import { PrivacyPolicy } from './PrivacyPolicy'
+import { Footer } from './Footer'
 
 export default function App() {
   const [task, setTask] = useState<TableTask | null>(null)
@@ -48,78 +50,87 @@ export default function App() {
   return (
     <GoogleAuthProvider>
       <BrowserRouter>
-        <Container maxWidth="md">
-          <Box sx={{ my: 4 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="h4" component="h1">
-                EduTools
-              </Typography>
-              <GoogleAuthPanel />
-            </Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <BrsAuthSwitch />
-              <BrsAuthDialog />
-              <PartnerAuthSwitch />
-              <PartnerAuthDialog />
-              <ItsAuthSwitch />
-              <ItsAuthDialog />
-              <TeamProjectAuthSwitch />
-              <TeamProjectAuthDialog />
-            </Box>
-            <Routes>
-              <Route
-                path="/"
-                element={
-                  <>
-                    <ShowIfGoogleAuth is={false}>
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          justifyContent: 'center',
-                          width: '100%',
-                          padding: 4,
-                          border: '2px dashed grey',
-                        }}
-                      >
-                        <GoogleAuthButton />
-                      </Box>
-                    </ShowIfGoogleAuth>
-                    <ShowIfGoogleAuth is={true}>
-                      <SpreadsheetForm onTaskLoading={handleTaskLoading} onTaskLoaded={handleTaskLoaded} disabled={!!taskExecutionState} />
-                      {task && (
-                        <Box sx={{ mt: 2, display: 'flex', gap: 2, justifyContent: 'center' }}>
-                          <Button
-                            variant="contained"
-                            color="primary"
-                            disabled={!!taskExecutionState}
-                            onClick={() => setTaskExecution('try')}
-                          >
-                            Попробовать сделать хорошо
-                          </Button>
-                          <Button
-                            variant="contained"
-                            color="warning"
-                            disabled={!!taskExecutionState}
-                            onClick={() => setTaskExecution('save')}
-                          >
-                            Сделать хорошо
-                          </Button>
+        <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+          <Container maxWidth="md">
+            <Box sx={{ my: 4 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography 
+                  variant="h4" 
+                  component={RouterLink}
+                  to="/"
+                  sx={{ cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}
+                >
+                  EduTools
+                </Typography>
+                <GoogleAuthPanel />
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <BrsAuthSwitch />
+                <BrsAuthDialog />
+                <PartnerAuthSwitch />
+                <PartnerAuthDialog />
+                <ItsAuthSwitch />
+                <ItsAuthDialog />
+                <TeamProjectAuthSwitch />
+                <TeamProjectAuthDialog />
+              </Box>
+              <Routes>
+                <Route path="/privacy" element={<PrivacyPolicy />} />
+                <Route
+                  path="/"
+                  element={
+                    <>
+                      <ShowIfGoogleAuth is={false}>
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            justifyContent: 'center',
+                            width: '100%',
+                            padding: 4,
+                            border: '2px dashed grey',
+                          }}
+                        >
+                          <GoogleAuthButton />
                         </Box>
-                      )}
-                      {task && (
-                        <TaskExecutionDialog
-                          task={task}
-                          taskExecutionState={taskExecutionState}
-                          onFinish={() => setTaskExecution(null)}
-                        />
-                      )}
-                    </ShowIfGoogleAuth>
-                  </>                  
-                }
-              />
-            </Routes>
-          </Box>
-        </Container>
+                      </ShowIfGoogleAuth>
+                      <ShowIfGoogleAuth is={true}>
+                        <SpreadsheetForm onTaskLoading={handleTaskLoading} onTaskLoaded={handleTaskLoaded} disabled={!!taskExecutionState} />
+                        {task && (
+                          <Box sx={{ mt: 2, display: 'flex', gap: 2, justifyContent: 'center' }}>
+                            <Button
+                              variant="contained"
+                              color="primary"
+                              disabled={!!taskExecutionState}
+                              onClick={() => setTaskExecution('try')}
+                            >
+                              Попробовать сделать хорошо
+                            </Button>
+                            <Button
+                              variant="contained"
+                              color="warning"
+                              disabled={!!taskExecutionState}
+                              onClick={() => setTaskExecution('save')}
+                            >
+                              Сделать хорошо
+                            </Button>
+                          </Box>
+                        )}
+                        {task && (
+                          <TaskExecutionDialog
+                            task={task}
+                            taskExecutionState={taskExecutionState}
+                            onFinish={() => setTaskExecution(null)}
+                          />
+                        )}
+                      </ShowIfGoogleAuth>
+                    </>                  
+                  }
+                />
+              </Routes>
+            </Box>
+          </Container>
+          <Footer />
+        </Box>
       </BrowserRouter>
     </GoogleAuthProvider>
   )
