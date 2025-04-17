@@ -3,6 +3,8 @@ import { useGoogleStore } from "../../stores/GoogleStore";
 import { Button } from "@mui/material";
 import React from "react";
 
+const SCOPES = "profile email https://www.googleapis.com/auth/spreadsheets";
+
 export function GoogleAuthButton() {
   const { setAuth, loadUserInfoAsync } = useGoogleStore();
   const login = useGoogleLogin({
@@ -13,7 +15,7 @@ export function GoogleAuthButton() {
     onError: (error) => {
       console.error('Ошибка авторизации:', error);
     },
-    scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
+    scope: SCOPES,
   });
 
   return (
