@@ -1,21 +1,26 @@
 import { BrsApi, TechnologyCard } from '../apis/BrsApi'
 import { TableTask, TableTaskValue } from './TableTask'
+import { ConsoleTableTaskLogger, TableTaskLogger } from './TableTaskLogger'
 import { fillTechnologyCardAsync } from '../actions/fillTechnologyCardAsync'
 
 export class CreateTechnologyCardsTaskExecutor {
+  static readonly TASK_NAME = 'CreateTechnologyCards'
+  
   brsApi: BrsApi
+  tableTaskLogger: TableTaskLogger
 
-  constructor(brsApi: BrsApi) {
+  constructor(brsApi: BrsApi, tableTaskLogger: TableTaskLogger | null) {
     this.brsApi = brsApi
+    this.tableTaskLogger = tableTaskLogger || new ConsoleTableTaskLogger()
   }
 
-  async executeAsync(tableTask: TableTask) {
-    console.log(`🚩 Executing task "${tableTask.name}"`)
+  async executeAsync(tableTask: TableTask, forceSave: boolean | null = null) {
+    this.tableTaskLogger.log(`🚩 Executing task "${tableTask.name}"`)
 
-    const task = extractTask(tableTask)
+    const task = extractTask(tableTask, this.tableTaskLogger, forceSave)
     if (!task) {
-      console.log(`❌ Execution has been stopped`)
-      console.log()
+      this.tableTaskLogger.log(`❌ Execution has been stopped`)
+      this.tableTaskLogger.log()
       return
     }
 
@@ -37,13 +42,13 @@ export class CreateTechnologyCardsTaskExecutor {
         technologyCard = technologyCards[discipline.disciplineLoad]
 
         if (technologyCard === undefined) {
-          console.log(
+          this.tableTaskLogger.log(
             `🚩 Обработка техкарты "${discipline.disciplineLoad}" по предмету "${discipline.discipline}" ${
               discipline.isModule ? 'из ИТС' : ''
             }`,
           )
-          console.log('❌ Техкарта не найдена!')
-          console.log()
+          this.tableTaskLogger.log('❌ Техкарта не найдена!')
+          this.tableTaskLogger.log()
           continue
         }
       }
@@ -51,23 +56,26 @@ export class CreateTechnologyCardsTaskExecutor {
       await fillTechnologyCardAsync(this.brsApi, technologyCard, agree, task.save)
     }
 
-    console.log(`✅ Execution has been completed`)
-    console.log()
+    this.tableTaskLogger.log(`✅ Execution has been completed`)
+    this.tableTaskLogger.log()
   }
 }
 
-function extractTask(tableTask: TableTask): CreateTechnologyCardsTask | null {
-  const save = tableTask.getParam('save').getBool() || false
-  console.log(save ? `- save mode on ⚡` : `- save mode off`)
+function extractTask(tableTask: TableTask, tableTaskLogger: TableTaskLogger, forceSave: boolean | null = null): CreateTechnologyCardsTask | null {
+  let save = tableTask.getParam('save').getBool() || false
+  if (forceSave !== null) {
+    save = forceSave
+  }
+  tableTaskLogger.log(save ? `- save mode on ⚡` : `- save mode off`)
 
   const disciplines = tableTask.rows.map(convertRow2Discipline).filter((it) => it !== null) as Discipline[]
   if (disciplines.length < tableTask.rows.length) {
-    console.log(`- ${disciplines.length} disciplines was found in ${tableTask.rows.length} rows❗`)
+    tableTaskLogger.log(`- ${disciplines.length} disciplines was found in ${tableTask.rows.length} rows❗`)
   } else {
-    console.log(`- ${disciplines.length} disciplines was found.`)
+    tableTaskLogger.log(`- ${disciplines.length} disciplines was found.`)
   }
 
-  console.log()
+  tableTaskLogger.log()
 
   return {
     name: tableTask.name,

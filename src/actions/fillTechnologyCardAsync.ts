@@ -4,7 +4,7 @@ export async function fillTechnologyCardAsync(
   brsApi: BrsApi,
   card: TechnologyCard,
   agree: boolean,
-  save: boolean = false,
+  save = false,
 ) {
   console.log(
     `🚩 Обработка техкарты по предмету "${card.discipline}" для групп "${card.group}" ${card.isModule ? 'из ИТС' : ''}`,
@@ -77,7 +77,7 @@ export async function fillTechnologyCardAsync(
         console.log(`🟢 Нагрузка в "${cardTypeTitle}" добавлена: "${name}" на ${value}`)
       } else {
         let currentSum = 0
-        let currentLoadMessages = []
+        const currentLoadMessages = []
         for (const load of currentLoads) {
           currentSum += load.maxValue
           currentLoadMessages.push(`"${load.name}"=${load.maxValue}`)

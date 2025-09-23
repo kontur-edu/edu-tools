@@ -1,21 +1,26 @@
 import { ItsApiV2, Project, ProjectSubgroup, StudentInProjectSubgroup } from '../apis/ItsApiV2'
 import { compareNormalized, startsWithNormalized } from '../helpers/tools'
 import { TableTask } from './TableTask'
+import { ConsoleTableTaskLogger, TableTaskLogger } from './TableTaskLogger'
 
 export class DistributeStudentsIntoTeamsTaskExecutor {
+  static readonly TASK_NAME = 'DistributeStudentsIntoTeams'
+  
   itsApi: ItsApiV2
+  tableTaskLogger: TableTaskLogger
 
-  constructor(itsApi: ItsApiV2) {
+  constructor(itsApi: ItsApiV2, tableTaskLogger: TableTaskLogger | null) {
     this.itsApi = itsApi
+    this.tableTaskLogger = tableTaskLogger || new ConsoleTableTaskLogger()
   }
 
-  async executeAsync(tableTask: TableTask) {
-    console.log(`🚩 Executing task "${tableTask.name}"`)
+  async executeAsync(tableTask: TableTask, forceSave: boolean | null = null) {
+    this.tableTaskLogger.log(`🚩 Executing task "${tableTask.name}"`)
 
-    const task = extractTask(tableTask)
+    const task = extractTask(tableTask, this.tableTaskLogger, forceSave)
     if (!task) {
-      console.log(`❌ Execution has been stopped`)
-      console.log()
+      this.tableTaskLogger.log(`❌ Execution has been stopped`)
+      this.tableTaskLogger.log()
       return
     }
 
@@ -25,141 +30,144 @@ export class DistributeStudentsIntoTeamsTaskExecutor {
       [task.studyYear],
     )
 
-    const groupsByProject = buildGroupsByProject(task, projectCollection.data)
+    const groupsByProject = this.buildGroupsByProject(task, projectCollection.data)
 
     for (const group of Object.values(groupsByProject)) {
-      console.log(`## Project "${group.project.Title}"`)
+      this.tableTaskLogger.log(`## Project "${group.project.Title}"`)
       const subgroups = await this.itsApi.getProjectSubgroupsAsync(group.project.PeriodId)
 
       for (const taskStudent of group.taskStudents) {
         if (subgroups.filter((it) => it.Index === taskStudent.projectinstancenumber).length === 0) {
-          console.log(
+          this.tableTaskLogger.log(
             `🔴 Not found team "${taskStudent.projectinstancenumber}" for student "${taskStudent.fio}" of "${taskStudent.group}"`,
           )
         }
       }
 
       for (const subgroup of subgroups) {
-        await processTeam(this.itsApi, task, group, subgroup)
+        await this.processTeam(this.itsApi, task, group, subgroup)
       }
 
-      console.log()
+      this.tableTaskLogger.log()
     }
 
-    console.log(`✅ Execution has been completed`)
-    console.log()
+    this.tableTaskLogger.log(`✅ Execution has been completed`)
+    this.tableTaskLogger.log()
   }
-}
 
-function buildGroupsByProject(
-  task: DistributeStudentsIntoTeamsTask,
-  projects: Project[],
-): { [projectId: string]: ProjectGroup } {
-  const groupsByProject: { [projectId: string]: ProjectGroup } = {}
-  for (const taskStudent of task.students) {
-    const project = projects.filter((it) => it.Title === taskStudent.projectname)[0]
-    if (project) {
-      if (!groupsByProject[project.Id]) {
-        groupsByProject[project.Id] = {
-          project: project,
-          taskStudents: [],
-        }
-      }
-      groupsByProject[project.Id].taskStudents.push(taskStudent)
-    } else {
-      console.log(
-        `🔴 Not found project "${taskStudent.projectname}" for student "${taskStudent.fio}" of "${taskStudent.group}"`,
-      )
-    }
-  }
-  return groupsByProject
-}
-
-async function processTeam(
-  itsApi: ItsApiV2,
-  task: DistributeStudentsIntoTeamsTask,
-  group: ProjectGroup,
-  subgroup: ProjectSubgroup,
-) {
-  const teamTaskStudents = group.taskStudents.filter((it) => it.projectinstancenumber === subgroup.Index)
-  if (teamTaskStudents.length > 0) {
-    console.log(`### Team "${subgroup.Index}"`)
-    const studentCollection = await itsApi.getProjectSubgroupStudentsAsync(
-      group.project.PeriodId,
-      subgroup.ProjectProgramId,
-      subgroup.Index,
-    )
-
-    for (const taskStudent of teamTaskStudents) {
-      const student: StudentInProjectSubgroup = studentCollection.data.filter(
-        (it) => startsWithNormalized(it.FIO, taskStudent.fio || '') && it.GroupName === taskStudent.group,
-      )[0]
-      if (!student) {
-        console.log(`🔴 Not found student "${taskStudent.fio}" of "${taskStudent.group}" at ITS"`)
-        continue
-      }
-
-      if (student.Signed) {
-        console.log(`🟡 Student "${taskStudent.fio}" of "${taskStudent.group}" had been signed before"`)
-      } else {
-        if (task.save) {
-          const subgroupId = subgroup.SubgroupIds[0]
-          if (await itsApi.signStudentToProjectSubgroup(student.Id, subgroupId, true)) {
-            console.log(`🟢 Student "${taskStudent.fio}" of "${taskStudent.group}" has been signed"`)
-          } else {
-            console.log(`🔴 Student "${taskStudent.fio}" of "${taskStudent.group}" signing cause an error"`)
+  private buildGroupsByProject(
+    task: DistributeStudentsIntoTeamsTask,
+    projects: Project[],
+  ): { [projectId: string]: ProjectGroup } {
+    const groupsByProject: { [projectId: string]: ProjectGroup } = {}
+    for (const taskStudent of task.students) {
+      const project = projects.filter((it) => it.Title === taskStudent.projectname)[0]
+      if (project) {
+        if (!groupsByProject[project.Id]) {
+          groupsByProject[project.Id] = {
+            project: project,
+            taskStudents: [],
           }
-        } else {
-          console.log(`🟢 Student "${taskStudent.fio}" of "${taskStudent.group}" has been signed"`)
         }
+        groupsByProject[project.Id].taskStudents.push(taskStudent)
+      } else {
+        this.tableTaskLogger.log(
+          `🔴 Not found project "${taskStudent.projectname}" for student "${taskStudent.fio}" of "${taskStudent.group}"`,
+        )
       }
     }
-
-    if (task.save) {
-      const afterStudentCollection = await itsApi.getProjectSubgroupStudentsAsync(
+    return groupsByProject
+  }
+  
+  private async processTeam(
+    itsApi: ItsApiV2,
+    task: DistributeStudentsIntoTeamsTask,
+    group: ProjectGroup,
+    subgroup: ProjectSubgroup,
+  ) {
+    const teamTaskStudents = group.taskStudents.filter((it) => it.projectinstancenumber === subgroup.Index)
+    if (teamTaskStudents.length > 0) {
+      this.tableTaskLogger.log(`### Team "${subgroup.Index}"`)
+      const studentCollection = await itsApi.getProjectSubgroupStudentsAsync(
         group.project.PeriodId,
         subgroup.ProjectProgramId,
         subgroup.Index,
       )
+  
       for (const taskStudent of teamTaskStudents) {
-        const student: StudentInProjectSubgroup = afterStudentCollection.data.filter(
+        const student: StudentInProjectSubgroup = studentCollection.data.filter(
           (it) => startsWithNormalized(it.FIO, taskStudent.fio || '') && it.GroupName === taskStudent.group,
         )[0]
-        if (student && !student.Signed) {
-          console.log(`🔴 Student "${taskStudent.fio}" of "${taskStudent.group}" is not updated..."`)
+        if (!student) {
+          this.tableTaskLogger.log(`🔴 Not found student "${taskStudent.fio}" of "${taskStudent.group}" at ITS"`)
+          continue
+        }
+  
+        if (student.Signed) {
+          this.tableTaskLogger.log(`🟡 Student "${taskStudent.fio}" of "${taskStudent.group}" had been signed before"`)
+        } else {
+          if (task.save) {
+            const subgroupId = subgroup.SubgroupIds[0]
+            if (await itsApi.signStudentToProjectSubgroup(student.Id, subgroupId, true)) {
+              this.tableTaskLogger.log(`🟢 Student "${taskStudent.fio}" of "${taskStudent.group}" has been signed"`)
+            } else {
+              this.tableTaskLogger.log(`🔴 Student "${taskStudent.fio}" of "${taskStudent.group}" signing cause an error"`)
+            }
+          } else {
+            this.tableTaskLogger.log(`🟢 Student "${taskStudent.fio}" of "${taskStudent.group}" has been signed"`)
+          }
         }
       }
+  
+      if (task.save) {
+        const afterStudentCollection = await itsApi.getProjectSubgroupStudentsAsync(
+          group.project.PeriodId,
+          subgroup.ProjectProgramId,
+          subgroup.Index,
+        )
+        for (const taskStudent of teamTaskStudents) {
+          const student: StudentInProjectSubgroup = afterStudentCollection.data.filter(
+            (it) => startsWithNormalized(it.FIO, taskStudent.fio || '') && it.GroupName === taskStudent.group,
+          )[0]
+          if (student && !student.Signed) {
+            console.log(`🔴 Student "${taskStudent.fio}" of "${taskStudent.group}" is not updated..."`)
+          }
+        }
+      }
+      console.log()
     }
-    console.log()
   }
 }
 
-function extractTask(tableTask: TableTask): DistributeStudentsIntoTeamsTask | null {
+function extractTask(tableTask: TableTask, tableTaskLogger: TableTaskLogger, forceSave: boolean | null = null): DistributeStudentsIntoTeamsTask | null {
   const academicYear = tableTask.getParam('academicYear').getCustom((it) => parseInt(it.split('/')[0], 10))
   if (academicYear === null) {
-    console.log('- academicYear is required❗')
+    tableTaskLogger.log('- academicYear is required❗')
     return null
   }
-  console.log(`- academicYear: ${academicYear}`)
+  tableTaskLogger.log(`- academicYear: ${academicYear}`)
 
   const semester = tableTask
     .getParam('semester')
     .getCustom((it) => (compareNormalized(it, 'fall') ? 1 : compareNormalized(it, 'spring') ? 2 : null))
   if (semester === null) {
-    console.log('- semester is required❗')
+    tableTaskLogger.log('- semester is required❗')
     return null
   }
-  console.log(`- semester: ${semester}`)
+  tableTaskLogger.log(`- semester: ${semester}`)
 
   const studyYear = tableTask.getParam('studyYear').getInt()
   if (studyYear === null) {
-    console.log('- studyYear is required❗')
+    tableTaskLogger.log('- studyYear is required❗')
     return null
   }
-  console.log(`- studyYear: ${studyYear}`)
+  tableTaskLogger.log(`- studyYear: ${studyYear}`)
 
-  const save = tableTask.getParam('save').getBool() || false
-  console.log(save ? `- save mode on ⚡` : `- save mode off`)
+  let save = tableTask.getParam('save').getBool() || false
+  if (forceSave !== null) {
+    save = forceSave
+  }
+  tableTaskLogger.log(save ? `- save mode on ⚡` : `- save mode off`)
 
   const students = tableTask.rows.map(convertRow2Student).filter((it) => it !== null) as Student[]
   if (students.length < tableTask.rows.length) {

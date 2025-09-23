@@ -3,16 +3,12 @@ import { normalizeString } from '../helpers/tools'
 
 export class TableTaskWriter {
   googleApi: GoogleApi
-  spreadsheetId: string
-  sheetName: string
-
-  constructor(googleApi: GoogleApi, spreadsheetId: string, sheetName: string) {
+  
+  constructor(googleApi: GoogleApi) {
     this.googleApi = googleApi
-    this.spreadsheetId = spreadsheetId
-    this.sheetName = sheetName
   }
 
-  async batchWriteAsync(leftIndex: number, topIndex: number, values: any[][]) {
+  async batchWriteAsync(spreadsheetId: string, sheetName: string, leftIndex: number, topIndex: number, values: any[][]) {
     if (values.length < 1) {
       return
     }
@@ -21,14 +17,14 @@ export class TableTaskWriter {
     const batchSize = 50
     for (let i = 0; i < values.length; ) {
       const batch = values.slice(i, i + batchSize)
-      await this.writeAsync(leftIndex, leftIndex + width - 1, topIndex + i, batch)
+      await this.writeAsync(spreadsheetId, sheetName, leftIndex, leftIndex + width - 1, topIndex + i, batch)
       i += batch.length
     }
   }
 
-  async writeAsync(leftIndex: number, rightIndex: number, topIndex: number, values: any[][]): Promise<void> {
-    const sheet = this.googleApi.openSpreadsheet(this.spreadsheetId)
-    const range = buildDataRange(this.sheetName, leftIndex, rightIndex, topIndex)
+  async writeAsync(spreadsheetId: string, sheetName: string, leftIndex: number, rightIndex: number, topIndex: number, values: any[][]): Promise<void> {
+    const sheet = this.googleApi.openSpreadsheet(spreadsheetId)
+    const range = buildDataRange(sheetName, leftIndex, rightIndex, topIndex)
     await sheet.writeAsync(range, values)
   }
 }
@@ -60,7 +56,7 @@ export class TableTaskReader {
     const { task, ...params } = readParameters(headRows, indices)
     const rows = await readRowsAsync(this.googleApi, spreadsheetId, sheetName, indices)
     const namespacedRows = distributeRowsByNamespace(rows)
-    return task ? new TableTask(task, params, namespacedRows, indices) : null
+    return task ? new TableTask(task, spreadsheetId, sheetName, params, namespacedRows, indices) : null
   }
 }
 
@@ -221,13 +217,17 @@ interface Indices {
 
 export class TableTask {
   name: string
+  spreadsheetId: string
+  sheetName: string
   params: Row
   rows: Row[]
   rowsByNamespace: { [namespace: string]: Row[] }
   columns: { [key: string]: number }
 
-  constructor(name: string, params: { [key: string]: string }, namespacedRows: NamespacedRows, indices: Indices) {
+  constructor(name: string, spreadsheetId: string, sheetName: string, params: { [key: string]: string }, namespacedRows: NamespacedRows, indices: Indices) {
     this.name = name
+    this.spreadsheetId = spreadsheetId
+    this.sheetName = sheetName
     this.params = params
     this.rows = namespacedRows.rootNamespace
     this.rowsByNamespace = namespacedRows.byNamespace

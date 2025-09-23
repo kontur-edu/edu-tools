@@ -26,12 +26,15 @@ import { PartnerAuthDialog } from './PartnerAuth/PartnerAuthDialog'
 import { useEffect, useRef, useState } from 'react'
 import { useGoogleStore } from '../stores/GoogleStore'
 import { GoogleAuthProvider } from './GoogleAuth/GoogleAuthProvider'
-import { SendCuratorMarksTaskExecutor } from '../tasks/SendCuratorMarksTask'
 import { useTeamProjectStore } from '../stores/TeamProjectStore'
-import { TableTask, TableTaskReader } from '../tasks/TableTask'
+import { TableTask, TableTaskReader, TableTaskWriter } from '../tasks/TableTask'
 import { CustomTableTaskLogger } from '../tasks/TableTaskLogger'
 import { PrivacyPolicy } from './PrivacyPolicy'
 import { Footer } from './Footer'
+import { CompositeTableTaskExecutor } from '../tasks/CompositeTableTaskExecutor'
+import { useItsStore } from '../stores/ItsStore'
+import { usePartnerStore } from '../stores/PartnerStore'
+import { useBrsStore } from '../stores/BrsStore'
 
 export default function App() {
   const [task, setTask] = useState<TableTask | null>(null)
@@ -150,7 +153,11 @@ function TaskExecutionDialog({
   const [content, setContent] = useState('')
   const textFieldRef = useRef<HTMLDivElement>(null)
 
+  const getGoogleApi = useGoogleStore((state) => state.getApi)
   const getTeamProjectApi = useTeamProjectStore((state) => state.getApi)
+  const getItsApi = useItsStore((state) => state.getApi)
+  const getBrsApi = useBrsStore((state) => state.getApi)
+  const getPartnerApi = usePartnerStore((state) => state.getApi)
 
   useEffect(() => {
     setIsExecuting(true)
@@ -158,13 +165,6 @@ function TaskExecutionDialog({
     try {
       if (taskExecutionState === 'try' || taskExecutionState === 'save') {
         setContent('')
-
-        const teamProjectApi = getTeamProjectApi()
-        if (!teamProjectApi) {
-          setContent('Требуется авторизация...')
-          setIsExecuting(false)
-          return
-        }
 
         const appendText = (message?: string) => {
           setContent((prev) => prev + (message ? message + '\n' : '\n'))
@@ -181,7 +181,57 @@ function TaskExecutionDialog({
         }
         const logger = new CustomTableTaskLogger(appendText)
         const forceSave = taskExecutionState === 'save' ? true : taskExecutionState === 'try' ? false : null
-        const executor = new SendCuratorMarksTaskExecutor(teamProjectApi, logger)
+
+        const googleApi = getGoogleApi()
+
+        if (!googleApi) {
+          setContent('Требуется авторизация в Google...')
+          setIsExecuting(false)
+          return
+        }
+        const taskWriter = new TableTaskWriter(googleApi)
+
+        const requreTeamProjectApi = () => {
+          const teamProjectApi = getTeamProjectApi()
+          if (!teamProjectApi) {
+            setContent('Требуется авторизация в TeamProject...')
+            setIsExecuting(false)
+            return null
+          }
+          return teamProjectApi
+        }
+
+        const requreItsApi = () => {
+          const itsApi = getItsApi()
+          if (!itsApi) {
+            setContent('Требуется авторизация в ITS...')
+            setIsExecuting(false)
+            return null
+          }
+          return itsApi
+        }
+
+        const requreBrsApi = () => {
+          const brsApi = getBrsApi()
+          if (!brsApi) {
+            setContent('Требуется авторизация в BRS...')
+            setIsExecuting(false)
+            return null
+          }
+          return brsApi
+        }
+
+        const requrePartnerApi = () => {
+          const partnerApi = getPartnerApi()
+          if (!partnerApi) {
+            setContent('Требуется авторизация в Partner...')
+            setIsExecuting(false)
+            return null
+          }
+          return partnerApi
+        }
+
+        const executor = new CompositeTableTaskExecutor(requreBrsApi, requreItsApi, requrePartnerApi, requreTeamProjectApi, taskWriter, logger)
         executor.executeAsync(task, forceSave).then(() => {
           setIsExecuting(false)
         })

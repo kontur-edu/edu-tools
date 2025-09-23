@@ -4,20 +4,22 @@ import { compareNormalized } from '../helpers/tools'
 import { ConsoleTableTaskLogger, TableTaskLogger } from './TableTaskLogger'
 
 export class ExportTechnologyCardsTaskExecutor {
+  static readonly TASK_NAME = 'ExportTechnologyCards'
+  
   brsApi: BrsApi
   tableTaskWriter: TableTaskWriter
   tableTaskLogger: TableTaskLogger
 
-  constructor(brsApi: BrsApi, tableTaskWriter: TableTaskWriter, tableTaskLogger?: TableTaskLogger) {
+  constructor(brsApi: BrsApi, tableTaskWriter: TableTaskWriter, tableTaskLogger: TableTaskLogger | null) {
     this.brsApi = brsApi
     this.tableTaskWriter = tableTaskWriter
     this.tableTaskLogger = tableTaskLogger || new ConsoleTableTaskLogger()
   }
 
-  async executeAsync(tableTask: TableTask) {
+  async executeAsync(tableTask: TableTask, forceSave: boolean | null = null) {
     this.tableTaskLogger.log(`🚩 Executing task "${tableTask.name}"`)
 
-    const task = extractTask(tableTask, this.tableTaskLogger)
+    const task = extractTask(tableTask, this.tableTaskLogger, forceSave)
     if (!task) {
       this.tableTaskLogger.log(`❌ Execution has been stopped`)
       this.tableTaskLogger.log()
@@ -62,14 +64,18 @@ export class ExportTechnologyCardsTaskExecutor {
       }
     }
 
-    await this.tableTaskWriter.batchWriteAsync(task.outputColumn, 0, values)
+    if (task.save) {
+      const outputSpreadsheetId = tableTask.spreadsheetId
+      const outputSheetName = tableTask.sheetName
+      await this.tableTaskWriter.batchWriteAsync(outputSpreadsheetId, outputSheetName, task.outputColumn, 0, values)
+    }
 
     this.tableTaskLogger.log(`✅ Execution has been completed`)
     this.tableTaskLogger.log()
   }
 }
 
-function extractTask(tableTask: TableTask, tableTaskLogger: TableTaskLogger): ExportTechnologyCardsTask | null {
+function extractTask(tableTask: TableTask, tableTaskLogger: TableTaskLogger, forceSave: boolean | null = null): ExportTechnologyCardsTask | null {
   const academicYear = tableTask.getParam('academicYear').getCustom((it) => parseInt(it.split('/')[0], 10))
   if (academicYear === null) {
     tableTaskLogger.log('- academicYear is required❗')
@@ -96,8 +102,15 @@ function extractTask(tableTask: TableTask, tableTaskLogger: TableTaskLogger): Ex
   const isModule = tableTask.getParam('ismodule').getBool() || false
   tableTaskLogger.log(`- isModule: ${isModule}`)
 
+  let save = tableTask.getParam('save').getBool() || false
+  if (forceSave !== null) {
+    save = forceSave
+  }
+  tableTaskLogger.log(save ? `- save mode on ⚡` : `- save mode off`)
+
   return {
     name: tableTask.name,
+    save,
     academicYear,
     semester,
     studyYears,
@@ -108,6 +121,7 @@ function extractTask(tableTask: TableTask, tableTaskLogger: TableTaskLogger): Ex
 
 interface ExportTechnologyCardsTask {
   name: string
+  save: boolean
   academicYear: number
   semester: number
   studyYears: Array<number>

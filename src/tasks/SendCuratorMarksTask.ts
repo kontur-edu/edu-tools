@@ -5,10 +5,12 @@ import { ConsoleTableTaskLogger, TableTaskLogger } from './TableTaskLogger'
 import { WorkspaceInfo } from './WorkspaceInfo'
 
 export class SendCuratorMarksTaskExecutor {
-  teamProjectApi: TeamProjectApiV2
+  static readonly TASK_NAME = 'SendCuratorMarks'
+  
   tableTaskLogger: TableTaskLogger
+  teamProjectApi: TeamProjectApiV2
 
-  constructor(teamProjectApi: TeamProjectApiV2, tableTaskLogger?: TableTaskLogger) {
+  constructor(teamProjectApi: TeamProjectApiV2, tableTaskLogger: TableTaskLogger | null) {
     this.teamProjectApi = teamProjectApi
     this.tableTaskLogger = tableTaskLogger || new ConsoleTableTaskLogger()
   }

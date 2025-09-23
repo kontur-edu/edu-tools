@@ -2,22 +2,27 @@ import { IterationItem, TeamProjectApiV2, Workspace } from '../apis/TeamProjectA
 import JustDate from '../helpers/JustDate'
 import { compareNormalized } from '../helpers/tools'
 import { TableTask } from './TableTask'
+import { ConsoleTableTaskLogger, TableTaskLogger } from './TableTaskLogger'
 import { WorkspaceInfo } from './WorkspaceInfo'
 
 export class CreateTeamProjectIterationsTaskExecutor {
+  static readonly TASK_NAME = 'CreateTeamProjectIterations'
+
   teamProjectApi: TeamProjectApiV2
-
-  constructor(teamProjectApi: TeamProjectApiV2) {
+  tableTaskLogger: TableTaskLogger
+  
+  constructor(teamProjectApi: TeamProjectApiV2, tableTaskLogger: TableTaskLogger | null) {
     this.teamProjectApi = teamProjectApi
+    this.tableTaskLogger = tableTaskLogger || new ConsoleTableTaskLogger()
   }
+  
+  async executeAsync(tableTask: TableTask, forceSave: boolean | null = null) {
+    this.tableTaskLogger.log(`🚩 Executing task "${tableTask.name}"`)
 
-  async executeAsync(tableTask: TableTask) {
-    console.log(`🚩 Выполнение задания "${tableTask.name}"`)
-
-    const task = extractTask(tableTask)
+    const task = extractTask(tableTask, this.tableTaskLogger, forceSave)
     if (!task) {
-      console.log(`❌ Выполнение задания остановлено`)
-      console.log()
+      this.tableTaskLogger.log(`❌ Execution has been stopped`)
+      this.tableTaskLogger.log()
       return
     }
 
@@ -32,24 +37,24 @@ export class CreateTeamProjectIterationsTaskExecutor {
       await this.executeProjectAsync(project, task)
     }
 
-    console.log(`✅ Выполнение задания завершено`)
+    this.tableTaskLogger.log(`✅ Execution has been completed`)
   }
 
   async executeProjectAsync(project: Workspace, task: CreateTeamProjectIterationsTask) {
-    console.log('## Проект', project.title, project.instanceNumber)
+    this.tableTaskLogger.log(`## Project "${project.title}" "${project.instanceNumber}"`)
 
     const tpIterations = await this.teamProjectApi.getIterationsAsync(project.id)
     if (!tpIterations) {
-      console.log(`🟥 Итерации проекта не найдены`)
-      console.log()
+      this.tableTaskLogger.log(`🟥 Iterations of project not found`)
+      this.tableTaskLogger.log()
       return
     }
 
     if (tpIterations.length > 0) {
-      console.log('### Обновление итераций проекта:')
+      this.tableTaskLogger.log('### Updating iterations of project:')
       for (const tpIteration of tpIterations) {
         for (const iteration of task.iterations) {
-          await tryUpdateIteration(
+          await this.tryUpdateIteration(
             this.teamProjectApi,
             tpIteration,
             iteration.name,
@@ -61,72 +66,75 @@ export class CreateTeamProjectIterationsTaskExecutor {
       }
     }
     if (tpIterations.length < task.iterations.length) {
-      console.log('### Добавление недостающих итераций...')
+      this.tableTaskLogger.log('### Adding missing iterations...')
       for (let i = tpIterations.length; i < task.iterations.length; i++) {
         const it = task.iterations[i]
         if (task.save) {
           await this.teamProjectApi.postIterationAsync(project.id, it.name, '', it.startdate, it.enddate)
         }
-        console.log(`🟢 добавлено: "${it.name}" с ${it.startdate.toDashedString()} по ${it.enddate.toDashedString()}`)
+        this.tableTaskLogger.log(`🟢 added: "${it.name}" from ${it.startdate.toDashedString()} to ${it.enddate.toDashedString()}`)
       }
     }
 
-    console.log(`🟩 Итерации готовы`)
-    console.log()
+    this.tableTaskLogger.log(`🟩 Iterations are ready`)
+    this.tableTaskLogger.log()
   }
-}
 
-async function tryUpdateIteration(
-  teamProjectApi: TeamProjectApiV2,
-  iterationItem: IterationItem,
-  iterationName: string,
-  startDate: JustDate,
-  endDate: JustDate,
-  save: boolean,
-) {
-  if (iterationItem.title === iterationName) {
-    const iteration = await teamProjectApi.getIterationAsync(iterationItem.id)
-    const beginning = startDate.toDashedString()
-    const ending = endDate.toDashedString()
-    if (!iteration) {
-      console.log(`🔴 не найдена итерация: "${iterationItem.title}"`)
-    }
-    else if (
-      !iteration.dates ||
-      !iteration.dates.beginning ||
-      iteration.dates.beginning != beginning ||
-      !iteration.dates.ending ||
-      iteration.dates.ending != ending
-    ) {
-      if (save) {
-        await teamProjectApi.putIterationAsync(iteration.id, iteration.title, iteration.description, startDate, endDate)
+  async tryUpdateIteration(
+    teamProjectApi: TeamProjectApiV2,
+    iterationItem: IterationItem,
+    iterationName: string,
+    startDate: JustDate,
+    endDate: JustDate,
+    save: boolean,
+  ) {
+    if (iterationItem.title === iterationName) {
+      const iteration = await teamProjectApi.getIterationAsync(iterationItem.id)
+      const beginning = startDate.toDashedString()
+      const ending = endDate.toDashedString()
+      if (!iteration) {
+        this.tableTaskLogger.log(`🔴 iteration not found: "${iterationItem.title}"`)
       }
-      console.log(`🟢 обновлено: "${iteration.title}" с ${beginning} по ${ending}`)
-    } else {
-      console.log(`🟡 без изменений: "${iteration.title}" с ${iteration.dates.beginning} по ${iteration.dates.ending}`)
+      else if (
+        !iteration.dates ||
+        !iteration.dates.beginning ||
+        iteration.dates.beginning != beginning ||
+        !iteration.dates.ending ||
+        iteration.dates.ending != ending
+      ) {
+        if (save) {
+          await teamProjectApi.putIterationAsync(iteration.id, iteration.title, iteration.description, startDate, endDate)
+        }
+        this.tableTaskLogger.log(`🟢 updated: "${iteration.title}" from ${beginning} to ${ending}`)
+      } else {
+        this.tableTaskLogger.log(`🟡 without changes: "${iteration.title}" from ${iteration.dates.beginning} to ${iteration.dates.ending}`)
+      }
     }
   }
 }
 
-function extractTask(tableTask: TableTask): CreateTeamProjectIterationsTask | null {
+function extractTask(tableTask: TableTask, tableTaskLogger: TableTaskLogger, forceSave: boolean | null = null): CreateTeamProjectIterationsTask | null {
   const academicYear = tableTask.getParam('academicYear').getCustom((it) => parseInt(it.split('/')[0], 10))
   if (academicYear === null) {
-    console.log('- academicYear необходим❗')
+    tableTaskLogger.log('- academicYear required❗')
     return null
   }
-  console.log(`- academicYear: ${academicYear}`)
+  tableTaskLogger.log(`- academicYear: ${academicYear}`)
 
   const semester = tableTask
     .getParam('semester')
     .getCustom((it) => (compareNormalized(it, 'fall') ? 1 : compareNormalized(it, 'spring') ? 2 : null))
   if (semester === null) {
-    console.log('- semester необходим❗')
+    tableTaskLogger.log('- semester required❗')
     return null
   }
-  console.log(`- semester: ${semester}`)
+  tableTaskLogger.log(`- semester: ${semester}`)
 
-  const save = tableTask.getParam('save').getBool() || false
-  console.log(save ? `- режим save включен ⚡` : `- режим save выключен`)
+  let save = tableTask.getParam('save').getBool() || false
+  if (forceSave !== null) {
+    save = forceSave
+  }
+  tableTaskLogger.log(save ? `- save mode on ⚡` : `- save mode off`)
 
   const workspaceInfos = tableTask.rows.map(WorkspaceInfo.extractFromRow).filter((it) => it !== null) as WorkspaceInfo[]
 
@@ -135,13 +143,13 @@ function extractTask(tableTask: TableTask): CreateTeamProjectIterationsTask | nu
   if (iterationRows) {
     iterations = iterationRows.map(convertRow2Iteration).filter((it) => it !== null) as Iteration[]
     if (iterations.length < iterationRows.length) {
-      console.log(`- Итераций найдено: ${iterations.length}. Но обработано больше рядов: ${iterationRows.length}❗`)
+      tableTaskLogger.log(`- iterations found: ${iterations.length}. But more rows: ${iterationRows.length}❗`)
     } else {
-      console.log(`- Итераций найдено: ${iterations.length}.`)
+      tableTaskLogger.log(`- iterations found: ${iterations.length}.`)
     }
   }
 
-  console.log()
+  tableTaskLogger.log()
 
   return {
     name: tableTask.name,
