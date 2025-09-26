@@ -53,7 +53,7 @@ export class CreateTechnologyCardsTaskExecutor {
         }
       }
       const agree = discipline.agreed
-      await fillTechnologyCardAsync(this.brsApi, technologyCard, agree, task.save)
+      await fillTechnologyCardAsync(this.brsApi, technologyCard, agree, task.save, (message) => this.tableTaskLogger.log(message) )
     }
 
     this.tableTaskLogger.log(`✅ Execution has been completed`)

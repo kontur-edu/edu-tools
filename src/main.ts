@@ -70,7 +70,7 @@ async function fillTechnologyCards() {
 
   const save = false
   for (const card of cards) {
-    await fillTechnologyCardAsync(brsApi, card, save)
+    await fillTechnologyCardAsync(brsApi, card, false, save, console.log)
   }
 }
 

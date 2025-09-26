@@ -5,27 +5,28 @@ export async function fillTechnologyCardAsync(
   card: TechnologyCard,
   agree: boolean,
   save = false,
+  log: (message?: string) => void,
 ) {
-  console.log(
+  log(
     `🚩 Обработка техкарты по предмету "${card.discipline}" для групп "${card.group}" ${card.isModule ? 'из ИТС' : ''}`,
   )
 
   if (card.agreed) {
-    console.log(`🟡 Техкарта уже согласована`)
-    console.log()
+    log(`🟡 Техкарта уже согласована`)
+    log()
     return
   }
 
   const factors = await brsApi.getTechnologyCardFactorsAsync(card)
   if (!factors) {
-    console.log(`❌ Не удалось получить коэффициенты`)
-    console.log()
+    log(`❌ Не удалось получить коэффициенты`)
+    log()
     return
   }
   const intermediate = await brsApi.getTechnologyCardIntermediateAsync(card)
   if (!intermediate) {
-    console.log(`❌ Не удалось получить данные по промежуточной аттестации`)
-    console.log()
+    log(`❌ Не удалось получить данные по промежуточной аттестации`)
+    log()
     return
   }
 
@@ -38,8 +39,8 @@ export async function fillTechnologyCardAsync(
     } else if (intermediate.availableCardTypes.length > 0) {
       intermediateCardType = intermediate.availableCardTypes[0].cardType
     } else {
-      console.log(`❌ Не удалось установить тип промежуточной аттестации`)
-      console.log()
+      log(`❌ Не удалось установить тип промежуточной аттестации`)
+      log()
       return
     }
 
@@ -49,12 +50,12 @@ export async function fillTechnologyCardAsync(
     const intermediateCardTypeTitle =
       intermediate.availableCardTypes.filter((it) => it.cardType === intermediateCardType)[0]?.cardTypeTitle ??
       intermediateCardType
-    console.log(`🟢 Промежуточная аттестация установлена: "${intermediateCardTypeTitle}"`)
+    log(`🟢 Промежуточная аттестация установлена: "${intermediateCardTypeTitle}"`)
   } else {
     const intermediateCardTypeTitle =
       intermediate.availableCardTypes.filter((it) => it.cardType === intermediateCardType)[0]?.cardTypeTitle ??
       intermediateCardType
-    console.log(`🟡 Промежуточная аттестация уже выбрана: "${intermediateCardTypeTitle}"`)
+    log(`🟡 Промежуточная аттестация уже выбрана: "${intermediateCardTypeTitle}"`)
   }
 
   for (const factor of factors) {
@@ -74,7 +75,7 @@ export async function fillTechnologyCardAsync(
         if (save) {
           await brsApi.addTechnologyCardLoadAsync(card, cardType, name, value)
         }
-        console.log(`🟢 Нагрузка в "${cardTypeTitle}" добавлена: "${name}" на ${value}`)
+        log(`🟢 Нагрузка в "${cardTypeTitle}" добавлена: "${name}" на ${value}`)
       } else {
         let currentSum = 0
         const currentLoadMessages = []
@@ -83,19 +84,19 @@ export async function fillTechnologyCardAsync(
           currentLoadMessages.push(`"${load.name}"=${load.maxValue}`)
         }
         if (currentSum === 100) {
-          console.log(`🟡 Нагрузки в "${cardTypeTitle}" на 100 уже установлены: ${currentLoadMessages.join(', ')}`)
+          log(`🟡 Нагрузки в "${cardTypeTitle}" на 100 уже установлены: ${currentLoadMessages.join(', ')}`)
         } else {
           let sum = 100
           let count = currentLoads.length
           for (const load of currentLoads) {
             const value = Math.floor(sum / count)
             if (load.maxValue === value) {
-              console.log(`🟡 Нагрузка в "${cardTypeTitle}" уже установлена: "${load.name}" на ${value}`)
+              log(`🟡 Нагрузка в "${cardTypeTitle}" уже установлена: "${load.name}" на ${value}`)
             } else {
               if (save) {
                 await brsApi.updateTechnologyCardLoadAsync(card, load, load.name, value)
               }
-              console.log(`🟢 Нагрузка в "${cardTypeTitle}" обновлена: "${load.name}" на ${value}`)
+              log(`🟢 Нагрузка в "${cardTypeTitle}" обновлена: "${load.name}" на ${value}`)
             }
             sum -= value
             count -= 1
@@ -103,7 +104,7 @@ export async function fillTechnologyCardAsync(
         }
       }
     } else {
-      console.log(`🔴 Не удалось получить нагрузку по "${cardTypeTitle}"`)
+      log(`🔴 Не удалось получить нагрузку по "${cardTypeTitle}"`)
     }
   }
 
@@ -116,14 +117,14 @@ export async function fillTechnologyCardAsync(
     const intermediate = cardType === intermediateCardType ? 0.5 : 0.0
     const total = Math.floor((10 * factorSum) / factorCount) / 10
     if (current === factor.current && intermediate === factor.intermediate && total === factor.total) {
-      console.log(
+      log(
         `🟡 Коэффициенты в "${cardTypeTitle}" уже установлены: текущая=${current}, промежуточная=${intermediate}, вес типа занятий=${total}`,
       )
     } else {
       if (save) {
         await brsApi.updateTechnologyCardFactorsAsync(card, factor.technologyCardType, current, intermediate, total)
       }
-      console.log(
+      log(
         `🟢 Коэффициенты в "${cardTypeTitle}" обновлены: текущая=${current}, промежуточная=${intermediate}, вес типа занятий=${total}`,
       )
     }
@@ -133,33 +134,33 @@ export async function fillTechnologyCardAsync(
 
   const checkResult = await brsApi.checkTechnologyCardAsync(card)
   if (checkResult.isFilled) {
-    console.log(`🟩 Техкарта заполнена корректно`)
+    log(`🟩 Техкарта заполнена корректно`)
     if (checkResult.isAllowedToAgree) {
-      console.log(`🟩 Техкарта может быть согласована`)
+      log(`🟩 Техкарта может быть согласована`)
       if (agree) {
         if (card.agreed) {
-          console.log(`🟨 Техкарта уже согласована`)
+          log(`🟨 Техкарта уже согласована`)
         } else {
           if (save) {
             await brsApi.agreeTechnologyCardAsync(card, agree)
           }
-          console.log(`🟩 Техкарта согласована`)
+          log(`🟩 Техкарта согласована`)
         }
       } else {
-        console.log(`🟨 Согласование карты не запрошено`)
+        log(`🟨 Согласование карты не запрошено`)
       }
     } else {
-      console.log(`🟨 Можно запросить согласование техкарты`)
+      log(`🟨 Можно запросить согласование техкарты`)
     }
   } else {
     if (save) {
-      console.log(`🟥 Техкарта содержит ошибки`)
-      console.log(`🟥 Для согласования требуется исправить ошибки`)
+      log(`🟥 Техкарта содержит ошибки`)
+      log(`🟥 Для согласования требуется исправить ошибки`)
     } else {
-      console.log(`🟨 Техкарта содержит ошибки, потому что заполняется только в режиме save`)
+      log(`🟨 Техкарта содержит ошибки, потому что заполняется только в режиме save`)
     }
   }
 
-  console.log('✅ Обработка техкарты завершена')
-  console.log()
+  log('✅ Обработка техкарты завершена')
+  log()
 }
