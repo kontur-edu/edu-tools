@@ -771,7 +771,7 @@ async function requestApiAsync(
   headers?: RequestHeaders,
 ): Promise<Response> {
   const url = urlProvider.baseUrl + uri
-  const timeout = 30000
+  const timeout = 180000
   try {
     const response = await fetch(url, {
       method: 'GET',

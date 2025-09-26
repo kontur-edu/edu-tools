@@ -14,7 +14,7 @@ yc sls container revisions deploy \
 	--container-id ${SERVERLESS_CONTAINER_ID} \
 	--memory 256M \
 	--cores 1 \
-	--execution-timeout 30s \
+	--execution-timeout 180s \
 	--concurrency 8 \
 	--service-account-id ${SA_ID} \
 	--image "${CONTAINER_REPOSITORY_NAME}";

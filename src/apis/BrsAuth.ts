@@ -14,7 +14,7 @@ export class BrsAuth {
 }
 
 async function authorizeAsync(urlProvider: BrsUrlProvider, login: string, password: string): Promise<string | null> {
-  const timeout = 30000
+  const timeout = 180000
   const response = await fetch(urlProvider.baseUrl + `/mrd/login`, {
     method: 'POST',
     body: `username=${login}&password=${password}`,

@@ -156,7 +156,7 @@ async function fetchApiAsync(
     .join('; ')
 
   const url = urlProvider.baseUrl + uri
-  const timeout = 30000
+  const timeout = 180000
   try {
     const response = await fetch(url, {
       method: 'GET',
