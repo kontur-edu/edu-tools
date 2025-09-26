@@ -1,5 +1,5 @@
 import { ItsApiV2, Project, ProjectSubgroup, StudentInProjectSubgroup } from '../apis/ItsApiV2'
-import { compareNormalized, startsWithNormalized } from '../helpers/tools'
+import { compareNormalized, fixSpaces, startsWithNormalized } from '../helpers/tools'
 import { TableTask } from './TableTask'
 import { ConsoleTableTaskLogger, TableTaskLogger } from './TableTaskLogger'
 
@@ -59,9 +59,10 @@ export class DistributeStudentsIntoTeamsTaskExecutor {
     task: DistributeStudentsIntoTeamsTask,
     projects: Project[],
   ): { [projectId: string]: ProjectGroup } {
+    console.log(projects)
     const groupsByProject: { [projectId: string]: ProjectGroup } = {}
     for (const taskStudent of task.students) {
-      const project = projects.filter((it) => it.Title === taskStudent.projectname)[0]
+      const project = projects.filter((it) => compareNormalized(it.Title, taskStudent.projectname))[0]
       if (project) {
         if (!groupsByProject[project.Id]) {
           groupsByProject[project.Id] = {
