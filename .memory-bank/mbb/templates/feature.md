@@ -5,6 +5,8 @@ Status: Template
 
 ## Feature FT-XXXX — <Name>
 Epic: `EP-XXX`. Status: `Planned | In progress | Done`.
+Triage: `needs-triage | needs-info | ready-for-agent | ready-for-human | wontfix`.
+Blocked by: FT-XXXX, FT-XXXX. _(строку опустить, если блокеров нет)_
 
 ### User value
 Что меняется для пользователя (или для разработчика/ИИ-агента) и какой outcome.

@@ -32,3 +32,24 @@ EduTools автоматизирует рутинные администрати�
 - [`.memory-bank/spec/index.md`](.memory-bank/spec/index.md) — спецификации (WHAT). Читать, чтобы реализовывать правила домена и интеграции корректно.
 - [`.memory-bank/adr/index.md`](.memory-bank/adr/index.md) — ADR (WHY). Читать, чтобы не отменять решения случайно и понимать компромиссы.
 - [`.memory-bank/plans/index.md`](.memory-bank/plans/index.md) — roadmap, эпики/фичи, playbook реализации. Читать, чтобы делать работу вертикальными слайсами с проверками.
+
+## Agent skills
+
+### Issue tracker
+Задачи ведутся в меморибанке: спеки — эпики `EP-XXX` в `.memory-bank/plans/epics/`, тикеты — фичи `FT-XXXX` в `.memory-bank/plans/features/`. См. [docs/agents/issue-tracker.md](docs/agents/issue-tracker.md).
+
+### Triage labels
+Стандартные пять ролей, записываются строкой `Triage:` в файле фичи. См. [docs/agents/triage-labels.md](docs/agents/triage-labels.md).
+
+### Domain docs
+Single-context поверх меморибанка: глоссарий — `.memory-bank/spec/glossary.md`, ADR — `.memory-bank/adr/`; `CONTEXT.md` и `docs/adr/` не создаются. См. [docs/agents/domain.md](docs/agents/domain.md).
+
+### Path overrides
+Скиллы часто называют пути напрямую, не читая `docs/agents/`. В этом репозитории они всегда подменяются так:
+- `CONTEXT.md` / `CONTEXT-MAP.md` → `.memory-bank/spec/glossary.md`;
+- `docs/adr/NNNN-slug.md` → `.memory-bank/adr/ADR-XXXX-<kebab-name>.md` по шаблону MBB + строка в `.memory-bank/adr/index.md`;
+- `.scratch/<feature>/…` (спеки, тикеты, карты) → `.memory-bank/plans/` по правилам [docs/agents/issue-tracker.md](docs/agents/issue-tracker.md);
+- `gh issue …` / метки → файлы фич и строка `Triage:`.
+
+### Git guardrails
+PreToolUse-хук [`.claude/hooks/block-dangerous-git.mjs`](.claude/hooks/block-dangerous-git.mjs) (подключён в `.claude/settings.json` для `Bash` и `PowerShell`) блокирует `git push`, `reset --hard`, `clean -f`, `branch -D`, `checkout .`, `restore .`. Эти операции выполняет пользователь.
