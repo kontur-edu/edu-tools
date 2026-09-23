@@ -8,11 +8,13 @@ Web-приложение: https://edu-tools.fiit-urfu-cloud.ru
 Нужен Node.js 22+ (см. `.nvmrc`).
 
 ```bash
-npm install
+npm ci --legacy-peer-deps   # установка по package-lock.json (флаг обязателен, см. ниже)
 npm run web-start   # web-приложение в режиме разработки
 npm run lint        # ESLint
 npm run docs:check  # проверка меморибанка
 ```
+
+`--legacy-peer-deps` нужен при любой установке и добавлении пакетов (`npm install <pkg> --legacy-peer-deps`): `react-scripts` 5 объявляет peer-зависимость на TypeScript 4, а в проекте TypeScript 5, и без флага npm завершается ошибкой `ERESOLVE`.
 
 Остальные команды (бот, Node-скрипты, деплой) и настройка `.env` / `secrets/` описаны в [stack & tooling](.memory-bank/spec/project/stack-and-tooling.md).
 

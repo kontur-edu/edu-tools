@@ -13,6 +13,7 @@ Status: Draft (2026-09-23)
 - **Хостинг:** Yandex Cloud — Object Storage (статика web), Cloud Functions (бот), Serverless Containers (CORS-proxy).
 
 Инструменты и практики:
+- Установка зависимостей: `npm ci --legacy-peer-deps` (добавление пакета — `npm install <pkg> --legacy-peer-deps`). Флаг обязателен: `react-scripts` 5 объявляет peer-зависимость `typescript@^3 || ^4`, а в проекте TypeScript 5, без флага npm падает с `ERESOLVE`. На сборку и dev-сервер это не влияет.
 - Сборка Node-части: `tsc` в `build/`; запуск через `node --loader ./loader.js` (loader дописывает `.js` к относительным импортам).
 - Сборка web: `react-scripts build`.
 - Lint: ESLint (`@typescript-eslint/recommended`) на `src/`. Pre-commit через Husky задуман (`npm run lint`), но сейчас не срабатывает: конфиг в формате Husky 4 при установленном Husky 8 (исправляется в FT-0017).
@@ -23,6 +24,7 @@ Status: Draft (2026-09-23)
 ## Команды
 | Команда | Что делает |
 |---|---|
+| `npm ci --legacy-peer-deps` | установка зависимостей по `package-lock.json` |
 | `npm run web-start` | dev-сервер web-приложения |
 | `npm run web-build` | production-сборка web в `build/` |
 | `./web-deploy.sh` | сборка web + `s3cmd sync` в бакет `EDU_TOOLS_WEB_BUCKET` |
