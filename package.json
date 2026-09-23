@@ -37,6 +37,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/dotenv-safe": "^8.1.6",
     "@types/node": "^18.11.10",
     "@types/react": "^18.2.66",

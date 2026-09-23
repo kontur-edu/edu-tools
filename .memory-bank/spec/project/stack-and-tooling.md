@@ -19,6 +19,7 @@ Status: Draft (2026-09-23)
 - Lint: ESLint (`@typescript-eslint/recommended`) на `src/`. Pre-commit через Husky задуман (`npm run lint`), но сейчас не срабатывает: конфиг в формате Husky 4 при установленном Husky 8 (исправляется в FT-0017).
 - Форматирование: Prettier — без `;`, одинарные кавычки, trailing commas, ширина 120, отступ 2.
 - Автотестов нет (`web-test` из CRA не используется).
+- Playwright (`@playwright/test`) установлен как dev-зависимость для управления web-приложением из headless-браузера; тестов на нём пока нет (e2e web UI — out of scope EP-002). Браузер — установленный Chrome через `channel: 'chrome'`: скачивание сборки `npx playwright install chromium` с `cdn.playwright.dev` может обрываться по таймауту.
 - Dev-окружение: GitHub Codespaces (`.devcontainer/`) с Claude Code.
 
 ## Команды
