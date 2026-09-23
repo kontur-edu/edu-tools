@@ -13,4 +13,5 @@ Status: Draft (2026-09-23)
 - **Скрипт Partner → Notion** (`cloneProjects`): не развивается; удалить или переписать с заменой Notion на BuildIn.AI.
 - **Перенос brs-extensions:** перенести функциональность переноса баллов в БРС в edu-tools (например, как табличное задание); после переноса решить судьбу `brs-extensions/`.
 - **Замена Telegram-бота:** перенести сценарий «сохранить ресурс в Notion» в web-приложение или PWA и разобрать бота.
+- **Переезд с Create React App на Vite:** CRA (`react-scripts` 5) больше не развивается и объявляет peer-зависимость на TypeScript 4 при TypeScript 5 в проекте, поэтому зависимости ставятся только с `--legacy-peer-deps` (см. [Stack & tooling](../spec/project/stack-and-tooling.md)). Затрагивает `web-start` / `web-build`, `public/index.html`, деплой web (`web-deploy.sh`) и общий `src/`, который собирают и CRA, и `tsc`. Лучше после EP-002, чтобы переезд страховали тесты; выбор раннера в FT-0006 стоит делать с оглядкой на Vite.
 - **Обновление Node:** перейти на последние версии Node (включая runtime функции бота, сейчас `nodejs18`). Не сейчас: переход может сломать сборку и деплой.
