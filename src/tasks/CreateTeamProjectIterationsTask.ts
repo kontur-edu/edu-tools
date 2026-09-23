@@ -46,7 +46,7 @@ export class CreateTeamProjectIterationsTaskExecutor {
 
     const tpIterations = await this.teamProjectApi.getIterationsAsync(project.id)
     if (!tpIterations) {
-      this.reporter.error(projectScope, 'Iterations of project not found', { stopped: true })
+      this.reporter.verdict('failed', projectScope, 'Iterations of project not found')
       this.reporter.separator()
       return
     }

@@ -144,12 +144,12 @@ export async function fillTechnologyCardAsync(
       reporter.verdict('ok', scope, 'Техкарта может быть согласована')
       if (agree) {
         if (card.agreed) {
-          reporter.unchanged(scope, 'Техкарта уже согласована')
+          reporter.verdict('attention', scope, 'Техкарта уже согласована')
         } else {
           if (save) {
             await brsApi.agreeTechnologyCardAsync(card, agree)
           }
-          reporter.changed(scope, 'Техкарта согласована')
+          reporter.verdict('ok', scope, 'Техкарта согласована')
         }
       } else {
         reporter.verdict('attention', scope, 'Согласование карты не запрошено')
