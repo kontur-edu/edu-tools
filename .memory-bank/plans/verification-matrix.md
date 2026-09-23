@@ -21,3 +21,4 @@ Status: Draft (2026-09-23)
 | FT | Must add test | Must run |
 |---|---|---|
 | FT-0001 | Unit-тесты `NodeCredentials` после FT-0006: значение из переменной / нет значения / значение из файла / `secrets/brs.json` с `BRS_USER` (`src/apis/NodeCredentials.ts`) | `npm run build`, `npm run lint`; вызов `brsAuth()` без `BRS_SID` даёт `CredentialsError` с именами переменных, `itsAuth()` при заданном `ITS_AUTH` создаёт клиент; поиск по `src/` не находит `sid`, токенов и кук |
+| FT-0002 | Unit-тесты после FT-0006: текстовый рендер набора событий (`src/tasks/TaskEventText.ts`), сводка по статусам (`src/tasks/TaskEvents.ts`) | `npm run build`, `npm run web-build`, `npm run lint`; прогон каждого задания в try: текст лога совпадает с логом до изменений, кроме отличий из [Execution events](../spec/domain/tasks/execution-events.md); неизвестный тип задания даёт одно событие `error` и `ok = false` |

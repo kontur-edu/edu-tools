@@ -6,7 +6,7 @@ Status: Draft (2026-09-23)
 ## Components
 - **UI** (`src/components/`): главная страница (форма ссылки на лист, кнопки «Попробовать сделать хорошо» = try и «Сделать хорошо» = save, диалог с логом выполнения), переключатели и диалоги входа для каждой системы, страница политики конфиденциальности (`/privacy`).
 - **Auth stores** (`src/stores/`): по одному Zustand-стору на систему (Google, БРС, ИТС, TeamProject, Partner). Вход = проверка учётных данных пробным запросом; кэширование в browser storage; восстановление при перезагрузке; фабрика API-клиента `getApi()`.
-- **Task engine** (`src/tasks/`): чтение листа в `TableTask` (`TableTaskReader`), запись в лист (`TableTaskWriter`), маршрутизация по имени задания (`CompositeTableTaskExecutor`), исполнители заданий, логгер (`TableTaskLogger`), идентификация проектов TeamProject (`WorkspaceInfo`).
+- **Task engine** (`src/tasks/`): чтение листа в `TableTask` (`TableTaskReader`), запись в лист (`TableTaskWriter`), маршрутизация по имени задания (`CompositeTableTaskExecutor`), исполнители заданий, события выполнения (`TaskReporter`, `TaskEvents`, текстовый рендер `TaskEventText`), идентификация проектов TeamProject (`WorkspaceInfo`).
 - **Table sources** (target, EP-001): CSV codec, разбор задания по сетке значений, источники (Google / CSV / in-memory), конвертер Google ⇄ CSV. Сейчас чтение листа встроено в `TableTaskReader`. См. [Table sources](../domain/table-sources.md).
 - **Actions** (`src/actions/`): многошаговые операции, переиспользуемые заданиями и скриптами (заполнение техкарты, перенос баллов в БРС).
 - **API clients** (`src/apis/`): для каждой системы — `*Api` (операции), `*Auth` (учётные данные), `*UrlProvider` (базовый URL ± прокси); `GoogleApi` — интерфейс с браузерной и Node-реализациями.

@@ -71,6 +71,10 @@ export class WorkspaceInfo {
   }
 }
 
+export function workspaceScope(workspace: Workspace): string {
+  return `${workspace.title} (${workspace.instanceNumber})`
+}
+
 function buildKey(name: string | null, number: number | null, id: string | null): string | null {
   return name && number ? `${name} (${number})` : id
 }

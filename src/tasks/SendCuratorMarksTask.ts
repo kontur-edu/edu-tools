@@ -1,27 +1,27 @@
 import { TeamProjectApiV2, Workspace } from '../apis/TeamProjectApiV2'
 import { compareNormalized, startsWithNormalized } from '../helpers/tools'
 import { TableTask, TableTaskValue } from './TableTask'
-import { ConsoleTableTaskLogger, TableTaskLogger } from './TableTaskLogger'
-import { WorkspaceInfo } from './WorkspaceInfo'
+import { TaskReporter } from './TaskReporter'
+import { WorkspaceInfo, workspaceScope } from './WorkspaceInfo'
 
 export class SendCuratorMarksTaskExecutor {
   static readonly TASK_NAME = 'SendCuratorMarks'
   
-  tableTaskLogger: TableTaskLogger
+  reporter: TaskReporter
   teamProjectApi: TeamProjectApiV2
 
-  constructor(teamProjectApi: TeamProjectApiV2, tableTaskLogger: TableTaskLogger | null) {
+  constructor(teamProjectApi: TeamProjectApiV2, reporter: TaskReporter | null) {
     this.teamProjectApi = teamProjectApi
-    this.tableTaskLogger = tableTaskLogger || new ConsoleTableTaskLogger()
+    this.reporter = reporter || TaskReporter.console()
   }
 
   async executeAsync(tableTask: TableTask, forceSave: boolean | null = null) {
-    this.tableTaskLogger.log(`🚩 Executing task "${tableTask.name}"`)
+    this.reporter.started(tableTask.name, `Executing task "${tableTask.name}"`)
 
-    const task = extractTask(tableTask, this.tableTaskLogger, forceSave)
+    const task = extractTask(tableTask, this.reporter, forceSave)
     if (!task) {
-      this.tableTaskLogger.log(`❌ Execution has been stopped`)
-      this.tableTaskLogger.log()
+      this.reporter.error(tableTask.name, 'Execution has been stopped', { stopped: true })
+      this.reporter.separator()
       return
     }
 
@@ -38,30 +38,31 @@ export class SendCuratorMarksTaskExecutor {
       marks = await this.executeProjectAsync(workspace, task, marks)
     }
 
-    this.logTotals(marks)
+    this.logTotals(tableTask.name, marks)
 
-    this.tableTaskLogger.log(`✅ Execution has been finished`)
+    this.reporter.finished(tableTask.name, 'Execution has been finished')
   }
 
   async executeProjectAsync(project: Workspace, task: SendCuratorMarksTask, marks: Array<StudentMark>) {
-    this.tableTaskLogger.log(`## Project "${project.title}" ${project.instanceNumber}`)
+    this.reporter.heading(2, `Project "${project.title}" ${project.instanceNumber}`)
+    const projectScope = workspaceScope(project)
 
     const iterations = (await this.teamProjectApi.getIterationsAsync(project.id)) || []
     const iteration = iterations[task.iterationNumber - 1]
     if (!iteration) {
-      this.tableTaskLogger.log(`❌ Не удалось найти итерацию "${task.iterationNumber}"`)
-      this.tableTaskLogger.log()
+      this.reporter.error(projectScope, `Не удалось найти итерацию "${task.iterationNumber}"`, { stopped: true })
+      this.reporter.separator()
       return marks
     }
     const scores = await this.teamProjectApi.getIterationScoresAsync(iteration.id.toString())
     if (!scores) {
-      this.tableTaskLogger.log(`❌ Failed to get scores for iteration "${task.iterationNumber}"`)
-      this.tableTaskLogger.log()
+      this.reporter.error(projectScope, `Failed to get scores for iteration "${task.iterationNumber}"`, { stopped: true })
+      this.reporter.separator()
       return marks
     }
     if (!scores.thematicGroups || !scores.thematicGroups[0] || !scores.thematicGroups[0].students) {
-      this.tableTaskLogger.log(`❌ Failed to get list of project students`)
-      this.tableTaskLogger.log()
+      this.reporter.error(projectScope, 'Failed to get list of project students', { stopped: true })
+      this.reporter.separator()
       return marks
     }
 
@@ -73,12 +74,12 @@ export class SendCuratorMarksTaskExecutor {
         startsWithNormalized(it.person.fullname, studentMark.student),
       )[0]
       if (!projectStudent) {
-        this.tableTaskLogger.log(`🟡 Student "${studentMark.student}" not found in specified project`)
+        this.reporter.skipped(studentMark.student, `Student "${studentMark.student}" not found in specified project`)
         continue
       }
 
       if (isNaN(studentMark.mark)) {
-        this.tableTaskLogger.log(`🟡 Student "${studentMark.student}" ignored`)
+        this.reporter.skipped(studentMark.student, `Student "${studentMark.student}" ignored`)
       } else if (projectStudent.score !== studentMark.mark) {
         let result = true
         if (task.save) {
@@ -89,15 +90,21 @@ export class SendCuratorMarksTaskExecutor {
           )
         }
         if (result) {
-          this.tableTaskLogger.log(`🟢 Student "${studentMark.student}" has been rated ${studentMark.mark}`)
+          this.reporter.changed(studentMark.student, `Student "${studentMark.student}" has been rated ${studentMark.mark}`, {
+            mark: studentMark.mark,
+          })
         } else {
-          this.tableTaskLogger.log(
-            `🔴 Student "${studentMark.student}" not rated ${studentMark.mark}, current score ${projectStudent.score}`,
+          this.reporter.error(
+            studentMark.student,
+            `Student "${studentMark.student}" not rated ${studentMark.mark}, current score ${projectStudent.score}`,
+            { details: { mark: studentMark.mark, currentScore: projectStudent.score } },
           )
           failedMarks++
         }
       } else {
-        this.tableTaskLogger.log(`🟡 Student "${studentMark.student}" already has been rated ${studentMark.mark}`)
+        this.reporter.unchanged(studentMark.student, `Student "${studentMark.student}" already has been rated ${studentMark.mark}`, {
+          mark: studentMark.mark,
+        })
       }
 
       projectStudents = projectStudents.filter((it) => it.studentId !== projectStudent.studentId)
@@ -106,82 +113,83 @@ export class SendCuratorMarksTaskExecutor {
 
     if (projectStudents.length > 0) {
       for (const projectStudent of projectStudents) {
-        this.tableTaskLogger.log(
-          `🔴 Student "${projectStudent.person.fullname}" found in project, but no rating was specified`,
+        this.reporter.error(
+          projectStudent.person.fullname,
+          `Student "${projectStudent.person.fullname}" found in project, but no rating was specified`,
         )
       }
 
-      this.tableTaskLogger.log(`🟥 Not all project students have been rated`)
+      this.reporter.verdict('failed', projectScope, 'Not all project students have been rated')
     } else if (failedMarks > 0) {
-      this.tableTaskLogger.log(`🟥 Failed to rate all students`)
+      this.reporter.verdict('failed', projectScope, 'Failed to rate all students')
     } else {
-      this.tableTaskLogger.log(`🟩 All project students have been rated`)
+      this.reporter.verdict('ok', projectScope, 'All project students have been rated')
     }
-    this.tableTaskLogger.log()
+    this.reporter.separator()
 
     return marks
   }
 
-  logTotals(marks: Array<StudentMark>) {
-    this.tableTaskLogger.log(`# Totals`)
+  logTotals(taskName: string, marks: Array<StudentMark>) {
+    this.reporter.heading(1, 'Totals')
     if (marks.length > 0) {
       let errorCount = 0
       for (const studentMark of marks) {
         if (studentMark.workspaceInfo && studentMark.workspaceInfo.key) {
-          this.tableTaskLogger.log(`🔴 Student "${studentMark.student}" not found in any project`)
+          this.reporter.error(studentMark.student, `Student "${studentMark.student}" not found in any project`)
           errorCount++
         } else {
-          this.tableTaskLogger.log(`🟡 Student "${studentMark.student}" without project ignored`)
+          this.reporter.skipped(studentMark.student, `Student "${studentMark.student}" without project ignored`)
         }
       }
 
       if (errorCount > 0) {
-        this.tableTaskLogger.log(`🟥 Not all students found in projects`)
+        this.reporter.verdict('failed', taskName, 'Not all students found in projects')
       } else {
-        this.tableTaskLogger.log(`🟨 All students found in projects, except students without projects`)
+        this.reporter.verdict('attention', taskName, 'All students found in projects, except students without projects')
       }
     } else {
-      this.tableTaskLogger.log(`🟩 All students found in projects`)
+      this.reporter.verdict('ok', taskName, 'All students found in projects')
     }
-    this.tableTaskLogger.log()
+    this.reporter.separator()
   }
 }
 
-function extractTask(tableTask: TableTask, tableTaskLogger: TableTaskLogger, forceSave: boolean | null): SendCuratorMarksTask | null {
+function extractTask(tableTask: TableTask, reporter: TaskReporter, forceSave: boolean | null): SendCuratorMarksTask | null {
   const academicYear = tableTask.getParam('academicYear').getCustom((it) => parseInt(it.split('/')[0], 10))
   if (academicYear === null) {
-    tableTaskLogger.log('- academicYear required❗')
+    reporter.note('academicYear required', true)
     return null
   }
-  tableTaskLogger.log(`- academicYear: ${academicYear}`)
+  reporter.note(`academicYear: ${academicYear}`)
 
   const semester = tableTask
     .getParam('semester')
     .getCustom((it) => (compareNormalized(it, 'fall') ? 1 : compareNormalized(it, 'spring') ? 2 : null))
   if (semester === null) {
-    tableTaskLogger.log('- semester required❗')
+    reporter.note('semester required', true)
     return null
   }
-  tableTaskLogger.log(`- semester: ${semester}`)
+  reporter.note(`semester: ${semester}`)
 
   let save = tableTask.getParam('save').getBool() || false
   if (forceSave !== null) {
     save = forceSave
   }
-  tableTaskLogger.log(save ? `- режим save включен ⚡` : `- режим save выключен`)
+  reporter.note(save ? 'режим save включен ⚡' : 'режим save выключен')
 
   const iterationNumber = tableTask.getParam('iterationNumber').getInt()
   if (iterationNumber === null) {
-    tableTaskLogger.log('- iterationNumber required❗')
+    reporter.note('iterationNumber required', true)
     return null
   }
-  tableTaskLogger.log(`- iterationNumber: ${iterationNumber}`)
+  reporter.note(`iterationNumber: ${iterationNumber}`)
 
   const marks = tableTask.rows
     .map((it) => convertRow2StudentMark(it, iterationNumber))
     .filter((it) => it !== null) as StudentMark[]
 
-  tableTaskLogger.log()
+  reporter.separator()
 
   return {
     name: tableTask.name,

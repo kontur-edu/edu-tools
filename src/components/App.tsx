@@ -28,7 +28,8 @@ import { useGoogleStore } from '../stores/GoogleStore'
 import { GoogleAuthProvider } from './GoogleAuth/GoogleAuthProvider'
 import { useTeamProjectStore } from '../stores/TeamProjectStore'
 import { TableTask, TableTaskReader, TableTaskWriter } from '../tasks/TableTask'
-import { CustomTableTaskLogger } from '../tasks/TableTaskLogger'
+import { TaskReporter } from '../tasks/TaskReporter'
+import { textTaskEventListener } from '../tasks/TaskEventText'
 import { PrivacyPolicy } from './PrivacyPolicy'
 import { Footer } from './Footer'
 import { CompositeTableTaskExecutor } from '../tasks/CompositeTableTaskExecutor'
@@ -179,7 +180,7 @@ function TaskExecutionDialog({
             }
           }, 0)
         }
-        const logger = new CustomTableTaskLogger(appendText)
+        const reporter = new TaskReporter(textTaskEventListener(appendText))
         const forceSave = taskExecutionState === 'save' ? true : taskExecutionState === 'try' ? false : null
 
         const googleApi = getGoogleApi()
@@ -231,7 +232,7 @@ function TaskExecutionDialog({
           return partnerApi
         }
 
-        const executor = new CompositeTableTaskExecutor(requreBrsApi, requreItsApi, requrePartnerApi, requreTeamProjectApi, taskWriter, logger)
+        const executor = new CompositeTableTaskExecutor(requreBrsApi, requreItsApi, requrePartnerApi, requreTeamProjectApi, taskWriter, reporter)
         executor.executeAsync(task, forceSave).then(() => {
           setIsExecuting(false)
         })

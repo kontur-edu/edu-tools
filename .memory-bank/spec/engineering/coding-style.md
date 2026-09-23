@@ -16,8 +16,9 @@ Status: Draft (2026-09-23)
 - ESLint `@typescript-eslint/recommended` на `src/`, должен запускаться pre-commit хуком (Husky); сейчас хук не работает — FT-0017.
 
 ## Errors & results
-- Сейчас: исполнители сообщают о результатах и ошибках строками лога со статусами-эмодзи (🟢 🟡 🔴 🟩 🟥 ❌); неожиданные исключения ловит `CompositeTableTaskExecutor`.
-- Цель ([EP-001](../../plans/epics/EP-001-cli-and-observability.md)): структурированные события результата и ошибки `code + message + details`, из которых строится и текстовый лог, и `--json`.
+- Исполнители сообщают о результатах и ошибках событиями через `TaskReporter` ([Execution events](../domain/tasks/execution-events.md)); текстовый лог со статусами-эмодзи строится из событий. Строки лога напрямую не пишутся.
+- «Unknown task» и «API is not available» — события `error`; неожиданные исключения `CompositeTableTaskExecutor` пробрасывает.
+- Цель ([EP-001](../../plans/epics/EP-001-cli-and-observability.md)): ошибки CLI `code + message + details` и `--json`, построенный из тех же событий.
 
 ## CLI conventions
 Соглашения по выводу CLI — в [CLI spec](../cli/cli.md).

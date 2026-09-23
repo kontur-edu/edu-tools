@@ -2,7 +2,7 @@
 Status: Draft (2026-09-23)
 
 ## Feature FT-0002 — Структурированные события выполнения
-Epic: `EP-001`. Status: `Planned`.
+Epic: `EP-001`. Status: `Done`.
 Triage: `ready-for-agent`.
 
 ### User value
@@ -46,5 +46,6 @@ Triage: `ready-for-agent`.
 По [Feature template](../../mbb/templates/feature.md); дополнительно `npm run build`, `npm run web-build`, `npm run lint` зелёные.
 
 ### Docs updates (SSoT)
+- [Execution events](../../spec/domain/tasks/execution-events.md) — SSoT модели событий, текстового рендера и отличий лога; спорные статусы — в спеках заданий.
 - [CLI spec](../../spec/cli/cli.md) — модель события из черновика становится фактической.
 - [Layers & vertical slices](../../spec/project/layers-and-vertical-slices.md) — ограничение «результат — только текстовый лог» снято.

@@ -2,27 +2,27 @@ import { IterationItem, TeamProjectApiV2, Workspace } from '../apis/TeamProjectA
 import JustDate from '../helpers/JustDate'
 import { compareNormalized } from '../helpers/tools'
 import { TableTask } from './TableTask'
-import { ConsoleTableTaskLogger, TableTaskLogger } from './TableTaskLogger'
-import { WorkspaceInfo } from './WorkspaceInfo'
+import { TaskReporter } from './TaskReporter'
+import { WorkspaceInfo, workspaceScope } from './WorkspaceInfo'
 
 export class CreateTeamProjectIterationsTaskExecutor {
   static readonly TASK_NAME = 'CreateTeamProjectIterations'
 
   teamProjectApi: TeamProjectApiV2
-  tableTaskLogger: TableTaskLogger
+  reporter: TaskReporter
   
-  constructor(teamProjectApi: TeamProjectApiV2, tableTaskLogger: TableTaskLogger | null) {
+  constructor(teamProjectApi: TeamProjectApiV2, reporter: TaskReporter | null) {
     this.teamProjectApi = teamProjectApi
-    this.tableTaskLogger = tableTaskLogger || new ConsoleTableTaskLogger()
+    this.reporter = reporter || TaskReporter.console()
   }
   
   async executeAsync(tableTask: TableTask, forceSave: boolean | null = null) {
-    this.tableTaskLogger.log(`🚩 Executing task "${tableTask.name}"`)
+    this.reporter.started(tableTask.name, `Executing task "${tableTask.name}"`)
 
-    const task = extractTask(tableTask, this.tableTaskLogger, forceSave)
+    const task = extractTask(tableTask, this.reporter, forceSave)
     if (!task) {
-      this.tableTaskLogger.log(`❌ Execution has been stopped`)
-      this.tableTaskLogger.log()
+      this.reporter.error(tableTask.name, 'Execution has been stopped', { stopped: true })
+      this.reporter.separator()
       return
     }
 
@@ -37,25 +37,27 @@ export class CreateTeamProjectIterationsTaskExecutor {
       await this.executeProjectAsync(project, task)
     }
 
-    this.tableTaskLogger.log(`✅ Execution has been completed`)
+    this.reporter.finished(tableTask.name, 'Execution has been completed')
   }
 
   async executeProjectAsync(project: Workspace, task: CreateTeamProjectIterationsTask) {
-    this.tableTaskLogger.log(`## Project "${project.title}" "${project.instanceNumber}"`)
+    this.reporter.heading(2, `Project "${project.title}" "${project.instanceNumber}"`)
+    const projectScope = workspaceScope(project)
 
     const tpIterations = await this.teamProjectApi.getIterationsAsync(project.id)
     if (!tpIterations) {
-      this.tableTaskLogger.log(`🟥 Iterations of project not found`)
-      this.tableTaskLogger.log()
+      this.reporter.error(projectScope, 'Iterations of project not found', { stopped: true })
+      this.reporter.separator()
       return
     }
 
     if (tpIterations.length > 0) {
-      this.tableTaskLogger.log('### Updating iterations of project:')
+      this.reporter.heading(3, 'Updating iterations of project:')
       for (const tpIteration of tpIterations) {
         for (const iteration of task.iterations) {
           await this.tryUpdateIteration(
             this.teamProjectApi,
+            projectScope,
             tpIteration,
             iteration.name,
             iteration.startdate,
@@ -66,22 +68,25 @@ export class CreateTeamProjectIterationsTaskExecutor {
       }
     }
     if (tpIterations.length < task.iterations.length) {
-      this.tableTaskLogger.log('### Adding missing iterations...')
+      this.reporter.heading(3, 'Adding missing iterations...')
       for (let i = tpIterations.length; i < task.iterations.length; i++) {
         const it = task.iterations[i]
         if (task.save) {
           await this.teamProjectApi.postIterationAsync(project.id, it.name, '', it.startdate, it.enddate)
         }
-        this.tableTaskLogger.log(`🟢 added: "${it.name}" from ${it.startdate.toDashedString()} to ${it.enddate.toDashedString()}`)
+        const from = it.startdate.toDashedString()
+        const to = it.enddate.toDashedString()
+        this.reporter.changed(`${projectScope} / ${it.name}`, `added: "${it.name}" from ${from} to ${to}`, { from, to })
       }
     }
 
-    this.tableTaskLogger.log(`🟩 Iterations are ready`)
-    this.tableTaskLogger.log()
+    this.reporter.verdict('ok', projectScope, 'Iterations are ready')
+    this.reporter.separator()
   }
 
   async tryUpdateIteration(
     teamProjectApi: TeamProjectApiV2,
+    projectScope: string,
     iterationItem: IterationItem,
     iterationName: string,
     startDate: JustDate,
@@ -92,8 +97,9 @@ export class CreateTeamProjectIterationsTaskExecutor {
       const iteration = await teamProjectApi.getIterationAsync(iterationItem.id)
       const beginning = startDate.toDashedString()
       const ending = endDate.toDashedString()
+      const scope = `${projectScope} / ${iterationItem.title}`
       if (!iteration) {
-        this.tableTaskLogger.log(`🔴 iteration not found: "${iterationItem.title}"`)
+        this.reporter.error(scope, `iteration not found: "${iterationItem.title}"`)
       }
       else if (
         !iteration.dates ||
@@ -105,36 +111,40 @@ export class CreateTeamProjectIterationsTaskExecutor {
         if (save) {
           await teamProjectApi.putIterationAsync(iteration.id, iteration.title, iteration.description, startDate, endDate)
         }
-        this.tableTaskLogger.log(`🟢 updated: "${iteration.title}" from ${beginning} to ${ending}`)
+        this.reporter.changed(scope, `updated: "${iteration.title}" from ${beginning} to ${ending}`, { from: beginning, to: ending })
       } else {
-        this.tableTaskLogger.log(`🟡 without changes: "${iteration.title}" from ${iteration.dates.beginning} to ${iteration.dates.ending}`)
+        this.reporter.unchanged(
+          scope,
+          `without changes: "${iteration.title}" from ${iteration.dates.beginning} to ${iteration.dates.ending}`,
+          { from: iteration.dates.beginning, to: iteration.dates.ending },
+        )
       }
     }
   }
 }
 
-function extractTask(tableTask: TableTask, tableTaskLogger: TableTaskLogger, forceSave: boolean | null = null): CreateTeamProjectIterationsTask | null {
+function extractTask(tableTask: TableTask, reporter: TaskReporter, forceSave: boolean | null = null): CreateTeamProjectIterationsTask | null {
   const academicYear = tableTask.getParam('academicYear').getCustom((it) => parseInt(it.split('/')[0], 10))
   if (academicYear === null) {
-    tableTaskLogger.log('- academicYear required❗')
+    reporter.note('academicYear required', true)
     return null
   }
-  tableTaskLogger.log(`- academicYear: ${academicYear}`)
+  reporter.note(`academicYear: ${academicYear}`)
 
   const semester = tableTask
     .getParam('semester')
     .getCustom((it) => (compareNormalized(it, 'fall') ? 1 : compareNormalized(it, 'spring') ? 2 : null))
   if (semester === null) {
-    tableTaskLogger.log('- semester required❗')
+    reporter.note('semester required', true)
     return null
   }
-  tableTaskLogger.log(`- semester: ${semester}`)
+  reporter.note(`semester: ${semester}`)
 
   let save = tableTask.getParam('save').getBool() || false
   if (forceSave !== null) {
     save = forceSave
   }
-  tableTaskLogger.log(save ? `- save mode on ⚡` : `- save mode off`)
+  reporter.note(save ? 'save mode on ⚡' : 'save mode off')
 
   const workspaceInfos = tableTask.rows.map(WorkspaceInfo.extractFromRow).filter((it) => it !== null) as WorkspaceInfo[]
 
@@ -143,13 +153,13 @@ function extractTask(tableTask: TableTask, tableTaskLogger: TableTaskLogger, for
   if (iterationRows) {
     iterations = iterationRows.map(convertRow2Iteration).filter((it) => it !== null) as Iteration[]
     if (iterations.length < iterationRows.length) {
-      tableTaskLogger.log(`- iterations found: ${iterations.length}. But more rows: ${iterationRows.length}❗`)
+      reporter.note(`iterations found: ${iterations.length}. But more rows: ${iterationRows.length}`, true)
     } else {
-      tableTaskLogger.log(`- iterations found: ${iterations.length}.`)
+      reporter.note(`iterations found: ${iterations.length}.`)
     }
   }
 
-  tableTaskLogger.log()
+  reporter.separator()
 
   return {
     name: tableTask.name,

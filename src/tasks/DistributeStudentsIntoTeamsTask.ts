@@ -1,26 +1,26 @@
 import { ItsApiV2, Project, ProjectSubgroup, StudentInProjectSubgroup } from '../apis/ItsApiV2'
 import { compareNormalized, fixSpaces, startsWithNormalized } from '../helpers/tools'
 import { TableTask } from './TableTask'
-import { ConsoleTableTaskLogger, TableTaskLogger } from './TableTaskLogger'
+import { TaskReporter } from './TaskReporter'
 
 export class DistributeStudentsIntoTeamsTaskExecutor {
   static readonly TASK_NAME = 'DistributeStudentsIntoTeams'
   
   itsApi: ItsApiV2
-  tableTaskLogger: TableTaskLogger
+  reporter: TaskReporter
 
-  constructor(itsApi: ItsApiV2, tableTaskLogger: TableTaskLogger | null) {
+  constructor(itsApi: ItsApiV2, reporter: TaskReporter | null) {
     this.itsApi = itsApi
-    this.tableTaskLogger = tableTaskLogger || new ConsoleTableTaskLogger()
+    this.reporter = reporter || TaskReporter.console()
   }
 
   async executeAsync(tableTask: TableTask, forceSave: boolean | null = null) {
-    this.tableTaskLogger.log(`🚩 Executing task "${tableTask.name}"`)
+    this.reporter.started(tableTask.name, `Executing task "${tableTask.name}"`)
 
-    const task = extractTask(tableTask, this.tableTaskLogger, forceSave)
+    const task = extractTask(tableTask, this.reporter, forceSave)
     if (!task) {
-      this.tableTaskLogger.log(`❌ Execution has been stopped`)
-      this.tableTaskLogger.log()
+      this.reporter.error(tableTask.name, 'Execution has been stopped', { stopped: true })
+      this.reporter.separator()
       return
     }
 
@@ -33,13 +33,14 @@ export class DistributeStudentsIntoTeamsTaskExecutor {
     const groupsByProject = this.buildGroupsByProject(task, projectCollection.data)
 
     for (const group of Object.values(groupsByProject)) {
-      this.tableTaskLogger.log(`## Project "${group.project.Title}"`)
+      this.reporter.heading(2, `Project "${group.project.Title}"`)
       const subgroups = await this.itsApi.getProjectSubgroupsAsync(group.project.PeriodId)
 
       for (const taskStudent of group.taskStudents) {
         if (subgroups.filter((it) => it.Index === taskStudent.projectinstancenumber).length === 0) {
-          this.tableTaskLogger.log(
-            `🔴 Not found team "${taskStudent.projectinstancenumber}" for student "${taskStudent.fio}" of "${taskStudent.group}"`,
+          this.reporter.error(
+            studentScope(taskStudent),
+            `Not found team "${taskStudent.projectinstancenumber}" for student "${taskStudent.fio}" of "${taskStudent.group}"`,
           )
         }
       }
@@ -48,11 +49,11 @@ export class DistributeStudentsIntoTeamsTaskExecutor {
         await this.processTeam(this.itsApi, task, group, subgroup)
       }
 
-      this.tableTaskLogger.log()
+      this.reporter.separator()
     }
 
-    this.tableTaskLogger.log(`✅ Execution has been completed`)
-    this.tableTaskLogger.log()
+    this.reporter.finished(tableTask.name, 'Execution has been completed')
+    this.reporter.separator()
   }
 
   private buildGroupsByProject(
@@ -72,8 +73,9 @@ export class DistributeStudentsIntoTeamsTaskExecutor {
         }
         groupsByProject[project.Id].taskStudents.push(taskStudent)
       } else {
-        this.tableTaskLogger.log(
-          `🔴 Not found project "${taskStudent.projectname}" for student "${taskStudent.fio}" of "${taskStudent.group}"`,
+        this.reporter.error(
+          studentScope(taskStudent),
+          `Not found project "${taskStudent.projectname}" for student "${taskStudent.fio}" of "${taskStudent.group}"`,
         )
       }
     }
@@ -88,7 +90,7 @@ export class DistributeStudentsIntoTeamsTaskExecutor {
   ) {
     const teamTaskStudents = group.taskStudents.filter((it) => it.projectinstancenumber === subgroup.Index)
     if (teamTaskStudents.length > 0) {
-      this.tableTaskLogger.log(`### Team "${subgroup.Index}"`)
+      this.reporter.heading(3, `Team "${subgroup.Index}"`)
       const studentCollection = await itsApi.getProjectSubgroupStudentsAsync(
         group.project.PeriodId,
         subgroup.ProjectProgramId,
@@ -100,22 +102,22 @@ export class DistributeStudentsIntoTeamsTaskExecutor {
           (it) => startsWithNormalized(it.FIO, taskStudent.fio || '') && it.GroupName === taskStudent.group,
         )[0]
         if (!student) {
-          this.tableTaskLogger.log(`🔴 Not found student "${taskStudent.fio}" of "${taskStudent.group}" at ITS"`)
+          this.reporter.error(studentScope(taskStudent), `Not found student "${taskStudent.fio}" of "${taskStudent.group}" at ITS`)
           continue
         }
   
         if (student.Signed) {
-          this.tableTaskLogger.log(`🟡 Student "${taskStudent.fio}" of "${taskStudent.group}" had been signed before"`)
+          this.reporter.unchanged(studentScope(taskStudent), `Student "${taskStudent.fio}" of "${taskStudent.group}" had been signed before`)
         } else {
           if (task.save) {
             const subgroupId = subgroup.SubgroupIds[0]
             if (await itsApi.signStudentToProjectSubgroup(student.Id, subgroupId, true)) {
-              this.tableTaskLogger.log(`🟢 Student "${taskStudent.fio}" of "${taskStudent.group}" has been signed"`)
+              this.reporter.changed(studentScope(taskStudent), `Student "${taskStudent.fio}" of "${taskStudent.group}" has been signed`)
             } else {
-              this.tableTaskLogger.log(`🔴 Student "${taskStudent.fio}" of "${taskStudent.group}" signing cause an error"`)
+              this.reporter.error(studentScope(taskStudent), `Student "${taskStudent.fio}" of "${taskStudent.group}" signing cause an error`)
             }
           } else {
-            this.tableTaskLogger.log(`🟢 Student "${taskStudent.fio}" of "${taskStudent.group}" has been signed"`)
+            this.reporter.changed(studentScope(taskStudent), `Student "${taskStudent.fio}" of "${taskStudent.group}" has been signed`)
           }
         }
       }
@@ -140,35 +142,35 @@ export class DistributeStudentsIntoTeamsTaskExecutor {
   }
 }
 
-function extractTask(tableTask: TableTask, tableTaskLogger: TableTaskLogger, forceSave: boolean | null = null): DistributeStudentsIntoTeamsTask | null {
+function extractTask(tableTask: TableTask, reporter: TaskReporter, forceSave: boolean | null = null): DistributeStudentsIntoTeamsTask | null {
   const academicYear = tableTask.getParam('academicYear').getCustom((it) => parseInt(it.split('/')[0], 10))
   if (academicYear === null) {
-    tableTaskLogger.log('- academicYear is required❗')
+    reporter.note('academicYear is required', true)
     return null
   }
-  tableTaskLogger.log(`- academicYear: ${academicYear}`)
+  reporter.note(`academicYear: ${academicYear}`)
 
   const semester = tableTask
     .getParam('semester')
     .getCustom((it) => (compareNormalized(it, 'fall') ? 1 : compareNormalized(it, 'spring') ? 2 : null))
   if (semester === null) {
-    tableTaskLogger.log('- semester is required❗')
+    reporter.note('semester is required', true)
     return null
   }
-  tableTaskLogger.log(`- semester: ${semester}`)
+  reporter.note(`semester: ${semester}`)
 
   const studyYear = tableTask.getParam('studyYear').getInt()
   if (studyYear === null) {
-    tableTaskLogger.log('- studyYear is required❗')
+    reporter.note('studyYear is required', true)
     return null
   }
-  tableTaskLogger.log(`- studyYear: ${studyYear}`)
+  reporter.note(`studyYear: ${studyYear}`)
 
   let save = tableTask.getParam('save').getBool() || false
   if (forceSave !== null) {
     save = forceSave
   }
-  tableTaskLogger.log(save ? `- save mode on ⚡` : `- save mode off`)
+  reporter.note(save ? 'save mode on ⚡' : 'save mode off')
 
   const students = tableTask.rows.map(convertRow2Student).filter((it) => it !== null) as Student[]
   if (students.length < tableTask.rows.length) {
@@ -218,3 +220,7 @@ interface Student {
 }
 
 type ProjectGroup = { taskStudents: Array<Student>; project: Project }
+
+function studentScope(student: Student): string {
+  return `${student.fio} (${student.group})`
+}

@@ -14,6 +14,7 @@ import { CreateTeamProjectIterationsTaskExecutor } from './tasks/CreateTeamProje
 import { ExportTechnologyCardsTaskExecutor } from './tasks/ExportTechnologyCardsTask.js'
 import { CreateTechnologyCardsTaskExecutor } from './tasks/CreateTechnologyCardsTask.js'
 import { SendCuratorMarksTaskExecutor } from './tasks/SendCuratorMarksTask.js'
+import { TaskReporter } from './tasks/TaskReporter.js'
 import { BrsUrlProvider } from './apis/BrsUrlProvider.js'
 import { ItsUrlProvider } from './apis/ItsUrlProvider.js'
 import { CredentialsError, NodeCredentials } from './apis/NodeCredentials.js'
@@ -73,7 +74,7 @@ async function fillTechnologyCards() {
 
   const save = false
   for (const card of cards) {
-    await fillTechnologyCardAsync(brsApi, card, false, save, console.log)
+    await fillTechnologyCardAsync(brsApi, card, false, save, TaskReporter.console())
   }
 }
 

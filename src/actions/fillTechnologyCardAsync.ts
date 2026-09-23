@@ -1,32 +1,35 @@
 import { BrsApi, TechnologyCard } from '../apis/BrsApi.js'
+import { TaskReporter } from '../tasks/TaskReporter.js'
 
 export async function fillTechnologyCardAsync(
   brsApi: BrsApi,
   card: TechnologyCard,
   agree: boolean,
   save = false,
-  log: (message?: string) => void,
+  reporter: TaskReporter,
 ) {
-  log(
-    `🚩 Обработка техкарты по предмету "${card.discipline}" для групп "${card.group}" ${card.isModule ? 'из ИТС' : ''}`,
+  const scope = card.disciplineLoad
+  reporter.started(
+    scope,
+    `Обработка техкарты по предмету "${card.discipline}" для групп "${card.group}" ${card.isModule ? 'из ИТС' : ''}`,
   )
 
   if (card.agreed) {
-    log(`🟡 Техкарта уже согласована`)
-    log()
+    reporter.unchanged(scope, 'Техкарта уже согласована')
+    reporter.separator()
     return
   }
 
   const factors = await brsApi.getTechnologyCardFactorsAsync(card)
   if (!factors) {
-    log(`❌ Не удалось получить коэффициенты`)
-    log()
+    reporter.error(scope, 'Не удалось получить коэффициенты', { stopped: true })
+    reporter.separator()
     return
   }
   const intermediate = await brsApi.getTechnologyCardIntermediateAsync(card)
   if (!intermediate) {
-    log(`❌ Не удалось получить данные по промежуточной аттестации`)
-    log()
+    reporter.error(scope, 'Не удалось получить данные по промежуточной аттестации', { stopped: true })
+    reporter.separator()
     return
   }
 
@@ -39,8 +42,8 @@ export async function fillTechnologyCardAsync(
     } else if (intermediate.availableCardTypes.length > 0) {
       intermediateCardType = intermediate.availableCardTypes[0].cardType
     } else {
-      log(`❌ Не удалось установить тип промежуточной аттестации`)
-      log()
+      reporter.error(scope, 'Не удалось установить тип промежуточной аттестации', { stopped: true })
+      reporter.separator()
       return
     }
 
@@ -50,12 +53,12 @@ export async function fillTechnologyCardAsync(
     const intermediateCardTypeTitle =
       intermediate.availableCardTypes.filter((it) => it.cardType === intermediateCardType)[0]?.cardTypeTitle ??
       intermediateCardType
-    log(`🟢 Промежуточная аттестация установлена: "${intermediateCardTypeTitle}"`)
+    reporter.changed(scope, `Промежуточная аттестация установлена: "${intermediateCardTypeTitle}"`)
   } else {
     const intermediateCardTypeTitle =
       intermediate.availableCardTypes.filter((it) => it.cardType === intermediateCardType)[0]?.cardTypeTitle ??
       intermediateCardType
-    log(`🟡 Промежуточная аттестация уже выбрана: "${intermediateCardTypeTitle}"`)
+    reporter.unchanged(scope, `Промежуточная аттестация уже выбрана: "${intermediateCardTypeTitle}"`)
   }
 
   for (const factor of factors) {
@@ -75,7 +78,7 @@ export async function fillTechnologyCardAsync(
         if (save) {
           await brsApi.addTechnologyCardLoadAsync(card, cardType, name, value)
         }
-        log(`🟢 Нагрузка в "${cardTypeTitle}" добавлена: "${name}" на ${value}`)
+        reporter.changed(scope, `Нагрузка в "${cardTypeTitle}" добавлена: "${name}" на ${value}`)
       } else {
         let currentSum = 0
         const currentLoadMessages = []
@@ -84,19 +87,19 @@ export async function fillTechnologyCardAsync(
           currentLoadMessages.push(`"${load.name}"=${load.maxValue}`)
         }
         if (currentSum === 100) {
-          log(`🟡 Нагрузки в "${cardTypeTitle}" на 100 уже установлены: ${currentLoadMessages.join(', ')}`)
+          reporter.unchanged(scope, `Нагрузки в "${cardTypeTitle}" на 100 уже установлены: ${currentLoadMessages.join(', ')}`)
         } else {
           let sum = 100
           let count = currentLoads.length
           for (const load of currentLoads) {
             const value = Math.floor(sum / count)
             if (load.maxValue === value) {
-              log(`🟡 Нагрузка в "${cardTypeTitle}" уже установлена: "${load.name}" на ${value}`)
+              reporter.unchanged(scope, `Нагрузка в "${cardTypeTitle}" уже установлена: "${load.name}" на ${value}`)
             } else {
               if (save) {
                 await brsApi.updateTechnologyCardLoadAsync(card, load, load.name, value)
               }
-              log(`🟢 Нагрузка в "${cardTypeTitle}" обновлена: "${load.name}" на ${value}`)
+              reporter.changed(scope, `Нагрузка в "${cardTypeTitle}" обновлена: "${load.name}" на ${value}`)
             }
             sum -= value
             count -= 1
@@ -104,7 +107,7 @@ export async function fillTechnologyCardAsync(
         }
       }
     } else {
-      log(`🔴 Не удалось получить нагрузку по "${cardTypeTitle}"`)
+      reporter.error(scope, `Не удалось получить нагрузку по "${cardTypeTitle}"`)
     }
   }
 
@@ -117,15 +120,17 @@ export async function fillTechnologyCardAsync(
     const intermediate = cardType === intermediateCardType ? 0.5 : 0.0
     const total = Math.floor((10 * factorSum) / factorCount) / 10
     if (current === factor.current && intermediate === factor.intermediate && total === factor.total) {
-      log(
-        `🟡 Коэффициенты в "${cardTypeTitle}" уже установлены: текущая=${current}, промежуточная=${intermediate}, вес типа занятий=${total}`,
+      reporter.unchanged(
+        scope,
+        `Коэффициенты в "${cardTypeTitle}" уже установлены: текущая=${current}, промежуточная=${intermediate}, вес типа занятий=${total}`,
       )
     } else {
       if (save) {
         await brsApi.updateTechnologyCardFactorsAsync(card, factor.technologyCardType, current, intermediate, total)
       }
-      log(
-        `🟢 Коэффициенты в "${cardTypeTitle}" обновлены: текущая=${current}, промежуточная=${intermediate}, вес типа занятий=${total}`,
+      reporter.changed(
+        scope,
+        `Коэффициенты в "${cardTypeTitle}" обновлены: текущая=${current}, промежуточная=${intermediate}, вес типа занятий=${total}`,
       )
     }
     factorSum -= total
@@ -134,33 +139,33 @@ export async function fillTechnologyCardAsync(
 
   const checkResult = await brsApi.checkTechnologyCardAsync(card)
   if (checkResult.isFilled) {
-    log(`🟩 Техкарта заполнена корректно`)
+    reporter.verdict('ok', scope, 'Техкарта заполнена корректно')
     if (checkResult.isAllowedToAgree) {
-      log(`🟩 Техкарта может быть согласована`)
+      reporter.verdict('ok', scope, 'Техкарта может быть согласована')
       if (agree) {
         if (card.agreed) {
-          log(`🟨 Техкарта уже согласована`)
+          reporter.unchanged(scope, 'Техкарта уже согласована')
         } else {
           if (save) {
             await brsApi.agreeTechnologyCardAsync(card, agree)
           }
-          log(`🟩 Техкарта согласована`)
+          reporter.changed(scope, 'Техкарта согласована')
         }
       } else {
-        log(`🟨 Согласование карты не запрошено`)
+        reporter.verdict('attention', scope, 'Согласование карты не запрошено')
       }
     } else {
-      log(`🟨 Можно запросить согласование техкарты`)
+      reporter.verdict('attention', scope, 'Можно запросить согласование техкарты')
     }
   } else {
     if (save) {
-      log(`🟥 Техкарта содержит ошибки`)
-      log(`🟥 Для согласования требуется исправить ошибки`)
+      reporter.verdict('failed', scope, 'Техкарта содержит ошибки')
+      reporter.verdict('failed', scope, 'Для согласования требуется исправить ошибки')
     } else {
-      log(`🟨 Техкарта содержит ошибки, потому что заполняется только в режиме save`)
+      reporter.verdict('attention', scope, 'Техкарта содержит ошибки, потому что заполняется только в режиме save')
     }
   }
 
-  log('✅ Обработка техкарты завершена')
-  log()
+  reporter.finished(scope, 'Обработка техкарты завершена')
+  reporter.separator()
 }

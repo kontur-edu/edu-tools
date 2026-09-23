@@ -11,6 +11,7 @@ Status: Draft (2026-09-23)
 
 Общие правила:
 - [Workspace identification](workspace-identification.md): как строка таблицы сопоставляется с рабочим пространством TeamProject. Читать при работе с заданиями по TeamProject.
+- [Execution events](execution-events.md): модель событий выполнения (статусы, scope, сводка) и их текстовый рендер. Читать перед добавлением или изменением сообщений лога.
 
 Вне каталога (не подключено к web, запускается только из Node):
 - Перенос баллов в БРС (`src/actions/putMarksToBrs*`, пример — `src/putMarks.sample.ts`). Логика частично перенесена из `brs-extensions/`; полный перенос в web — в перспективе roadmap.

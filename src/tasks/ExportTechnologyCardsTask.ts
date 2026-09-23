@@ -1,28 +1,28 @@
 import { BrsApi } from '../apis/BrsApi'
 import { TableTask, TableTaskWriter } from './TableTask'
 import { compareNormalized } from '../helpers/tools'
-import { ConsoleTableTaskLogger, TableTaskLogger } from './TableTaskLogger'
+import { TaskReporter } from './TaskReporter'
 
 export class ExportTechnologyCardsTaskExecutor {
   static readonly TASK_NAME = 'ExportTechnologyCards'
   
   brsApi: BrsApi
   tableTaskWriter: TableTaskWriter
-  tableTaskLogger: TableTaskLogger
+  reporter: TaskReporter
 
-  constructor(brsApi: BrsApi, tableTaskWriter: TableTaskWriter, tableTaskLogger: TableTaskLogger | null) {
+  constructor(brsApi: BrsApi, tableTaskWriter: TableTaskWriter, reporter: TaskReporter | null) {
     this.brsApi = brsApi
     this.tableTaskWriter = tableTaskWriter
-    this.tableTaskLogger = tableTaskLogger || new ConsoleTableTaskLogger()
+    this.reporter = reporter || TaskReporter.console()
   }
 
   async executeAsync(tableTask: TableTask, forceSave: boolean | null = null) {
-    this.tableTaskLogger.log(`🚩 Executing task "${tableTask.name}"`)
+    this.reporter.started(tableTask.name, `Executing task "${tableTask.name}"`)
 
-    const task = extractTask(tableTask, this.tableTaskLogger, forceSave)
+    const task = extractTask(tableTask, this.reporter, forceSave)
     if (!task) {
-      this.tableTaskLogger.log(`❌ Execution has been stopped`)
-      this.tableTaskLogger.log()
+      this.reporter.error(tableTask.name, 'Execution has been stopped', { stopped: true })
+      this.reporter.separator()
       return
     }
 
@@ -70,43 +70,43 @@ export class ExportTechnologyCardsTaskExecutor {
       await this.tableTaskWriter.batchWriteAsync(outputSpreadsheetId, outputSheetName, task.outputColumn, 0, values)
     }
 
-    this.tableTaskLogger.log(`✅ Execution has been completed`)
-    this.tableTaskLogger.log()
+    this.reporter.finished(tableTask.name, 'Execution has been completed')
+    this.reporter.separator()
   }
 }
 
-function extractTask(tableTask: TableTask, tableTaskLogger: TableTaskLogger, forceSave: boolean | null = null): ExportTechnologyCardsTask | null {
+function extractTask(tableTask: TableTask, reporter: TaskReporter, forceSave: boolean | null = null): ExportTechnologyCardsTask | null {
   const academicYear = tableTask.getParam('academicYear').getCustom((it) => parseInt(it.split('/')[0], 10))
   if (academicYear === null) {
-    tableTaskLogger.log('- academicYear is required❗')
+    reporter.note('academicYear is required', true)
     return null
   }
-  tableTaskLogger.log(`- academicYear: ${academicYear}`)
+  reporter.note(`academicYear: ${academicYear}`)
 
   const semester = tableTask
     .getParam('semester')
     .getCustom((it) => (compareNormalized(it, 'fall') ? 1 : compareNormalized(it, 'spring') ? 2 : null))
   if (semester === null) {
-    tableTaskLogger.log('- semester is required❗')
+    reporter.note('semester is required', true)
     return null
   }
-  tableTaskLogger.log(`- semester: ${semester}`)
+  reporter.note(`semester: ${semester}`)
 
   const studyYears = tableTask.getParam('studyYears').getIntArray()
   if (studyYears === null) {
-    tableTaskLogger.log('- studyYears is required❗')
+    reporter.note('studyYears is required', true)
     return null
   }
-  tableTaskLogger.log(`- studyYears: ${studyYears.join(', ')}`)
+  reporter.note(`studyYears: ${studyYears.join(', ')}`)
 
   const isModule = tableTask.getParam('ismodule').getBool() || false
-  tableTaskLogger.log(`- isModule: ${isModule}`)
+  reporter.note(`isModule: ${isModule}`)
 
   let save = tableTask.getParam('save').getBool() || false
   if (forceSave !== null) {
     save = forceSave
   }
-  tableTaskLogger.log(save ? `- save mode on ⚡` : `- save mode off`)
+  reporter.note(save ? 'save mode on ⚡' : 'save mode off')
 
   return {
     name: tableTask.name,

@@ -8,7 +8,7 @@ import { ExportTechnologyCardsTaskExecutor } from "./ExportTechnologyCardsTask"
 import { CreateTeamProjectIterationsTaskExecutor } from "./CreateTeamProjectIterationsTask"
 import { CreateTechnologyCardsTaskExecutor } from "./CreateTechnologyCardsTask"
 import { TableTask, TableTaskWriter } from "./TableTask"
-import { TableTaskLogger, ConsoleTableTaskLogger } from "./TableTaskLogger"
+import { TaskReporter } from "./TaskReporter"
 
 class TaskExecutionError extends Error {
   constructor(message: string) {
@@ -22,7 +22,7 @@ export class CompositeTableTaskExecutor {
   getPartnerApi: () => PartnerApi | null
   getTeamProjectApi: () => TeamProjectApiV2 | null
   tableTaskWriter: TableTaskWriter
-  tableTaskLogger: TableTaskLogger
+  reporter: TaskReporter
 
   constructor(
     getBrsApi: () => BrsApi | null,
@@ -30,14 +30,14 @@ export class CompositeTableTaskExecutor {
     getPartnerApi: () => PartnerApi | null,
     getTeamProjectApi: () => TeamProjectApiV2 | null,
     tableTaskWriter: TableTaskWriter,
-    tableTaskLogger: TableTaskLogger | null
+    reporter: TaskReporter | null
   ) {
     this.getBrsApi = getBrsApi
     this.getItsApi = getItsApi
     this.getPartnerApi = getPartnerApi
     this.getTeamProjectApi = getTeamProjectApi
     this.tableTaskWriter = tableTaskWriter
-    this.tableTaskLogger = tableTaskLogger || new ConsoleTableTaskLogger()
+    this.reporter = reporter || TaskReporter.console()
   }
 
   async executeAsync(tableTask: TableTask, forceSave: boolean | null = null) {
@@ -46,35 +46,35 @@ export class CompositeTableTaskExecutor {
         case SendCuratorMarksTaskExecutor.TASK_NAME.toLowerCase():
           const sendCuratorMarksTaskExecutor = new SendCuratorMarksTaskExecutor(
             this.ensureTeamProjectApi(),
-            this.tableTaskLogger)
+            this.reporter)
           return sendCuratorMarksTaskExecutor.executeAsync(tableTask, forceSave)
         case DistributeStudentsIntoTeamsTaskExecutor.TASK_NAME.toLowerCase():
           const distributeStudentsIntoTeamsTaskExecutor = new DistributeStudentsIntoTeamsTaskExecutor(
             this.ensureItsApi(),
-            this.tableTaskLogger)
+            this.reporter)
           return distributeStudentsIntoTeamsTaskExecutor.executeAsync(tableTask, forceSave)
         case ExportTechnologyCardsTaskExecutor.TASK_NAME.toLowerCase():
           const exportTechnologyCardsTaskExecutor = new ExportTechnologyCardsTaskExecutor(
             this.ensureBrsApi(),
             this.tableTaskWriter,
-            this.tableTaskLogger)
+            this.reporter)
           return exportTechnologyCardsTaskExecutor.executeAsync(tableTask, forceSave)
         case CreateTeamProjectIterationsTaskExecutor.TASK_NAME.toLowerCase():
           const createTeamProjectIterationsTaskExecutor = new CreateTeamProjectIterationsTaskExecutor(
             this.ensureTeamProjectApi(),
-            this.tableTaskLogger)
+            this.reporter)
           return createTeamProjectIterationsTaskExecutor.executeAsync(tableTask, forceSave)
         case CreateTechnologyCardsTaskExecutor.TASK_NAME.toLowerCase():
           const createTechnologyCardsTaskExecutor = new CreateTechnologyCardsTaskExecutor(
             this.ensureBrsApi(),
-            this.tableTaskLogger)
+            this.reporter)
           return createTechnologyCardsTaskExecutor.executeAsync(tableTask, forceSave)
         default:
           throw new TaskExecutionError(`Unknown task "${tableTask.name}"`)
       }
     } catch (error) {
       if (error instanceof TaskExecutionError) {
-        console.error(error.message)
+        this.reporter.error(tableTask.name, error.message, { stopped: true })
       } else {
         console.error(error)
         throw error
