@@ -2,7 +2,7 @@
 Status: Active (2026-09-23)
 
 ## Epic EP-001 — CLI и наблюдаемость
-Status: `Planned`.
+Status: `In progress`.
 
 ### Goal (user value)
 Разработчик и ИИ-агент запускают любое задание без UI одной командой и получают машиночитаемый результат: что изменено, что без изменений, где ошибки. Это основа автоматической проверки кода ИИ-агентами.
@@ -13,7 +13,7 @@ Status: `Planned`.
 
 ### Features (vertical slices)
 Порядок в списке — порядок реализации (ID выдаются по мере появления фич и не отражают порядок). Блокировки — строка `Blocked by:` в файле фичи; FT-0001, FT-0002 и FT-0015 (после FT-0006) можно делать параллельно.
-- [FT-0001 — Секреты вне кода](../features/FT-0001-secrets-out-of-code.md) — учётные данные Node из `.env` / `secrets/`, в коде нет `sid`, токенов и кук.
+- [FT-0001 — Секреты вне кода](../features/FT-0001-secrets-out-of-code.md) — учётные данные Node из `.env` / `secrets/`, в коде нет `sid`, токенов и кук. `Done`.
 - [FT-0002 — Структурированные события выполнения](../features/FT-0002-structured-execution-events.md) — исполнители сообщают события (`status`, `scope`, `message`, `details`); текстовый лог в web строится из событий и внешне не меняется.
 - [FT-0015 — Разбор задания по сетке значений и CSV-источник](../features/FT-0015-grid-parser-and-csv-source.md) — CSV codec, чистый разбор `string[][] → TableTask`, источники Google / CSV / in-memory; поведение для Google не меняется. Blocked by FT-0006 (EP-002).
 - [FT-0003 — Каркас CLI на Commander](../features/FT-0003-cli-skeleton-commander.md) — `--help` с примерами, human/`--json`, коды выхода, `auth check`, `google login`.

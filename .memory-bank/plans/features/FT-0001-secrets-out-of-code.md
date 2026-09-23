@@ -2,7 +2,7 @@
 Status: Draft (2026-09-23)
 
 ## Feature FT-0001 — Секреты вне кода
-Epic: `EP-001`. Status: `Planned`.
+Epic: `EP-001`. Status: `Done`.
 Triage: `ready-for-agent`.
 
 ### User value
@@ -47,3 +47,6 @@ Triage: `ready-for-agent`.
 ### Docs updates (SSoT)
 - [Stack & tooling](../../spec/project/stack-and-tooling.md) — какие переменные нужны Node-коду.
 - [CLI spec](../../spec/cli/cli.md) — раздел об учётных данных (имена переменных).
+
+## Comments
+- 2026-09-23: реализовано в `src/apis/NodeCredentials.ts`. Тестового раннера пока нет, поэтому unit-тесты загрузчика (есть значение / нет значения / значение из файла / `secrets/brs.json` с `BRS_USER`) переходят в FT-0006; поведение проверено разовым скриптом на подменённом окружении. Попутно исправлены 9 старых автоисправимых ошибок ESLint (`readStudentsAsync.ts`, `FileApi.ts`, `BrsHelpers.ts`), чтобы `npm run lint` был зелёным.

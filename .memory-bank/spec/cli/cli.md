@@ -23,4 +23,8 @@ Status: Draft (2026-09-23)
 - `summary`: счётчики по статусам, `ok` (bool).
 Статусы соответствуют эмодзи текущего лога: 🟢 changed, 🟡 unchanged/skipped, 🔴/❌ error. `warning` — новый статус: действие пропущено по ограничению окружения (например, запись на лист при CSV-источнике без `--out`).
 
+## Учётные данные
+Все команды берут учётные данные систем УрФУ из одного загрузчика — `NodeCredentials` (`src/apis/NodeCredentials.ts`). Переменные и форматы — в [Stack & tooling](../project/stack-and-tooling.md#конфигурация-и-секреты). Читать, чтобы не заводить второй способ передачи секретов.
+При ошибке загрузчик бросает `CredentialsError` (`kind`, `system`, `variables`): `kind = missing` CLI превращает в `CREDENTIALS_MISSING`, `kind = invalid` (файл не читается или неверного формата) — в `CREDENTIALS_INVALID`; имена переменных — в `details` (FT-0003).
+
 SSoT соответствия «команда → исполнитель»: [Command catalog](command-catalog.md). Читать, чтобы одна команда не размазывалась по нескольким исполнителям и чтобы тесты повторяли поведение UI.

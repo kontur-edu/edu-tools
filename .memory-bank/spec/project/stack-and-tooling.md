@@ -39,5 +39,15 @@ Status: Draft (2026-09-23)
 
 ## Конфигурация и секреты
 - `.env` (образец `.env.sample`): `TELEGRAM_TOKEN`, `TELEGRAM_URL`, `NOTION_TOKEN`, `NOTION_RESOURCES_DB`, `EDU_TOOLS_WEB_BUCKET`.
-- `secrets/` (в `.gitignore`, образец `secrets.sample/`): `google.json` (OAuth client для Node), `google-tokens.json` (сохранённые токены), `brs.json`.
+- Учётные данные систем УрФУ для Node-кода читает только `NodeCredentials` (`src/apis/NodeCredentials.ts`, Node-only) из переменных окружения или `.env`:
+
+  | Система | Переменная | Файл вместо значения |
+  |---|---|---|
+  | БРС | `BRS_SID` (JSESSIONID) | `BRS_SID_FILE`: текстовый файл с `sid` или `secrets/brs.json`, запись выбирается `BRS_USER`, а если запись одна, берётся она (у записи должно быть поле `sid`) |
+  | ИТС | `ITS_AUTH` (cookie) | `ITS_AUTH_FILE` |
+  | TeamProject | `TEAMPROJECT_JWT` (`Bearer …`) | `TEAMPROJECT_JWT_FILE` |
+  | Partner | `PARTNER_COOKIE` (cookie или значение `key`) | `PARTNER_COOKIE_FILE` |
+
+  Переменная со значением важнее файла. Если данных нет или файл неверный, бросается `CredentialsError` (`kind`: `missing` / `invalid`) с именем системы и переменных; значение секрета в сообщения не попадает.
+- `secrets/` (в `.gitignore`, образец `secrets.sample/`): `google.json` (OAuth client для Node), `google-tokens.json` (сохранённые токены), `brs.json` (записи `{ "<имя>": { "sid" } | { "login", "password" } }`; из Node читается только `sid`).
 - Константы в коде: адрес CORS-proxy (`src/helpers/CorsProxyUrlProvider.ts`), Google Client ID для web (`src/components/GoogleAuth/GoogleAuthProvider.tsx`).

@@ -6,14 +6,13 @@ import putMarksToBrsManualAsync, {
 import putMarksToBrsAutoAsync from './actions/putMarksToBrsAutoAsync.js';
 import * as readStudents from './actions/readStudentsAsync.js';
 import { BrsApi } from './apis/BrsApi.js';
-import { BrsAuth } from './apis/BrsAuth.js';
 import { FileApi } from './apis/FileApi.js';
 import { NodeGoogleApi } from './apis/NodeGoogleApi.js';
 import { NodeGoogleAuth } from './apis/NodeGoogleAuth.js';
 import { BrsUrlProvider } from './apis/BrsUrlProvider.js';
+import { NodeCredentials } from './apis/NodeCredentials.js';
 
 async function runPutMarksForSample() {
-  const sid = 'sid';
   const dataCsv = './data/students2.csv'
 
   const fileApi = new FileApi();
@@ -68,7 +67,7 @@ async function runPutMarksForSample() {
     defaultStudentFailure: StudentFailure.NoFailure,
   } as DisciplineConfig;
 
-  const brsApi = new BrsApi(new BrsAuth(sid), new BrsUrlProvider(false));
+  const brsApi = new BrsApi(NodeCredentials.fromProcess().brsAuth(), new BrsUrlProvider(false));
   await putMarksToBrsManualAsync(
     brsApi,
     { actualStudents, disciplineConfig, controlActionConfigs },
@@ -80,13 +79,12 @@ async function runPutMarksForSample() {
 }
 
 async function runPutMarksAutoForSample() {
-  const sid = 'sid';
   // Пример таблицы для автоматической конфигурации
   // https://docs.google.com/spreadsheets/d/1Owzl3JfmFASIdC7ZMMw-0kkA3pwFSab1QdVO5dhZoxY/edit?usp=sharing
   const spreadsheetId = '1Owzl3JfmFASIdC7ZMMw-0kkA3pwFSab1QdVO5dhZoxY';
   const sheetName = 'БРС';
 
-  const brsApi = new BrsApi(new BrsAuth(sid), new BrsUrlProvider(false));
+  const brsApi = new BrsApi(NodeCredentials.fromProcess().brsAuth(), new BrsUrlProvider(false));
   const googleApi = new NodeGoogleApi(await NodeGoogleAuth.createAsync('ask-if-not-saved'));
   await putMarksToBrsAutoAsync(
     brsApi,

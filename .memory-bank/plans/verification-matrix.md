@@ -20,4 +20,4 @@ Status: Draft (2026-09-23)
 
 | FT | Must add test | Must run |
 |---|---|---|
-| — | — | — |
+| FT-0001 | Unit-тесты `NodeCredentials` после FT-0006: значение из переменной / нет значения / значение из файла / `secrets/brs.json` с `BRS_USER` (`src/apis/NodeCredentials.ts`) | `npm run build`, `npm run lint`; вызов `brsAuth()` без `BRS_SID` даёт `CredentialsError` с именами переменных, `itsAuth()` при заданном `ITS_AUTH` создаёт клиент; поиск по `src/` не находит `sid`, токенов и кук |
