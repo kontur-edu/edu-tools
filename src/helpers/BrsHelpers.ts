@@ -19,7 +19,7 @@ export function parseStudentFailure(input: string): StudentFailure | null {
     return null;
   }
 
-  for (let key of Object.keys(failureMapping)) {
+  for (const key of Object.keys(failureMapping)) {
     if (compareNormalized(key, input)) {
       return failureMapping[key];
     }
@@ -35,7 +35,7 @@ export function formatStudentFailure(
     return null;
   }
 
-  for (let key of Object.keys(failureMapping)) {
+  for (const key of Object.keys(failureMapping)) {
     if (failureMapping[key] === input) {
       return key;
     }

@@ -7,8 +7,8 @@ export interface Row {
 export class FileApi {
   readFromCsv(
     filePath: string,
-    skipHeader: boolean = false,
-    separator: string = ';'
+    skipHeader = false,
+    separator = ';'
   ): Row[] {
     const text = stripBOM(fs.readFileSync(filePath, 'utf8'));
     const lines = text.split('\r\n');

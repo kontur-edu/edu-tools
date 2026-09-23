@@ -15,8 +15,8 @@ export async function fromSpreadsheetAsync(
   googleApi: NodeGoogleApi,
   spreadsheetId: string,
   readRange: string,
-  fullNameIndex: number = 0,
-  groupNameIndex: number = 1,
+  fullNameIndex = 0,
+  groupNameIndex = 1,
   idIndex: number | null = null,
   failureIndex: number | null = null,
 ) {
@@ -46,9 +46,9 @@ export async function fromSpreadsheetAsync(
 export function fromCvs(
   fileApi: FileApi,
   filePath: string,
-  skipHeader: boolean = false,
-  fullNameIndex: number = 0,
-  groupNameIndex: number = 1,
+  skipHeader = false,
+  fullNameIndex = 0,
+  groupNameIndex = 1,
   idIndex: number | null = null,
   failureIndex: number | null = null,
 ): ActualStudent[] {
