@@ -1,40 +1,19 @@
 # How we plan epics & features
-Status: Draft (2026-03-03)
+Status: Draft (2026-09-23)
 
-Цель: чтобы “план” был пригоден для исполнения и тестирования, а не списком хотелок.
+Цель: чтобы план был пригоден для исполнения и проверки, а не списком хотелок.
 
 ## Units
-- **Epic**: крупная тема, объединяющая фичи (вертикальные слайсы).
-- **Feature**: минимально полезная поставка, которую можно проверить автоматически.
+- **Epic** (`EP-XXX`): крупная тема, объединяющая фичи. Файл — `plans/epics/EP-XXX-<name>.md` по [Epic template](../mbb/templates/epic.md).
+- **Feature** (`FT-XXXX`): минимально полезная поставка (вертикальный слайс), которую можно проверить. Пока фича не в работе, она живёт одной строкой в эпике. Когда берётся в работу — заводится файл `plans/features/FT-XXXX-<name>.md` по [Feature template](../mbb/templates/feature.md), и эпик ссылается на него.
+- ID сквозные по проекту и не переиспользуются.
 
-## Feature DoD (Definition of Done)
-Фича считается сделанной, когда:
-1) описан контракт/операция (если нужен),
-2) реализован core use-case + политики,
-3) добавлены миграции/таблицы (если нужно),
-4) добавлена/обновлена CLI команда (human + `--json`),
-5) добавлен(ы) автотест(ы) + seed scenario (если нужен),
-6) обновлены документы SSoT в `.memory-bank/spec/*` (если фича меняет правила).
+## Правила, которые здесь не повторяются
+- Definition of Done фичи и формат сценариев приёмки — в [Feature template](../mbb/templates/feature.md) (SSoT).
+- Теги коммитов `[FT-XXXX]` / `[EP-XXX]` — в [MBB principles](../mbb/principles.md), п. 9.
+- Какие слои входят в слайс в этом проекте — в [Layers & vertical slices](../spec/project/layers-and-vertical-slices.md).
 
-Ссылки (аннотированные):
-- [Engineering standards](../spec/engineering/index.md) — стандарты кодирования/архитектурных границ/тестов/документации. Читать, чтобы DoD фичи выполнялся единообразно.
-
-## Scenarios
-Каждая фича включает минимум один сценарий в формате:
-- **Setup**: `seed <Sx> --json` и используемые `handles` (никаких хардкодов id) + actor roles.
-- **Action**: детерминированные шаги через CLI (`--json`) и/или Client API ops.
-- **Assert**: точные проверки статусов/полей/запретов (RBAC/anonymity/freeze) и typed error codes; без частичных изменений.
-- **Ops**: список операций v1, которые покрывает сценарий.
-
-## Seeds as contract for tests
-- Seed scenario — часть тестового контракта: он фиксирует “стандартное состояние”.
-- Тесты не хардкодят ids: они используют JSON-вывод `seed` (mapping key → id).
-
-## Commit message convention (traceability)
-Для изменений по roadmap/эпикам/фичам в commit message обязательно добавляем тег:
-1) `[...]` с id фичи, если коммит закрывает или существенно двигает фичу: `[FT-XXXX]`.
-2) `[...]` с id эпика, если изменение относится к эпику в целом: `[EP-XXX]`.
-
-Примеры:
-- `feat: complete foundation workspace scaffold [FT-0001]`
-- `docs: refine epic sequencing and acceptance matrix [EP-004]`
+## Порядок работы
+1. Эпик и его место в очереди фиксируются в [Roadmap](roadmap.md).
+2. Фича берётся в работу → создаётся FT-документ → реализация по [Implementation playbook](implementation-playbook.md).
+3. После завершения: статус фичи в FT-документе и в эпике, строка в [Verification matrix](verification-matrix.md), обновления `spec/*` и `adr/*`.

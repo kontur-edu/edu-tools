@@ -1,89 +1,37 @@
-# Implementation playbook (vertical slice → code)
-Status: Draft (2026-03-03)
+# Implementation playbook (feature → code)
+Status: Draft (2026-09-23)
 
-Цель: единообразно превращать план фичи (FT-*) в реализацию в коде, так чтобы:
-- UI/CLI оставались “тонкими”,
-- typed contract/client был стабильным контрактом,
-- поведение подтверждалось seeds + acceptance сценариями + тестами,
-- изменения документации были синхронизированы (без дублирования кода).
+Цель: единообразно превращать фичу (FT-*) в код в текущей структуре проекта, так чтобы логика заданий не утекала в UI, а документация оставалась синхронной.
 
 Ссылки (аннотированные):
-- [Repo structure (target)](../spec/project/repo-structure.md): целевая структура `apps/` и `packages/`. Читать, чтобы называть файлы/папки последовательно и не “перекладывать” проект позже.
-- [Layers & vertical slices](../spec/project/layers-and-vertical-slices.md): определение vertical slice и DoD фичи. Читать, чтобы каждая фича приносила работающий “сквозной” кусок.
-- [Architecture guardrails](../spec/engineering/architecture-guardrails.md): запреты на импорт core в UI/CLI и прочие границы слоёв. Читать, чтобы не допустить “утечку логики” в клиентов.
-- [Coding style](../spec/engineering/coding-style.md): базовые соглашения (TS, Biome, ошибки). Читать, чтобы код и CLI были предсказуемыми.
-- [Documentation standards](../spec/engineering/documentation-standards.md): правила меморибанка и аннотированных ссылок. Читать, чтобы документация оставалась SSoT и не расползалась.
+- [Repo structure](../spec/project/repo-structure.md): где что лежит. Читать, чтобы класть файлы в правильные папки.
+- [Architecture guardrails](../spec/engineering/architecture-guardrails.md): обязательные правила зависимостей. Читать, чтобы не нарушить границы слоёв.
+- [Coding style](../spec/engineering/coding-style.md): TypeScript, ESLint + Prettier, формат результатов. Читать, чтобы код был единообразным.
+- [Documentation standards](../spec/engineering/documentation-standards.md): правила меморибанка. Читать, чтобы документация оставалась SSoT.
 
-## 0) Перед началом фичи: собрать контекст
-1) Открыть FT-документ фичи: acceptance (Setup/Action/Assert), ops, seeds.
-2) Открыть связанные SSoT документы из `## Context` в FT (domain/security/notifications/...).
-3) Проверить каталоги:
-   - [CLI command catalog](../spec/cli/command-catalog.md): 1:1 команда → операция. Читать, чтобы CLI не содержал доменной логики.
+## 0) Собрать контекст
+1. Открыть FT-документ: deliverables, сценарии, DoD.
+2. Открыть связанные SSoT: [Table task format](../spec/domain/table-task-format.md), описание задания в [Task catalog](../spec/domain/tasks/index.md), нужную [интеграцию](../spec/integrations/index.md).
 
-## 1) Contract: операция, DTO, ошибки (SSoT)
-Target files (примерно, будем уточнять после scaffold):
-- `packages/api-contract/src/v1/<slice>/ops.ts` — объявление операций (имя, input/output/error).
-- `packages/api-contract/src/v1/<slice>/schemas.ts` — runtime-схемы (zod/valibot).
-- `packages/api-contract/src/v1/errors.ts` — общий список error codes (если расширяем).
+## 1) Рецепт: новое табличное задание
+1. **Спецификация.** Описать задание в `spec/domain/tasks/<name>.md`: параметры, колонки, поведение, что считается расхождением. Добавить ссылку в индекс каталога.
+2. **Адаптер.** Если не хватает операций внешней системы — добавить метод в `src/apis/<System>Api.ts`, типы — в `src/apis/types.ts` или рядом с клиентом.
+3. **Исполнитель.** `src/tasks/<Name>Task.ts`: `static TASK_NAME`, конструктор `(api…, logger | null)`, `executeAsync(tableTask, forceSave)`; разбор параметров и строк — в функции `extractTask`; многошаговые переиспользуемые операции — в `src/actions/`.
+4. **Try/Save.** Каждая запись во внешнюю систему — только под `save`. В режиме try лог показывает то же, что было бы сделано.
+5. **Лог.** Статусы: 🟢 изменено, 🟡 без изменений/пропущено, 🔴 ошибка по элементу, 🟩/🟥 итог по группе, ✅ задание завершено.
+6. **Регистрация.** Добавить ветку в `CompositeTableTaskExecutor` (и `ensure<System>Api`, если нужна новая система).
+7. **Новая система** (если нужна): `*Auth`, `*UrlProvider` (через `CorsProxyUrlProvider`), стор в `src/stores/`, переключатель и диалог входа в `src/components/`, геттер в `App.tsx`.
+8. **Проверка.** `npm run lint`, `npm run web-build`, ручной прогон try на тестовом листе; save — только после чистого try.
 
-Checklist:
-- Добавить/обновить операцию в каталоге (и в контракте).
-- Схемы должны быть strict (не “съедать” неизвестные поля).
-- Ошибки наружу только typed (`code/message/details`), без “сырых” исключений.
+## 2) Изменение существующего задания
+Сначала обновить `spec/domain/tasks/<name>.md`, затем код. Поведение, которое меняет формат листа, отражается и в [Table task format](../spec/domain/table-task-format.md), если оно общее.
 
-## 2) Core: use-case + policy + инварианты
-Target files (примерно):
-- `packages/core/src/slices/<slice>/use-cases/<op>.ts`
-- `packages/core/src/slices/<slice>/policies/*.ts` (если нужна политика)
-- `packages/core/src/errors/*` (если добавляем доменный error code)
-- `packages/core/src/ports/*` (если нужна внешняя зависимость)
+## 3) После EP-001 / EP-002 / EP-003 (target)
+- **CLI:** проверить задание через `task run <sheetUrl> --json` и добавить команду в [Command catalog](../spec/cli/command-catalog.md), если нужна отдельная.
+- **Тесты:** unit на правила задания, CSV-фикстура задания и интеграционный сценарий через CLI (`task run <file.csv> --json`); строка в [Verification matrix](verification-matrix.md).
+- **Слои:** правила — в core без I/O, внешние системы — через порты.
 
-Checklist:
-- Инварианты (lock/анонимность/переходы статусов) — только в core.
-- Use-case атомарный: или всё применилось, или ничего (без “частичных” изменений).
-- Переиспользовать политики из spec, а не дублировать правила в клиентах.
-
-## 3) Data/DB: Drizzle schema + миграции + RLS
-Target files (примерно):
-- `packages/db/src/schema/*.ts`
-- `packages/db/src/migrations/*`
-- `packages/db/src/rls/*` (если политики храним рядом)
-
-Checklist:
-- `company_id` присутствует почти везде (multi-tenant).
-- Soft delete / history — по spec, где нужно (не удаляем физически “важные” записи).
-- RLS “deny-by-default”: тестировать отдельным smoke (GS10).
-
-## 4) Adapters: HTTP handlers, auth, providers
-Target files (примерно):
-- `apps/web/src/app/api/<slice>/<op>/route.ts` (Next route handler)
-- `apps/web/src/server/*` (db/auth/outbox/webhook adapters)
-
-Checklist:
-- Handler валидирует input по contract, затем вызывает core use-case.
-- Auth/RBAC проверяем до бизнес-логики (но доменные инварианты всё равно в core).
-
-## 5) Typed client: транспорт + удобные методы
-Target files (примерно):
-- `packages/client/src/http/*` (fetch adapter)
-- `packages/client/src/inproc/*` (если используем)
-- `packages/client/src/index.ts` (экспорт методов)
-
-Checklist:
-- Один контракт для HTTP/in-proc (одинаковые DTO/ошибки).
-- У клиента нет “скрытых” бизнес-правил: только вызов операции и парсинг ответа.
-
-## 6) CLI: команда 1:1 к операции
-Target files (примерно):
-- `packages/cli/src/commands/<slice>/<command>.ts`
-- `packages/cli/src/formatters/*` (human и `--json`)
-
-Checklist:
-- CLI по умолчанию human, `--json` отдаёт стабильную схему.
-- Команда не содержит доменных правил — только сбор аргументов и вызов операции.
-
-## 7) Memory bank updates (по итогу реализации)
-После реализации фичи (или эпика) обновить документы:
-- FT-документ: статус + любые корректировки acceptance.
-- `spec/*`: если изменились правила/интерфейсы (SSoT), обновить и добавить ссылки на rationale/ADR при необходимости.
-- `adr/*`: если принято новое существенное решение (WHY), зафиксировать в ADR.
+## 4) Memory bank updates
+- FT-документ и эпик: статус и корректировки сценариев.
+- `spec/*`: изменившиеся правила и интерфейсы.
+- `adr/*`: новое существенное решение (по [ADR template](../mbb/templates/adr.md)).

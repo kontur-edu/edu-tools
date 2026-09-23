@@ -1,7 +1,10 @@
 # Epic template
 Status: Template
 
-## Epic <EP-XXX> — <Name>
+Файл эпика: `EP-XXX-<kebab-name>.md`, ID сквозной по проекту (`EP-001`, `EP-002`, …).
+
+## Epic EP-XXX — <Name>
+Status: `Planned | In progress | Done`.
 
 ### Goal (user value)
 Кому и какую ценность доставляет этот эпик.
@@ -11,7 +14,7 @@ Status: Template
 - Out of scope: …
 
 ### Features (vertical slices)
-Список фич внутри эпика со ссылками на их документы (каждая фича имеет сценарии и тесты).
+Список фич внутри эпика: `FT-XXXX — название — ценность в одну строку`. Документ фичи (по шаблону `feature.md`) заводится, когда фича берётся в работу, и связывается ссылкой отсюда.
 
 ### Dependencies
 - External: …
