@@ -66,23 +66,27 @@ export type TaskEvent =
 export type TaskEventListener = (event: TaskEvent) => void
 
 export interface TaskEventSummary {
+  // outcomes (item level) by status
   counts: { [status in TaskEventStatus]: number }
+  // verdicts (stage level) by result
+  verdicts: { [result in TaskVerdictEvent['result']]: number }
   ok: boolean
 }
 
 export function summarizeTaskEvents(events: ReadonlyArray<TaskEvent>): TaskEventSummary {
   const counts = { changed: 0, unchanged: 0, skipped: 0, warning: 0, error: 0 }
-  let hasFailedVerdict = false
+  const verdicts = { ok: 0, attention: 0, failed: 0 }
   for (const event of events) {
     if (event.kind === 'outcome') {
       counts[event.status]++
-    } else if (event.kind === 'verdict' && event.result === 'failed') {
-      hasFailedVerdict = true
+    } else if (event.kind === 'verdict') {
+      verdicts[event.result]++
     }
   }
   return {
     counts,
-    ok: counts.error === 0 && !hasFailedVerdict,
+    verdicts,
+    ok: counts.error === 0 && verdicts.failed === 0,
   }
 }
 

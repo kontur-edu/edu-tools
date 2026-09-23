@@ -20,7 +20,7 @@ Status: Draft (2026-09-23)
 ## Результат выполнения задания (`--json`)
 - `task`, `mode` (`try` | `save`);
 - `events[]` — события исполнителя. Модель уже реализована (FT-0002): `outcome` с `status` (`changed` | `unchanged` | `skipped` | `warning` | `error`), `scope` (проект/студент/техкарта…), `message`, `details`, плюс служебные события текстового лога. SSoT модели и соответствия статусов эмодзи — [Execution events](../domain/tasks/execution-events.md);
-- `summary`: `counts` по статусам и `ok` (bool) — как у `summarizeTaskEvents`.
+- `summary`: `counts` — элементарные результаты по статусам, `verdicts` — итоги стадий (`ok` / `attention` / `failed`), `ok` (bool); см. [Execution events](../domain/tasks/execution-events.md#сводка).
 `warning` пока не используется: действие пропущено по ограничению окружения (например, запись на лист при CSV-источнике без `--out`, FT-0018).
 
 ## Учётные данные

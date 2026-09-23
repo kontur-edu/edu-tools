@@ -21,7 +21,10 @@ Status: Draft (2026-09-23)
 - `separator` — пустая строка.
 
 ## Сводка
-`summarizeTaskEvents` / `TaskEventCollector.getSummary()`: `counts` — число `outcome` по каждому статусу; `ok = true`, если нет `error` и нет `verdict` с `result = failed`.
+Сводка считает оба уровня значков отдельно:
+- `counts` — число `outcome` (круги 🟢🟡🔴 и ❌) по статусам: `changed`, `unchanged`, `skipped`, `warning`, `error`;
+- `verdicts` — число `verdict` (квадраты 🟩🟨🟥) по результатам: `ok`, `attention`, `failed`;
+- `ok = true`, если `counts.error = 0` и `verdicts.failed = 0`.
 
 ## Текстовый рендер
 | Событие | Строка |
@@ -51,7 +54,7 @@ Status: Draft (2026-09-23)
 - новые строки `❌ Unknown task "…"` и `❌ … API is not available` (раньше только в консоли браузера);
 - убраны лишние кавычки в конце сообщений DistributeStudentsIntoTeams (`…signed"` → `…signed`);
 
-Итоги стадий (🟩🟨🟥) сохранены как были, поэтому часть событий, по смыслу являющихся изменением или ошибкой, — это `verdict`, а не `outcome`: «Техкарта согласована» (`verdict ok`), «Iterations of project not found» (`verdict failed`). Они не входят в `counts`, но `failed` делает прогон не `ok`.
+Итоги стадий (🟩🟨🟥) сохранены как были, поэтому часть событий, по смыслу являющихся изменением или ошибкой, — это `verdict`, а не `outcome`: «Техкарта согласована» (`verdict ok`), «Iterations of project not found» (`verdict failed`). Они учитываются в `verdicts`, а не в `counts`; `failed` делает прогон не `ok`.
 
 ## Известные ограничения
 DistributeStudentsIntoTeams пишет часть строк напрямую в `console.log` (число студентов, проверка после записи «is not updated»). В web их нет, в события они не попадают.
