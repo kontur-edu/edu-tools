@@ -13,7 +13,8 @@ Status: Draft (2026-09-23)
 | `task list` | реестр типов заданий | — | нет |
 | `auth check [--system <name>]` | пробный запрос стора/адаптера системы | проверяемая система | нет |
 | `google login` | `NodeGoogleAuth` (installed-app flow) | `secrets/google.json` | нет |
-| `brs put-marks …` | `putMarksToBrs*` | Google + БРС | только с `--save` |
+
+Отдельной команды для переноса баллов в БРС нет: это табличное задание `PutMarksToBrs`, которое запускается через `task run` ([FT-0005](../../plans/features/FT-0005-put-marks-to-brs-task.md)).
 
 Скрипт Partner → Notion (`cloneProjects`) в CLI не переносится: он не развивается и может быть удалён или переписан с заменой Notion на BuildIn.AI.
 
