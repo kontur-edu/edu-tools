@@ -55,7 +55,7 @@ Blocked by: FT-0002, FT-0004, FT-0015.
 
 ### Tests
 - Unit: разбор `$$`-колонок (порядок, повторы, точка в названии, пустые строки, игнор в других заданиях); сборка `MarksData` из `TableTask` (параметры, `studyYear` по умолчанию `0`, повторы → `matchIndex`).
-- Integration — в FT-0008 (EP-002).
+- Integration: живой сценарий в try по Setup выше — в этой фиче, на каркасе интеграционных тестов [FT-0008](FT-0008-cli-integration-harness.md) (EP-002), плюс запись в [Scenario registry](../scenarios.md).
 
 ### Definition of done
 По [Feature template](../../mbb/templates/feature.md); дополнительно `npm run build`, `npm run web-build`, `npm run lint`, `npm test` зелёные.
