@@ -129,6 +129,15 @@ describe('GoogleSheetTableSource: запись на лист', () => {
     expect(writes.map((w) => w.range)).toEqual(["'Лист'!Z1:AB", "'Лист'!AZ10:BA"])
   })
 
+  it('называет колонки после ZZ тремя буквами', async () => {
+    const { source, writes } = sourceWithWrites('Лист')
+
+    await source.writeBlockAsync(701, 0, [['a', 'b']])
+    await source.writeBlockAsync(18277, 0, [['a']])
+
+    expect(writes.map((w) => w.range)).toEqual(["'Лист'!ZZ1:AAA", "'Лист'!ZZZ1:ZZZ"])
+  })
+
   it('экранирует апостроф в имени листа', async () => {
     const { source, writes } = sourceWithWrites("Курсы 'по выбору'")
 

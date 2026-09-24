@@ -72,12 +72,12 @@ function buildRange(sheetName: string, leftIndex: number, rightIndex: number, to
   return `${quoteSheetName(sheetName)}!${index2letter(leftIndex)}${top}:${index2letter(rightIndex)}`
 }
 
+// Индекс колонки с 0 → буквы A1-нотации: 0 → A, 25 → Z, 26 → AA, 702 → AAA.
 function index2letter(index: number) {
   const size = 'Z'.charCodeAt(0) - 'A'.charCodeAt(0) + 1
-  const big = Math.floor(index / size)
-  const little = index % size
-
-  return big > 0
-    ? String.fromCharCode('A'.charCodeAt(0) + (big - 1)) + String.fromCharCode('A'.charCodeAt(0) + little)
-    : String.fromCharCode('A'.charCodeAt(0) + little)
+  let letters = ''
+  for (let n = index + 1; n > 0; n = Math.floor((n - 1) / size)) {
+    letters = String.fromCharCode('A'.charCodeAt(0) + ((n - 1) % size)) + letters
+  }
+  return letters
 }
