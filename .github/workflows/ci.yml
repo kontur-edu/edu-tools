@@ -1,0 +1,45 @@
+# Проверки на каждый push и PR (FT-0009). Тот же набор, что в verification matrix;
+# живые сценарии (`npm run test:integration`) сюда не входят: им нужны учётные данные УрФУ.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # Флаг обязателен: react-scripts 5 объявляет peer-зависимость на TypeScript 4.
+      - run: npm ci --legacy-peer-deps
+
+      - run: npm run lint
+
+      - run: npm run docs:check
+
+      # Отдельно от build: build исключает тесты из tsc, а Vitest типы не проверяет.
+      - run: npm run typecheck
+
+      - run: npm run build
+
+      # Почему без ESLint-плагина CRA — см. .memory-bank/spec/project/stack-and-tooling.md (CI).
+      - run: npm run web-build
+        env:
+          DISABLE_ESLINT_PLUGIN: 'true'
+
+      - run: npm test

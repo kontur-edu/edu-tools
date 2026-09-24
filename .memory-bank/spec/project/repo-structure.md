@@ -29,6 +29,7 @@ Status: Draft (2026-09-24)
 - `vitest.config.ts` (projects `unit` и `scenarios`), `vitest.live.config.ts` (живые сценарии, `npm run test:integration`), `tsconfig.test.json` — тесты и проверка их типов. Сами тесты лежат рядом с модулями: `src/**/<module>.test.ts` ([ADR-0007](../../adr/ADR-0007-vitest-test-runner.md)).
 - `web-deploy.sh`, `bot-deploy.sh` — деплой.
 - `scripts/` — служебные скрипты разработки (`check-memory-bank.mjs` для `npm run docs:check`).
+- `.github/workflows/ci.yml` — CI на GitHub Actions; шаги и их настройки — в [Stack & tooling](stack-and-tooling.md).
 
 ## Подпроекты
 - `cors-proxy/` — форк `cors-anywhere` + `Dockerfile` + `deploy.sh`. Независимый `package.json`.
