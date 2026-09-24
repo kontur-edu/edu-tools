@@ -1,8 +1,8 @@
 # FT-0003 — Каркас CLI на Commander
-Status: Draft (2026-09-23)
+Status: Draft (2026-09-24)
 
 ## Feature FT-0003 — Каркас CLI на Commander
-Epic: `EP-001`. Status: `Planned`.
+Epic: `EP-001`. Status: `Done`.
 Triage: `ready-for-agent`.
 Blocked by: FT-0001.
 
@@ -43,6 +43,13 @@ Blocked by: FT-0001.
 
 ### Tests
 - Unit (FT-0006 есть к этому моменту или нет — по факту): форматтер вывода и маппинг ошибок в коды выхода.
+
+### Implementation notes
+- Каркас — `src/cli/` ([CLI spec](../../spec/cli/cli.md#каркас-srccli)); запуск — `npm run -s cli -- <команда>`, `npm start` удалён.
+- Пробные запросы вынесены из сторов в `src/actions/checkSystemAuthAsync.ts`: web и `auth check` проверяют одинаково.
+- Помимо `ok` / `missing` / `invalid` введены статусы `unreachable` (`NETWORK_ERROR`) и `error` (`INTERNAL_ERROR`): при сетевой ошибке или дефекте пробного запроса про учётные данные ничего не известно, называть их `invalid` неверно.
+- `src/main.ts` переименован в `src/legacyScripts.ts` (`npm run legacy-scripts`), CLI его не вызывает; функции запуска заданий удаляются в FT-0004.
+- Unit-тестов нет: FT-0006 ещё не сделана. Сценарии приёмки проверены прогоном собранного CLI (см. [Verification matrix](../verification-matrix.md)).
 
 ### Definition of done
 По [Feature template](../../mbb/templates/feature.md); дополнительно `npm run build`, `npm run web-build`, `npm run lint` зелёные.

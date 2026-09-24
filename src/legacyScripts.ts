@@ -1,3 +1,7 @@
+// Разовые Node-скрипты с параметрами в коде: разработчик раскомментирует нужный вызов в main().
+// Не входят в CLI (src/cli) и по умолчанию ничего не запускают. Решение о каждой функции —
+// в Command catalog.
+
 import { NotionApi, NotionAuth } from './apis/NotionApi.js'
 import { PartnerApi } from './apis/PartnerApi.js'
 import { PartnerUrlProvider } from './apis/PartnerUrlProvider.js'

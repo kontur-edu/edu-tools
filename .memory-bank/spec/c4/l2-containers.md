@@ -1,11 +1,11 @@
 # C4 L2 — Containers
-Status: Draft (2026-09-23)
+Status: Draft (2026-09-24)
 
 ## Containers
 - **Web SPA** (React, статика в Object Storage, `edu-tools.fiit-urfu-cloud.ru`). Содержит весь движок заданий и API-клиенты; выполняется целиком в браузере. Учётные данные внешних систем хранит в `localStorage`/`sessionStorage`. К Google обращается напрямую, к системам УрФУ — через CORS-proxy.
 - **CORS-proxy** (Node, `cors-anywhere`, Docker → Yandex Serverless Container). Проксирует запросы браузера к системам УрФУ и добавляет CORS-заголовки.
 - **Telegram bot** (Node, Telegraf, Yandex Cloud Function `fiit-tools-bot`, webhook; локально — long polling). Пишет в Notion. В перспективе заменяется web-приложением или PWA.
-- **Node scripts** (`src/main.ts`, запуск разработчиком). Используют тот же движок заданий и API-клиенты, что и web, но без CORS-proxy и с Google OAuth installed-app flow (токены в `secrets/`).
+- **CLI и Node scripts** (`src/cli/`, `src/legacyScripts.ts`, запуск разработчиком или ИИ-агентом). Используют тот же движок заданий и API-клиенты, что и web, но без CORS-proxy и с Google OAuth installed-app flow (токены в `secrets/`).
 - **brs-extensions** (отдельное React-приложение, GitHub Pages) — не часть edu-tools, а референс для переноса функциональности (перенос баллов из Google Таблиц в БРС через тот же CORS-proxy). Не развивается.
 
 ## Key constraints

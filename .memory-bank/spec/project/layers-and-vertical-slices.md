@@ -1,10 +1,10 @@
 # Layers & vertical slices
-Status: Draft (2026-09-23)
+Status: Draft (2026-09-24)
 
 Цель: держать **слои** (для простоты и тестируемости) и одновременно строить продукт **вертикальными слайсами** (каждая фича — работающий сквозной кусок).
 
 ## Слои сейчас (as-is)
-- **Delivery:** Web UI (`src/components` + `src/stores`), Node-скрипты (`src/main.ts`), Telegram bot (`src/bot.ts`).
+- **Delivery:** Web UI (`src/components` + `src/stores`), CLI (`src/cli/`) и разовые Node-скрипты (`src/legacyScripts.ts`), Telegram bot (`src/bot.ts`).
 - **Task engine** (`src/tasks`): чтение листа, маршрутизация по типу задания, исполнители.
 - **Actions** (`src/actions`): многошаговые операции с доменными правилами (например, заполнение техкарты).
 - **Adapters** (`src/apis`): клиенты внешних систем, абстракция `GoogleApi`.

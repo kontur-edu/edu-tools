@@ -1,9 +1,10 @@
 import { create, StoreApi } from "zustand"
 import { combine } from 'zustand/middleware'
-import { BrsApi, TermType } from "../apis/BrsApi"
+import { BrsApi } from "../apis/BrsApi"
 import { BrsUrlProvider } from "../apis/BrsUrlProvider"
 import { BrsAuth } from "../apis/BrsAuth"
 import { BrowserCache, StorageType } from "../helpers/BrowserCache"
+import { checkBrsAuthAsync } from "../actions/checkSystemAuthAsync"
 
 const urlProvider = new BrsUrlProvider(true)
 
@@ -124,16 +125,11 @@ function createActions(set: StoreApi<typeof initialState>['setState'], get: Stor
 }
 
 async function checkAuthAsync(urlProvider: BrsUrlProvider, auth: BrsAuth): Promise<boolean> {
-  const api = new BrsApi(auth, urlProvider);
   try {
-    const result = await api.getDisciplinesAsync(2025, TermType.Fall, 1, false)
-    if (result === null) {
-      return false
-    }
+    return await checkBrsAuthAsync(new BrsApi(auth, urlProvider))
   } catch (error) {
     return false
   }
-  return true
 }
 
 export const useBrsStore = create(combine(initialState, createActions))

@@ -1,5 +1,5 @@
 # EP-001 — CLI и наблюдаемость
-Status: Active (2026-09-23)
+Status: Active (2026-09-24)
 
 ## Epic EP-001 — CLI и наблюдаемость
 Status: `In progress`.
@@ -16,7 +16,7 @@ Status: `In progress`.
 - [FT-0001 — Секреты вне кода](../features/FT-0001-secrets-out-of-code.md) — учётные данные Node из `.env` / `secrets/`, в коде нет `sid`, токенов и кук. `Done`.
 - [FT-0002 — Структурированные события выполнения](../features/FT-0002-structured-execution-events.md) — исполнители сообщают события (`status`, `scope`, `message`, `details`); текстовый лог в web строится из событий и внешне не меняется. `Done`.
 - [FT-0015 — Разбор задания по сетке значений и CSV-источник](../features/FT-0015-grid-parser-and-csv-source.md) — CSV codec, чистый разбор `string[][] → TableTask`, источники Google / CSV / in-memory; поведение для Google не меняется. Blocked by FT-0006 (EP-002).
-- [FT-0003 — Каркас CLI на Commander](../features/FT-0003-cli-skeleton-commander.md) — `--help` с примерами, human/`--json`, коды выхода, `auth check`, `google login`.
+- [FT-0003 — Каркас CLI на Commander](../features/FT-0003-cli-skeleton-commander.md) — `--help` с примерами, human/`--json`, коды выхода, `auth check`, `google login`. `Done`.
 - [FT-0004 — Запуск заданий из CLI](../features/FT-0004-task-run-from-cli.md) — `task run <sheetUrl | file.csv> [--save]`, `task list`, результат в `--json`.
 - [FT-0018 — Запись на лист при CSV-источнике](../features/FT-0018-csv-sheet-write-out.md) — `--out <file.csv>` для заданий, пишущих на лист; без `--out` — `warning`.
 - [FT-0016 — Конвертация Google ⇄ CSV](../features/FT-0016-google-csv-conversion.md) — `sheet export`, `sheet import`; круговая конвертация сохраняет значения.

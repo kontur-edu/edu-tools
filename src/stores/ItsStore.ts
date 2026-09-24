@@ -4,6 +4,7 @@ import { ItsApiV2 } from "../apis/ItsApiV2"
 import { ItsAuthV2 } from "../apis/ItsAuthV2"
 import { ItsUrlProvider } from "../apis/ItsUrlProvider"
 import { BrowserCache, StorageType } from "../helpers/BrowserCache"
+import { checkItsAuthAsync } from "../actions/checkSystemAuthAsync"
 
 const urlProvider = new ItsUrlProvider(true)
 
@@ -124,13 +125,11 @@ function createActions(set: StoreApi<typeof initialState>['setState'], get: Stor
 }
 
 async function checkAuthAsync(urlProvider: ItsUrlProvider, auth: ItsAuthV2): Promise<boolean> {
-  const api = new ItsApiV2(auth, urlProvider);
   try {
-    await api.getProjectListAsync([], [], [])
+    return await checkItsAuthAsync(new ItsApiV2(auth, urlProvider))
   } catch (error) {
     return false
   }
-  return true
 }
 
 export const useItsStore = create(combine(initialState, createActions))

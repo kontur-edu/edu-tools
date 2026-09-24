@@ -4,6 +4,7 @@ import { TeamProjectApiV2 } from "../apis/TeamProjectApiV2"
 import { TeamProjectUrlProvider } from "../apis/TeamProjectUrlProvider"
 import { TeamProjectAuthV2 } from "../apis/TeamProjectAuthV2"
 import { BrowserCache, StorageType } from "../helpers/BrowserCache"
+import { checkTeamProjectAuthAsync } from "../actions/checkSystemAuthAsync"
 
 const urlProvider = new TeamProjectUrlProvider(true)
 
@@ -128,16 +129,11 @@ function createActions(set: StoreApi<typeof initialState>['setState'], get: Stor
 }
 
 async function checkAuthAsync(urlProvider: TeamProjectUrlProvider, auth: TeamProjectAuthV2): Promise<boolean> {
-  const api = new TeamProjectApiV2(auth, urlProvider);
   try {
-    const result = await api.getWorkspacesAsync("active", 2000, 1, 1, 10)
-    if (result === null) {
-      return false
-    }
+    return await checkTeamProjectAuthAsync(new TeamProjectApiV2(auth, urlProvider))
   } catch (error) {
     return false
   }
-  return true
 }
 
 export const useTeamProjectStore = create(combine(initialState, createActions))

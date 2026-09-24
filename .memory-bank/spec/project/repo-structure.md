@@ -1,5 +1,5 @@
 # Repo structure
-Status: Draft (2026-09-23)
+Status: Draft (2026-09-24)
 
 Цель: описать фактическую структуру репозитория и границы частей, чтобы новый код попадал в правильное место, а логика заданий не утекала в UI.
 
@@ -14,7 +14,8 @@ Status: Draft (2026-09-23)
 ## Код (корень, общий `src/`)
 - `src/index.tsx` — точка входа web SPA.
 - `src/bot.ts`, `src/bot-start.ts`, `src/bot-register.ts` — Telegram bot (облачный handler, локальный запуск, регистрация webhook).
-- `src/main.ts` — Node-скрипты для ручного запуска заданий разработчиком. Будет заменён CLI в [EP-001](../../plans/epics/EP-001-cli-and-observability.md).
+- `src/cli/` — CLI на Commander: точка входа, каркас вывода и ошибок, команды ([CLI spec](../cli/cli.md)). Не импортирует `src/components` и `src/stores`.
+- `src/legacyScripts.ts` — разовые Node-скрипты с параметрами в коде (бывший `src/main.ts`); CLI их не вызывает, запуск заданий переходит в `task run` ([EP-001](../../plans/epics/EP-001-cli-and-observability.md)).
 - `src/putMarks.sample.ts` — пример запуска переноса баллов в БРС из Node.
 - `src/components/` — React UI (только web).
 - `src/stores/` — Zustand-сторы авторизаций во внешних системах (только web).

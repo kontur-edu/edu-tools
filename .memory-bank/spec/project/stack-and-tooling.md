@@ -1,5 +1,5 @@
 # Stack & tooling
-Status: Draft (2026-09-23)
+Status: Draft (2026-09-24)
 
 Зафиксированный стек:
 - **Язык:** TypeScript (strict), ESM (`"type": "module"`), Node.js ≥ 22 (`.nvmrc`). Функция бота в Yandex Cloud пока работает на runtime `nodejs18`; переход на последние версии Node — в перспективе roadmap (не сейчас, есть риск поломок).
@@ -8,7 +8,7 @@ Status: Draft (2026-09-23)
 - **Telegram bot:** Telegraf; HTML из Telegram-сущностей → Markdown → блоки Notion (`hast-util-*`, `mdast-util-to-markdown`, `@tryfabric/martian`).
 - **Notion:** `@notionhq/client`.
 - **CORS-proxy:** форк `cors-anywhere` (Node, Docker).
-- **CLI (target, EP-001):** Commander; задания из Google Таблиц или CSV.
+- **CLI:** Commander (`src/cli/`, [CLI spec](../cli/cli.md)); сейчас — `auth check`, `google login`; задания из Google Таблиц или CSV — в EP-001.
 - **brs-extensions** (референс, не развивается): React 17, MUI v4, CRA 4, GitHub Pages.
 - **Хостинг:** Yandex Cloud — Object Storage (статика web), Cloud Functions (бот), Serverless Containers (CORS-proxy).
 
@@ -29,8 +29,9 @@ Status: Draft (2026-09-23)
 | `npm run web-start` | dev-сервер web-приложения |
 | `npm run web-build` | production-сборка web в `build/` |
 | `./web-deploy.sh` | сборка web + `s3cmd sync` в бакет `EDU_TOOLS_WEB_BUCKET` |
-| `npm run dev` | nodemon + ts-node для `src/main.ts` |
-| `npm run build` / `npm start` | компиляция и запуск `build/main` |
+| `npm run build` | компиляция Node-части (`tsc`) в `build/` |
+| `npm run -s cli -- <команда>` | сборка и запуск CLI (`build/cli/main`); `-s` — чтобы при `--json` в stdout был только JSON |
+| `npm run legacy-scripts` / `npm run dev` | сборка и запуск разовых скриптов `src/legacyScripts.ts` / то же через nodemon + ts-node |
 | `npm run bot-dev` / `npm run bot-start` | бот локально (long polling) |
 | `./bot-deploy.sh` | сборка, выкладка функции `fiit-tools-bot` в Yandex Cloud, регистрация webhook |
 | `npm run lint` / `npm run format` | ESLint / ESLint --fix |

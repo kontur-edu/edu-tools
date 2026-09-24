@@ -4,6 +4,7 @@ import { PartnerApi } from "../apis/PartnerApi"
 import { PartnerUrlProvider } from "../apis/PartnerUrlProvider"
 import { PartnerAuth } from "../apis/PartnerAuth"
 import { BrowserCache, StorageType } from "../helpers/BrowserCache"
+import { checkPartnerAuthAsync } from "../actions/checkSystemAuthAsync"
 
 const urlProvider = new PartnerUrlProvider(true)
 
@@ -124,16 +125,11 @@ function createActions(set: StoreApi<typeof initialState>['setState'], get: Stor
 }
 
 async function checkAuthAsync(urlProvider: PartnerUrlProvider, auth: PartnerAuth): Promise<boolean> {
-  const api = new PartnerApi(auth, urlProvider);
   try {
-    const result = await api.getProjectAsync(26654)
-    if (result === null) {
-      return false
-    }
+    return await checkPartnerAuthAsync(new PartnerApi(auth, urlProvider))
   } catch (error) {
     return false
   }
-  return true
 }
 
 export const usePartnerStore = create(combine(initialState, createActions))
