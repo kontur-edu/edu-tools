@@ -1,5 +1,5 @@
 # Task: ExportTechnologyCards
-Status: Draft (2026-09-23)
+Status: Draft (2026-09-24)
 
 Выгружает из БРС список техкарт за семестр на тот же лист.
 
@@ -15,7 +15,7 @@ Status: Draft (2026-09-23)
 ## Поведение
 Для каждого курса запрашивает техкарты в БРС и формирует таблицу:
 `$output` (порядковый номер), `disciplineLoad`, `discipline`, `group`, `isModule`, `academicYear`, `studyYear`, `semester`, `agreed`.
-Записывает таблицу на лист только при `save` (пакетами по 50 строк).
+Записывает таблицу на лист только при `save` (пакетами по 50 строк). При CSV-источнике (`task run`) запись идёт в выходной файл `--out`, без `--out` — событие `warning` с таблицей в `details` ([Table sources](../table-sources.md#запись-результатов-заданий)); `isModule` и `agreed` в CSV — `TRUE` / `FALSE`, как в выгрузке Google.
 
 Набор выгружаемых колонок совпадает с входными колонками [CreateTechnologyCards](create-technology-cards.md). Типичный сценарий: выгрузить, отредактировать `agreed` и перенести строки на лист CreateTechnologyCards.
 

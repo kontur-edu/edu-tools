@@ -11,8 +11,8 @@ Blocked by: FT-0008, FT-0018.
 
 ### Deliverables
 - Обезличенная CSV-фикстура `ExportTechnologyCards` и эталонный CSV результата.
-- Живой сценарий в try на каркасе FT-0008: `task run <fixture.csv> --out <tmp.csv> --json`; проверки `summary` и сравнение `--out` с эталоном (при расхождении — понятный diff по ячейкам).
-- Офлайн-проверка в `npm test`: без `--out` задание выдаёт `warning` с подсказкой (если это достижимо без сети; иначе — часть живого сценария).
+- Живой сценарий на каркасе FT-0008: `task run <fixture.csv> --save --out <tmp.csv> --json` (задание пишет на лист только в save, в БРС оно только читает); проверки `summary` и сравнение `--out` с эталоном (при расхождении — понятный diff по ячейкам).
+- Офлайн-проверка `warning` без `--out` уже есть в FT-0018 (`src/tasks/ExportTechnologyCardsTask.test.ts`, фейковый `BrsApi`); здесь — только при необходимости через CLI.
 - Запись `SC-XXXX` в [Scenario registry](../scenarios.md).
 
 ### Context (SSoT links)

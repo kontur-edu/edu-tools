@@ -1,5 +1,5 @@
 # Execution events
-Status: Draft (2026-09-23)
+Status: Draft (2026-09-24)
 
 Исполнители заданий (`src/tasks`) и actions, которые пишут в лог задания, сообщают о ходе выполнения **событиями**, а не строками. Из одного и того же потока событий строятся текстовый лог (web, консоль) и машиночитаемый результат (`--json` в CLI, тесты).
 
@@ -45,7 +45,8 @@ Status: Draft (2026-09-23)
 - задание: имя задания (`CreateTechnologyCards`) — для ошибок параметров, «Unknown task», «API is not available»;
 - проект TeamProject: `Название (номер)`; итерация: `Название (номер) / Итерация`;
 - студент ИТС: `ФИО (группа)`; студент TeamProject: значение `$student` из таблицы (или полное имя из TeamProject, если студента нет в таблице);
-- техкарта: `disciplineLoad`.
+- техкарта: `disciplineLoad`;
+- блок записи на лист, которая не выполнена (CSV без `--out`, [Table sources](../table-sources.md#запись-результатов-заданий)): диапазон в A1-нотации (`D1:L3`).
 
 ## Ошибки движка
 «Unknown task» и «<System> API is not available» из `CompositeTableTaskExecutor` — событие `error` со `stopped` и `scope` = имя задания. Прочие исключения по-прежнему пробрасываются.

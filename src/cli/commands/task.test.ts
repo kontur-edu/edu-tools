@@ -122,6 +122,81 @@ describe('task run', () => {
     expect(json.error).toMatchObject({ code: 'TASK_SOURCE_INVALID', details: { reason: 'no-task' } })
   })
 
+  it('--out: выходной файл пишется и в try, входной файл не меняется', async () => {
+    const file = writeTaskCsv([
+      ['$keys', '$values', '$Name'],
+      ['task', 'Unknown', 'Иванов, И.'],
+      ['academicYear', '2024/2025'],
+    ])
+    const inputText = fs.readFileSync(file, 'utf8')
+    const out = path.join(path.dirname(file), 'result.csv')
+
+    const { json, exitCode } = await runCliAsync(['task', 'run', file, '--out', out, '--json'])
+
+    expect(exitCode).toBe(1)
+    expect(json.result).toMatchObject({ task: 'Unknown', mode: 'try', out })
+    expect(fs.readFileSync(file, 'utf8')).toBe(inputText)
+    // Задание ничего не записало: в выходном файле входная сетка.
+    expect(fs.readFileSync(out, 'utf8')).toBe(
+      '$keys,$values,$Name\ntask,Unknown,"Иванов, И."\nacademicYear,2024/2025\n',
+    )
+  })
+
+  it('без --out: файлов не создаётся, в результате нет out', async () => {
+    const file = writeTaskCsv([
+      ['$keys', '$values'],
+      ['task', 'Unknown'],
+    ])
+
+    const { json } = await runCliAsync(['task', 'run', file, '--json'])
+
+    expect(fs.readdirSync(path.dirname(file))).toEqual(['task.csv'])
+    expect(json.result).not.toHaveProperty('out')
+  })
+
+  it('--out совпадает с входным файлом: USAGE_ERROR, код выхода 2, входной файл не меняется', async () => {
+    const file = writeTaskCsv([
+      ['$keys', '$values'],
+      ['task', 'Unknown'],
+    ])
+    const inputText = fs.readFileSync(file, 'utf8')
+    const samePath = path.join(path.dirname(file), '.', path.basename(file))
+
+    const { json, exitCode } = await runCliAsync(['task', 'run', file, '--out', samePath, '--json'])
+
+    expect(exitCode).toBe(2)
+    expect(json.error).toMatchObject({ code: 'USAGE_ERROR', details: { option: '--out', reason: 'same-as-source' } })
+    expect(fs.readFileSync(file, 'utf8')).toBe(inputText)
+  })
+
+  it('--out — жёсткая ссылка на входной файл: USAGE_ERROR', async () => {
+    const file = writeTaskCsv([
+      ['$keys', '$values'],
+      ['task', 'Unknown'],
+    ])
+    const link = path.join(path.dirname(file), 'link.csv')
+    fs.linkSync(file, link)
+
+    const { json, exitCode } = await runCliAsync(['task', 'run', file, '--out', link, '--json'])
+
+    expect(exitCode).toBe(2)
+    expect(json.error).toMatchObject({ code: 'USAGE_ERROR', details: { reason: 'same-as-source' } })
+  })
+
+  it('--out с URL Google Таблицы: USAGE_ERROR, код выхода 2, до обращения к Google', async () => {
+    const { json, exitCode } = await runCliAsync([
+      'task',
+      'run',
+      'https://docs.google.com/spreadsheets/d/abc123/edit#gid=0',
+      '--out',
+      path.join(os.tmpdir(), 'result.csv'),
+      '--json',
+    ])
+
+    expect(exitCode).toBe(2)
+    expect(json.error).toMatchObject({ code: 'USAGE_ERROR', details: { option: '--out', reason: 'google-source' } })
+  })
+
   it('URL Google Таблицы без листа (gid): ошибка TASK_SOURCE_INVALID до обращения к Google', async () => {
     const { json, exitCode } = await runCliAsync([
       'task',

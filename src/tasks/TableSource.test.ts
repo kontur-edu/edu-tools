@@ -2,11 +2,13 @@ import * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { CsvFileTableSource } from '../apis/NodeCsvFile'
+import { CsvFileTableSource, readCsvFile, writeCsvFile } from '../apis/NodeCsvFile'
 import { GoogleApi, Spreadsheet } from '../apis/GoogleApi'
 import { formatCsv } from '../helpers/csv'
 import { readTableTaskAsync, TableTask, TableTaskWriter } from './TableTask'
-import { GoogleSheetTableSource, InMemoryTableSource } from './TableSource'
+import { GoogleSheetTableSource, InMemoryTableSource, writeBlockToGrid, WriteSkippingTableSource } from './TableSource'
+import { TaskEventCollector } from './TaskEvents'
+import { TaskReporter } from './TaskReporter'
 
 // Инвариант Table sources: одна сетка значений из любого источника даёт одинаковый TableTask.
 
@@ -70,14 +72,118 @@ describe('TableSource', () => {
     expect(await readTableTaskAsync(source)).toBeNull()
   })
 
-  it('запись на лист при CSV-источнике — ошибка задания с подсказкой про --out, входной файл не меняется', async () => {
-    const text = '$keys,$values\ntask,ExportTechnologyCards\n'
+  it('CSV-файл: запись идёт в сетку в памяти, входной файл не меняется; сетка сохраняется в выходной файл', async () => {
+    const text = '$keys,$values,$output\ntask,ExportTechnologyCards,\n'
     const filePath = writeTempCsv(text)
+    const outPath = path.join(path.dirname(filePath), 'out.csv')
+    const source = new CsvFileTableSource(filePath)
 
-    await expect(new CsvFileTableSource(filePath).writeBlockAsync()).rejects.toThrow(
-      expect.objectContaining({ name: 'TaskExecutionError', message: expect.stringContaining('--out') }),
-    )
+    await source.writeBlockAsync(2, 0, [
+      ['$output', 'discipline, name'],
+      [1, 'Алгебра "1"'],
+      [2, 'line1\nline2'],
+    ])
+    writeCsvFile(outPath, await source.readGridAsync())
+
     expect(fs.readFileSync(filePath, 'utf8')).toBe(text)
+    const expected = [
+      ['$keys', '$values', '$output', 'discipline, name'],
+      ['task', 'ExportTechnologyCards', '1', 'Алгебра "1"'],
+      ['', '', '2', 'line1\nline2'],
+    ]
+    expect(await source.readGridAsync()).toEqual(expected)
+    expect(readCsvFile(outPath)).toEqual(expected)
+    expect(fs.readFileSync(outPath, 'utf8')).toBe(formatCsv(expected) + '\n')
+  })
+})
+
+describe('InMemoryTableSource: запись на лист', () => {
+  it('пишет блок в свою сетку, чтение возвращает сетку после записи', async () => {
+    const source = new InMemoryTableSource([['$keys', '$values']])
+
+    await source.writeBlockAsync(0, 1, [['task', 'X']])
+
+    expect(await source.readGridAsync()).toEqual([
+      ['$keys', '$values'],
+      ['task', 'X'],
+    ])
+  })
+})
+
+describe('writeBlockToGrid: запись блока в сетку в памяти', () => {
+  it('расширяет сетку до блока и выравнивает строки до одной ширины', () => {
+    const input = [
+      ['$keys', '$values'],
+      ['task', 'ExportTechnologyCards', '$output'],
+    ]
+
+    const result = writeBlockToGrid(input, 3, 1, [
+      ['a', 'b'],
+      ['c', 'd'],
+    ])
+
+    expect(result).toEqual([
+      ['$keys', '$values', '', '', ''],
+      ['task', 'ExportTechnologyCards', '$output', 'a', 'b'],
+      ['', '', '', 'c', 'd'],
+    ])
+  })
+
+  it('пишет значения как их покажет Google: числа строкой, bool — TRUE/FALSE, null не меняет ячейку', () => {
+    const input = [['x', 'y', 'z', 'w']]
+
+    const result = writeBlockToGrid(input, 0, 0, [[1, true, null, undefined, false, '']])
+
+    expect(result).toEqual([['1', 'TRUE', 'z', 'w', 'FALSE', '']])
+  })
+
+  it('не меняет входную сетку', () => {
+    const input = [['a'], ['b']]
+
+    writeBlockToGrid(input, 0, 0, [['x', 'y']])
+
+    expect(input).toEqual([['a'], ['b']])
+  })
+
+  it('пустой блок: сетка без изменений значений', () => {
+    expect(writeBlockToGrid([['a', 'b'], ['c']], 5, 5, [])).toEqual([
+      ['a', 'b'],
+      ['c', ''],
+    ])
+  })
+})
+
+describe('WriteSkippingTableSource: запись на лист не выполняется', () => {
+  it('читает сетку источника, а вместо записи выдаёт warning с диапазоном и значениями блока в CSV', async () => {
+    const grid = [['$keys', '$values']]
+    const collector = new TaskEventCollector()
+    const source = new WriteSkippingTableSource(new InMemoryTableSource(grid), new TaskReporter(collector.listener))
+
+    await source.writeBlockAsync(7, 0, [
+      ['$output', 'discipline'],
+      [1, 'Алгебра, 1'],
+      [2, null],
+    ])
+
+    expect(await source.readGridAsync()).toEqual([['$keys', '$values']])
+    expect(collector.events).toEqual([
+      {
+        kind: 'outcome',
+        status: 'warning',
+        scope: 'H1:I3',
+        message: 'Запись на лист (H1:I3) не выполнена: укажите --out <file.csv>, чтобы сохранить результат.',
+        details: { range: 'H1:I3', values: '$output,discipline\n1,"Алгебра, 1"\n2,' },
+      },
+    ])
+  })
+
+  it('пустой блок: событий нет', async () => {
+    const collector = new TaskEventCollector()
+    const source = new WriteSkippingTableSource(new InMemoryTableSource([]), new TaskReporter(collector.listener))
+
+    await source.writeBlockAsync(0, 0, [])
+
+    expect(collector.events).toEqual([])
   })
 })
 

@@ -1,4 +1,5 @@
 import * as fs from 'fs'
+import * as path from 'path'
 import { Command } from 'commander'
 import { BrsApi } from '../../apis/BrsApi.js'
 import { BrsUrlProvider } from '../../apis/BrsUrlProvider.js'
@@ -6,13 +7,13 @@ import { parseSpreadsheetUrl } from '../../apis/GoogleApi.js'
 import { ItsApiV2 } from '../../apis/ItsApiV2.js'
 import { ItsUrlProvider } from '../../apis/ItsUrlProvider.js'
 import { CredentialsError, NodeCredentials } from '../../apis/NodeCredentials.js'
-import { CsvFileTableSource } from '../../apis/NodeCsvFile.js'
+import { CsvFileTableSource, writeCsvFile } from '../../apis/NodeCsvFile.js'
 import { NodeGoogleApi } from '../../apis/NodeGoogleApi.js'
 import { TeamProjectApiV2 } from '../../apis/TeamProjectApiV2.js'
 import { TeamProjectUrlProvider } from '../../apis/TeamProjectUrlProvider.js'
 import { CompositeTableTaskExecutor, tableTaskTypes } from '../../tasks/CompositeTableTaskExecutor.js'
 import { readTableTaskAsync, TableTask, TableTaskWriter } from '../../tasks/TableTask.js'
-import { GoogleSheetTableSource, TableSource } from '../../tasks/TableSource.js'
+import { GoogleSheetTableSource, TableSource, WriteSkippingTableSource } from '../../tasks/TableSource.js'
 import { TaskExecutionError } from '../../tasks/TaskExecutionError.js'
 import { renderTaskEventText } from '../../tasks/TaskEventText.js'
 import { summarizeTaskEvents, TaskEvent, TaskEventCollector, TaskEventDetails } from '../../tasks/TaskEvents.js'
@@ -57,27 +58,36 @@ export function registerTaskCommands(program: Command, context: CliContext) {
     )
     .argument('<source>', 'URL листа Google Таблицы или путь к CSV-файлу')
     .option('--save', 'режим save: записать изменения во внешние системы (иначе try)')
+    .option(
+      '--out <file.csv>',
+      'только для CSV-источника: сохранить лист после записи задания (входная сетка + записанные блоки) ' +
+        'в этот файл; пишется и в try, и в save. Входной файл не изменяется никогда',
+    )
     .addHelpText(
       'after',
       `
-Результат --json: { task, mode, events[], summary }; summary.counts — число событий по статусам
-(changed, unchanged, skipped, warning, error), summary.ok — нет ошибок и проваленных вердиктов.
+Результат --json: { task, mode, events[], summary } и out (путь выходного файла, если указан --out);
+summary.counts — число событий по статусам (changed, unchanged, skipped, warning, error),
+summary.ok — нет ошибок и проваленных вердиктов.
 Учётные данные берутся только для систем, нужных заданию; для CSV Google не нужен.
 Нет учётных данных системы — событие error с details.code = CREDENTIALS_MISSING.
 Источник не найден или на листе нет параметра task — ошибка TASK_SOURCE_INVALID.
-Задание, пишущее на лист (ExportTechnologyCards), при CSV-источнике в save завершается ошибкой: см. --out (FT-0018).
+Задание, пишущее на лист (ExportTechnologyCards, в save), при CSV-источнике без --out ничего не пишет:
+событие warning, в details.range — диапазон, в details.values — значения блока CSV-текстом.
+--out с URL Google Таблицы или совпадающий с входным файлом — ошибка USAGE_ERROR (код выхода 2).
 
 Примеры:
   $ npm run -s cli -- task run task.csv
   $ npm run -s cli -- task run task.csv --json
+  $ npm run -s cli -- task run export.csv --save --out result.csv --json
   $ npm run -s cli -- task run "https://docs.google.com/spreadsheets/d/<id>/edit#gid=<sheetId>" --save --json`,
     )
-    .action((source: string, options: { save?: boolean }, command: Command) =>
+    .action((source: string, options: { save?: boolean; out?: string }, command: Command) =>
       runCommandAsync(context, command, async () => {
         const mode: TaskRunMode = options.save ? 'save' : 'try'
         // В human-режиме лог выводится по мере выполнения, как в web.
         const liveLog = outputMode(command) === 'human' ? (line: string) => context.streams.stdout(line + '\n') : null
-        return taskRunAsync(context.credentials, source, mode, liveLog)
+        return taskRunAsync(context.credentials, source, mode, options.out ?? null, liveLog)
       }),
     )
 }
@@ -99,14 +109,21 @@ async function taskRunAsync(
   credentials: NodeCredentials,
   source: string,
   mode: TaskRunMode,
+  out: string | null,
   liveLog: ((line: string) => void) | null,
 ): Promise<CommandOutput> {
-  const tableTask = await readTaskAsync(source)
+  if (out !== null) {
+    checkOutPath(source, out)
+  }
 
   const collector = new TaskEventCollector()
   const reporter = liveLog
     ? new TaskReporter(collector.listener, (event) => liveLog(renderTaskEventText(event)))
     : new TaskReporter(collector.listener)
+
+  const { tableSource, outSource } = await openSourceAsync(source, out, reporter)
+  const tableTask = await readTaskAsync(tableSource, source)
+
   const executor = new CompositeTableTaskExecutor(
     () => createApi(() => new BrsApi(credentials.brsAuth(), new BrsUrlProvider(false))),
     () => createApi(() => new ItsApiV2(credentials.itsAuth(), new ItsUrlProvider(false))),
@@ -124,22 +141,90 @@ async function taskRunAsync(
     const error = toCliError(e)
     reporter.error(tableTask.name, error.message, { stopped: true, details: eventDetails(error.code, error.details) })
   }
-  return taskRunOutput(tableTask.name, mode, collector.events)
+
+  if (outSource && out !== null) {
+    await writeOutFileAsync(outSource, out, tableTask.name, reporter)
+  }
+  return taskRunOutput(tableTask.name, mode, collector.events, out)
 }
 
-/** Результат `task run`: `{ task, mode, events, summary }`; итог команды — `summary.ok`. */
-export function taskRunOutput(task: string, mode: TaskRunMode, events: TaskEvent[]): CommandOutput {
+// Источник задания. CSV: запись на лист идёт в сетку в памяти (outSource, с --out)
+// или превращается в warning (без --out).
+async function openSourceAsync(
+  source: string,
+  out: string | null,
+  reporter: TaskReporter,
+): Promise<{ tableSource: TableSource; outSource: CsvFileTableSource | null }> {
+  if (isGoogleSource(source)) {
+    return { tableSource: await googleSourceAsync(source), outSource: null }
+  }
+  const csvTableSource = csvSource(source)
+  return out !== null
+    ? { tableSource: csvTableSource, outSource: csvTableSource }
+    : { tableSource: new WriteSkippingTableSource(csvTableSource, reporter), outSource: null }
+}
+
+// Лист в том виде, каким он стал после записи задания; пишется, даже если задание завершилось ошибкой.
+// Ошибка записи — событие error: уже полученные события не теряются.
+async function writeOutFileAsync(outSource: CsvFileTableSource, out: string, task: string, reporter: TaskReporter) {
+  try {
+    writeCsvFile(out, await outSource.readGridAsync())
+  } catch (e) {
+    const error = toCliError(e)
+    reporter.error(task, `Не удалось записать ${out}: ${error.message}`, {
+      details: eventDetails(error.code, { ...error.details, out }),
+    })
+  }
+}
+
+/**
+ * Результат `task run`: `{ task, mode, events, summary }` и `out`, если указан `--out`;
+ * итог команды — `summary.ok`.
+ */
+export function taskRunOutput(
+  task: string,
+  mode: TaskRunMode,
+  events: TaskEvent[],
+  out: string | null = null,
+): CommandOutput {
   const summary = summarizeTaskEvents(events)
   const counts = Object.entries(summary.counts)
     .map(([status, count]) => `${status} ${count}`)
     .join(', ')
   const verdicts = summary.verdicts.failed > 0 ? `; failed verdicts ${summary.verdicts.failed}` : ''
   const message = `${task} (${mode}): ${summary.ok ? 'выполнено' : 'есть ошибки'}. ${counts}${verdicts}.`
-  return { ok: summary.ok, message, result: { task, mode, events, summary } }
+  return { ok: summary.ok, message, result: { task, mode, ...(out !== null ? { out } : {}), events, summary } }
 }
 
-async function readTaskAsync(source: string): Promise<TableTask> {
-  const tableSource = /^https?:\/\//i.test(source) ? await googleSourceAsync(source) : csvSource(source)
+function isGoogleSource(source: string): boolean {
+  return /^https?:\/\//i.test(source)
+}
+
+// --out: только для CSV-источника и не на месте входного файла.
+function checkOutPath(source: string, out: string) {
+  if (isGoogleSource(source)) {
+    throw new CliError('USAGE_ERROR', '--out поддерживается только для CSV-источника: Google-лист пишется сам.', {
+      option: '--out',
+      reason: 'google-source',
+    })
+  }
+  if (isSamePath(source, out)) {
+    throw new CliError('USAGE_ERROR', '--out совпадает с входным файлом: входной CSV не изменяется.', {
+      option: '--out',
+      reason: 'same-as-source',
+    })
+  }
+}
+
+// Один и тот же файл: совпадают нормализованные абсолютные пути или, если оба файла есть, их dev + ino.
+// Второе ловит символические и жёсткие ссылки и регистронезависимые файловые системы (Windows, macOS).
+function isSamePath(a: string, b: string): boolean {
+  if (path.resolve(a) === path.resolve(b)) return true
+  const [first, second] = [a, b].map((p) => fs.statSync(p, { bigint: true, throwIfNoEntry: false }))
+  return !!first && !!second && first.dev === second.dev && first.ino === second.ino
+}
+
+async function readTaskAsync(tableSource: TableSource, source: string): Promise<TableTask> {
   const tableTask = await readTableTaskAsync(tableSource)
   if (!tableTask) {
     throw new CliError('TASK_SOURCE_INVALID', 'На листе нет задания: не заполнен параметр task ($keys / $values).', {
@@ -150,7 +235,7 @@ async function readTaskAsync(source: string): Promise<TableTask> {
   return tableTask
 }
 
-function csvSource(filePath: string): TableSource {
+function csvSource(filePath: string): CsvFileTableSource {
   if (!fs.existsSync(filePath)) {
     throw new CliError('TASK_SOURCE_INVALID', `Файл ${filePath} не найден.`, { source: filePath, reason: 'not-found' })
   }

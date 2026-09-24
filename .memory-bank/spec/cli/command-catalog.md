@@ -7,7 +7,7 @@ Status: Draft (2026-09-24)
 
 | Команда | Исполнитель | Нужные учётные данные | Пишет во внешние системы | Состояние |
 |---|---|---|---|---|
-| `task run <sheetUrl \| file.csv> [--save] [--out <file.csv>]` | `CompositeTableTaskExecutor` (тип задания берётся из листа) | Google (только для URL) + системы задания | только с `--save`; входной CSV не изменяется никогда, запись на лист при CSV-источнике идёт в `--out` | факт без `--out` (FT-0004); `--out` — target (FT-0018) |
+| `task run <sheetUrl \| file.csv> [--save] [--out <file.csv>]` | `CompositeTableTaskExecutor` (тип задания берётся из листа) | Google (только для URL) + системы задания | только с `--save`; входной CSV не изменяется никогда, запись на лист при CSV-источнике идёт в `--out` | факт (FT-0004; `--out` — FT-0018: только для CSV, пишется и в try, и в save; с URL или на месте входного файла — `USAGE_ERROR`) |
 | `sheet export <sheetUrl> <file.csv>` | converter Google → CSV | Google | нет (пишет локальный файл) | target (FT-0016) |
 | `sheet import <file.csv> <sheetUrl> [--overwrite]` | converter CSV → Google | Google | да (в Google Таблицу) | target (FT-0016) |
 | `task list` | реестр типов заданий `tableTaskTypes` (`src/tasks/CompositeTableTaskExecutor.ts`): имя, системы, пишет ли на лист. Google в системах не указывается: он нужен источнику (URL), а не заданию | — | нет | факт (FT-0004) |
