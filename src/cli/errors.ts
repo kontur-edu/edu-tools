@@ -8,6 +8,7 @@ export type CliErrorCode =
   | 'CREDENTIALS_INVALID'
   | 'NETWORK_ERROR'
   | 'LOGIN_CANCELLED'
+  | 'TASK_SOURCE_INVALID'
   | 'INTERNAL_ERROR'
 
 export type CliErrorDetails = Record<string, unknown>
@@ -64,7 +65,14 @@ export function toCliError(error: unknown): CliError {
   return new CliError('INTERNAL_ERROR', errorMessage(error), {}, error)
 }
 
-const networkErrorCodes = ['ENOTFOUND', 'ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT', 'EAI_AGAIN', 'UND_ERR_CONNECT_TIMEOUT']
+const networkErrorCodes = [
+  'ENOTFOUND',
+  'ECONNREFUSED',
+  'ECONNRESET',
+  'ETIMEDOUT',
+  'EAI_AGAIN',
+  'UND_ERR_CONNECT_TIMEOUT',
+]
 
 /** fetch (undici) бросает `TypeError: fetch failed`, таймаут — `TimeoutError`; gaxios — ошибку с `code`. */
 export function isNetworkError(error: unknown): boolean {

@@ -4,7 +4,6 @@ import { BrsUrlProvider } from '../../apis/BrsUrlProvider.js'
 import { ItsApiV2 } from '../../apis/ItsApiV2.js'
 import { ItsUrlProvider } from '../../apis/ItsUrlProvider.js'
 import { credentialsSystems, CredentialsSystem, NodeCredentials } from '../../apis/NodeCredentials.js'
-import { googleSecretsPaths, NodeGoogleAuth } from '../../apis/NodeGoogleAuth.js'
 import { PartnerApi } from '../../apis/PartnerApi.js'
 import { PartnerUrlProvider } from '../../apis/PartnerUrlProvider.js'
 import { TeamProjectApiV2 } from '../../apis/TeamProjectApiV2.js'
@@ -16,6 +15,7 @@ import {
   checkTeamProjectAuthAsync,
 } from '../../actions/checkSystemAuthAsync.js'
 import { CliError, CliErrorCode, CliErrorDetails, toCliError } from '../errors.js'
+import { savedGoogleAuthAsync } from '../googleAuth.js'
 import { CommandOutput } from '../output.js'
 import { CliContext, runCommandAsync } from '../runCommand.js'
 
@@ -42,13 +42,16 @@ export type SystemCheck = {
 export type AuthProbe = () => Promise<boolean>
 
 export function registerAuthCommands(program: Command, context: CliContext) {
-  const auth = program.command('auth').description('Учётные данные систем УрФУ и Google').addHelpText(
-    'after',
-    `
+  const auth = program
+    .command('auth')
+    .description('Учётные данные систем УрФУ и Google')
+    .addHelpText(
+      'after',
+      `
 Примеры:
   $ npm run -s cli -- auth check --json
   $ npm run -s cli -- auth check --system its`,
-  )
+    )
 
   auth
     .command('check')
@@ -133,7 +136,9 @@ function authCheckOutput(systems: SystemCheck[]): CommandOutput {
     failed.length === 0
       ? 'Все проверенные системы приняли учётные данные.'
       : `Есть проблемы с учётными данными: ${failed.map((s) => s.system).join(', ')}.`
-  const lines = systems.map((s) => `${s.status.padEnd(12)} ${s.title.padEnd(12)} ${s.code ? s.code + ': ' : ''}${s.message}`)
+  const lines = systems.map(
+    (s) => `${s.status.padEnd(12)} ${s.title.padEnd(12)} ${s.code ? s.code + ': ' : ''}${s.message}`,
+  )
   return { ok: failed.length === 0, message, result: { systems }, text: [...lines, '', message].join('\n') }
 }
 
@@ -153,13 +158,7 @@ function createProbes(credentials: NodeCredentials): Record<AuthSystem, AuthProb
 }
 
 async function checkGoogleAuthAsync(): Promise<boolean> {
-  const auth = await NodeGoogleAuth.createAsync('only-saved')
-  if (!NodeGoogleAuth.hasSavedTokens()) {
-    throw new CliError('CREDENTIALS_MISSING', 'Google: нет сохранённых токенов — выполните google login.', {
-      system: 'google',
-      files: [googleSecretsPaths.tokens],
-    })
-  }
+  const auth = await savedGoogleAuthAsync()
   const { token } = await auth.authClient.getAccessToken()
   if (!token) return false
   await auth.authClient.getTokenInfo(token)

@@ -1,6 +1,7 @@
 import * as fs from 'fs'
 import { parseCsv } from '../helpers/csv.js'
 import { TableSource } from '../tasks/TableSource.js'
+import { TaskExecutionError } from '../tasks/TaskExecutionError.js'
 
 // Только Node: чтение CSV-файлов через fs (см. Table sources, architecture guardrails п. 2).
 
@@ -22,6 +23,6 @@ export class CsvFileTableSource implements TableSource {
 
   async writeBlockAsync(): Promise<void> {
     // Запись результата в отдельный файл (--out) — FT-0018.
-    throw new Error('Запись на лист не поддерживается для CSV-источника')
+    throw new TaskExecutionError('Запись на лист при CSV-источнике пока не поддерживается: см. --out (FT-0018).')
   }
 }

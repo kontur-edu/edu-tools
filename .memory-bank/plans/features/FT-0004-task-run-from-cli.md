@@ -1,8 +1,8 @@
 # FT-0004 — Запуск заданий из CLI
-Status: Draft (2026-09-23)
+Status: Draft (2026-09-24)
 
 ## Feature FT-0004 — Запуск заданий из CLI
-Epic: `EP-001`. Status: `Planned`.
+Epic: `EP-001`. Status: `Done`.
 Triage: `ready-for-agent`.
 Blocked by: FT-0002, FT-0003, FT-0015.
 
@@ -47,6 +47,18 @@ Blocked by: FT-0002, FT-0003, FT-0015.
 ### Tests
 - Unit: реестр заданий; сборка результата `--json` из событий.
 - Integration — в FT-0008 (EP-002).
+
+### Implementation notes
+- Реестр `tableTaskTypes` и `findTableTaskType` — в `src/tasks/CompositeTableTaskExecutor.ts`. Конструктор исполнителя и web-вызов не изменились. Getter API вызывается только для системы, нужной заданию.
+- `TaskExecutionError` (`src/tasks/TaskExecutionError.ts`) вынесен из исполнителя и получил `details`. Его бросают поставщики API в CLI (нет учётных данных → `details.code = CREDENTIALS_MISSING`) и CSV-источник при записи на лист. Исполнитель превращает его в одно событие `error`.
+- Команды — `src/cli/commands/taskRun.ts`. Ошибка команды `TASK_SOURCE_INVALID` введена для случаев, когда задание не прочитано. Исключение во время выполнения превращается в событие `error`, а не в ошибку команды: уже полученные события не теряются.
+- Для URL нужен `#gid=` листа. Метаданные таблицы читаются напрямую, а не через `getSheetNameAsync`: иначе ошибки сети и авторизации превращались бы в «лист не найден».
+- Проверка сохранённых токенов Google вынесена в `src/cli/googleAuth.ts` (общая с `auth check`).
+- Функции запуска заданий удалены из `src/legacyScripts.ts`.
+- Ошибка «запись на лист при CSV-источнике» возникает только в save и в момент записи: в try `ExportTechnologyCards` на лист не пишет, а предварительная проверка по `writesToSheet` запретила бы полезный try из CSV. В FT-0018 здесь появится `--out`.
+- `task list` не указывает Google в системах: Google нужен источнику (URL), а не заданию. Поэтому для `ExportTechnologyCards` там только `brs`, хотя Task catalog пишет «БРС + Google».
+- `getPartnerApi` остался в конструкторе исполнителя: так web-вызов не меняется. Ни одно задание реестра его не использует, CLI передаёт `() => null`.
+- Живой прогон try (SC-0004) не выполнялся: в окружении реализации не было тестового листа. Он остаётся ручной проверкой до FT-0008 / FT-0020.
 
 ### Definition of done
 По [Feature template](../../mbb/templates/feature.md); дополнительно `npm run build`, `npm run web-build`, `npm run lint`, `npm test` зелёные.

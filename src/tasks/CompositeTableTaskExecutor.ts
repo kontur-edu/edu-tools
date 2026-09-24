@@ -1,19 +1,75 @@
-import { BrsApi } from "../apis/BrsApi"
-import { ItsApiV2 } from "../apis/ItsApiV2"
-import { PartnerApi } from "../apis/PartnerApi"
-import { TeamProjectApiV2 } from "../apis/TeamProjectApiV2"
-import { DistributeStudentsIntoTeamsTaskExecutor } from "./DistributeStudentsIntoTeamsTask"
-import { SendCuratorMarksTaskExecutor } from "./SendCuratorMarksTask"
-import { ExportTechnologyCardsTaskExecutor } from "./ExportTechnologyCardsTask"
-import { CreateTeamProjectIterationsTaskExecutor } from "./CreateTeamProjectIterationsTask"
-import { CreateTechnologyCardsTaskExecutor } from "./CreateTechnologyCardsTask"
-import { TableTask, TableTaskWriter } from "./TableTask"
-import { TaskReporter } from "./TaskReporter"
+import { BrsApi } from '../apis/BrsApi'
+import { ItsApiV2 } from '../apis/ItsApiV2'
+import { PartnerApi } from '../apis/PartnerApi'
+import { TeamProjectApiV2 } from '../apis/TeamProjectApiV2'
+import { DistributeStudentsIntoTeamsTaskExecutor } from './DistributeStudentsIntoTeamsTask'
+import { SendCuratorMarksTaskExecutor } from './SendCuratorMarksTask'
+import { ExportTechnologyCardsTaskExecutor } from './ExportTechnologyCardsTask'
+import { CreateTeamProjectIterationsTaskExecutor } from './CreateTeamProjectIterationsTask'
+import { CreateTechnologyCardsTaskExecutor } from './CreateTechnologyCardsTask'
+import { TableTask, TableTaskWriter } from './TableTask'
+import { TaskExecutionError } from './TaskExecutionError'
+import { TaskReporter } from './TaskReporter'
 
-class TaskExecutionError extends Error {
-  constructor(message: string) {
-    super(message)
+// Внешние системы, API которых нужны заданиям (Google — отдельно: он нужен источнику, а не заданию).
+export type TaskSystem = 'brs' | 'its' | 'teamproject'
+
+// Зависимости, из которых собирается исполнитель задания. Getter API вызывается только для нужной
+// заданию системы: может вернуть null (web: нет авторизации) или бросить TaskExecutionError.
+interface TaskExecutorDependencies {
+  getBrsApi: () => BrsApi
+  getItsApi: () => ItsApiV2
+  getTeamProjectApi: () => TeamProjectApiV2
+  tableTaskWriter: TableTaskWriter
+  reporter: TaskReporter
+}
+
+export interface TableTaskType {
+  name: string
+  systems: TaskSystem[]
+  // Пишет ли задание результат на лист, из которого прочитано (в режиме save).
+  writesToSheet: boolean
+  createExecutor(dependencies: TaskExecutorDependencies): {
+    executeAsync(tableTask: TableTask, forceSave: boolean | null): Promise<void>
   }
+}
+
+// Реестр типов заданий: из него строятся маршрутизация исполнителя и `task list` в CLI.
+export const tableTaskTypes: ReadonlyArray<TableTaskType> = [
+  {
+    name: SendCuratorMarksTaskExecutor.TASK_NAME,
+    systems: ['teamproject'],
+    writesToSheet: false,
+    createExecutor: (d) => new SendCuratorMarksTaskExecutor(d.getTeamProjectApi(), d.reporter),
+  },
+  {
+    name: DistributeStudentsIntoTeamsTaskExecutor.TASK_NAME,
+    systems: ['its'],
+    writesToSheet: false,
+    createExecutor: (d) => new DistributeStudentsIntoTeamsTaskExecutor(d.getItsApi(), d.reporter),
+  },
+  {
+    name: ExportTechnologyCardsTaskExecutor.TASK_NAME,
+    systems: ['brs'],
+    writesToSheet: true,
+    createExecutor: (d) => new ExportTechnologyCardsTaskExecutor(d.getBrsApi(), d.tableTaskWriter, d.reporter),
+  },
+  {
+    name: CreateTeamProjectIterationsTaskExecutor.TASK_NAME,
+    systems: ['teamproject'],
+    writesToSheet: false,
+    createExecutor: (d) => new CreateTeamProjectIterationsTaskExecutor(d.getTeamProjectApi(), d.reporter),
+  },
+  {
+    name: CreateTechnologyCardsTaskExecutor.TASK_NAME,
+    systems: ['brs'],
+    writesToSheet: false,
+    createExecutor: (d) => new CreateTechnologyCardsTaskExecutor(d.getBrsApi(), d.reporter),
+  },
+]
+
+export function findTableTaskType(name: string): TableTaskType | null {
+  return tableTaskTypes.find((type) => type.name.toLowerCase() === name.toLowerCase()) ?? null
 }
 
 export class CompositeTableTaskExecutor {
@@ -30,7 +86,7 @@ export class CompositeTableTaskExecutor {
     getPartnerApi: () => PartnerApi | null,
     getTeamProjectApi: () => TeamProjectApiV2 | null,
     tableTaskWriter: TableTaskWriter,
-    reporter: TaskReporter | null
+    reporter: TaskReporter | null,
   ) {
     this.getBrsApi = getBrsApi
     this.getItsApi = getItsApi
@@ -42,39 +98,21 @@ export class CompositeTableTaskExecutor {
 
   async executeAsync(tableTask: TableTask, forceSave: boolean | null = null) {
     try {
-      switch (tableTask.name.toLowerCase()) {
-        case SendCuratorMarksTaskExecutor.TASK_NAME.toLowerCase():
-          const sendCuratorMarksTaskExecutor = new SendCuratorMarksTaskExecutor(
-            this.ensureTeamProjectApi(),
-            this.reporter)
-          return sendCuratorMarksTaskExecutor.executeAsync(tableTask, forceSave)
-        case DistributeStudentsIntoTeamsTaskExecutor.TASK_NAME.toLowerCase():
-          const distributeStudentsIntoTeamsTaskExecutor = new DistributeStudentsIntoTeamsTaskExecutor(
-            this.ensureItsApi(),
-            this.reporter)
-          return distributeStudentsIntoTeamsTaskExecutor.executeAsync(tableTask, forceSave)
-        case ExportTechnologyCardsTaskExecutor.TASK_NAME.toLowerCase():
-          const exportTechnologyCardsTaskExecutor = new ExportTechnologyCardsTaskExecutor(
-            this.ensureBrsApi(),
-            this.tableTaskWriter,
-            this.reporter)
-          return exportTechnologyCardsTaskExecutor.executeAsync(tableTask, forceSave)
-        case CreateTeamProjectIterationsTaskExecutor.TASK_NAME.toLowerCase():
-          const createTeamProjectIterationsTaskExecutor = new CreateTeamProjectIterationsTaskExecutor(
-            this.ensureTeamProjectApi(),
-            this.reporter)
-          return createTeamProjectIterationsTaskExecutor.executeAsync(tableTask, forceSave)
-        case CreateTechnologyCardsTaskExecutor.TASK_NAME.toLowerCase():
-          const createTechnologyCardsTaskExecutor = new CreateTechnologyCardsTaskExecutor(
-            this.ensureBrsApi(),
-            this.reporter)
-          return createTechnologyCardsTaskExecutor.executeAsync(tableTask, forceSave)
-        default:
-          throw new TaskExecutionError(`Unknown task "${tableTask.name}"`)
+      const taskType = findTableTaskType(tableTask.name)
+      if (!taskType) {
+        throw new TaskExecutionError(`Unknown task "${tableTask.name}"`)
       }
+      const executor = taskType.createExecutor({
+        getBrsApi: () => this.ensureApi(this.getBrsApi(), 'BRS'),
+        getItsApi: () => this.ensureApi(this.getItsApi(), 'ITS'),
+        getTeamProjectApi: () => this.ensureApi(this.getTeamProjectApi(), 'TeamProject'),
+        tableTaskWriter: this.tableTaskWriter,
+        reporter: this.reporter,
+      })
+      return await executor.executeAsync(tableTask, forceSave)
     } catch (error) {
       if (error instanceof TaskExecutionError) {
-        this.reporter.error(tableTask.name, error.message, { stopped: true })
+        this.reporter.error(tableTask.name, error.message, { stopped: true, details: error.details })
       } else {
         console.error(error)
         throw error
@@ -82,35 +120,10 @@ export class CompositeTableTaskExecutor {
     }
   }
 
-  private ensureBrsApi(): BrsApi {
-    const brsApi = this.getBrsApi()
-    if (!brsApi) {
-      throw new TaskExecutionError(`BRS API is not available`)
+  private ensureApi<T>(api: T | null, title: string): T {
+    if (!api) {
+      throw new TaskExecutionError(`${title} API is not available`)
     }
-    return brsApi
-  }
-
-  private ensureItsApi(): ItsApiV2 {
-    const itsApi = this.getItsApi()
-    if (!itsApi) {
-      throw new TaskExecutionError(`ITS API is not available`)
-    }
-    return itsApi
-  }
-
-  private ensurePartnerApi(): PartnerApi {
-    const partnerApi = this.getPartnerApi()
-    if (!partnerApi) {
-      throw new TaskExecutionError(`Partner API is not available`)
-    }
-    return partnerApi
-  }
-
-  private ensureTeamProjectApi(): TeamProjectApiV2 {
-    const teamProjectApi = this.getTeamProjectApi()
-    if (!teamProjectApi) {
-      throw new TaskExecutionError(`TeamProject API is not available`)
-    }
-    return teamProjectApi
+    return api
   }
 }

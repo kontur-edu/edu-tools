@@ -1,6 +1,7 @@
 import { Command, CommanderError } from 'commander'
 import { registerAuthCommands } from './commands/authCheck.js'
 import { registerGoogleCommands } from './commands/googleLogin.js'
+import { registerTaskCommands } from './commands/taskRun.js'
 import { CliError } from './errors.js'
 import { ExitCode, writeOutcome } from './output.js'
 import { CliContext } from './runCommand.js'
@@ -24,7 +25,7 @@ export function createProgram(context: CliContext, json: boolean): Command {
     .addHelpText(
       'after',
       `
-Команды верхнего уровня группируют подкоманды: auth check, google login.
+Команды верхнего уровня группируют подкоманды: auth check, google login, task list, task run.
 Вывод: human по умолчанию, --json — объект в stdout; ошибки — code + message + details.
 Коды выхода: 0 — успех, 1 — отрицательный результат или ошибка, 2 — неверный вызов (USAGE_ERROR).
 
@@ -32,11 +33,13 @@ export function createProgram(context: CliContext, json: boolean): Command {
   $ npm run -s cli -- --help
   $ npm run -s cli -- auth check --json
   $ npm run -s cli -- auth check --system its
+  $ npm run -s cli -- task run task.csv --json
   $ npm run -s cli -- google login`,
     )
 
   registerAuthCommands(program, context)
   registerGoogleCommands(program, context)
+  registerTaskCommands(program, context)
   return program
 }
 

@@ -5,22 +5,10 @@
 import { NotionApi, NotionAuth } from './apis/NotionApi.js'
 import { PartnerApi } from './apis/PartnerApi.js'
 import { PartnerUrlProvider } from './apis/PartnerUrlProvider.js'
-import { ItsApiV2 } from './apis/ItsApiV2.js'
-import { TeamProjectApiV2 } from './apis/TeamProjectApiV2.js'
-import { TeamProjectUrlProvider } from './apis/TeamProjectUrlProvider.js'
-import { TableTaskReader, TableTaskWriter } from './tasks/TableTask.js'
-import { NodeGoogleApi } from './apis/NodeGoogleApi.js'
-import { NodeGoogleAuth } from './apis/NodeGoogleAuth.js'
-import { DistributeStudentsIntoTeamsTaskExecutor } from './tasks/DistributeStudentsIntoTeamsTask.js'
 import { BrsApi, TechnologyCard, TermType } from './apis/BrsApi.js'
 import { fillTechnologyCardAsync } from './actions/fillTechnologyCardAsync.js'
-import { CreateTeamProjectIterationsTaskExecutor } from './tasks/CreateTeamProjectIterationsTask.js'
-import { ExportTechnologyCardsTaskExecutor } from './tasks/ExportTechnologyCardsTask.js'
-import { CreateTechnologyCardsTaskExecutor } from './tasks/CreateTechnologyCardsTask.js'
-import { SendCuratorMarksTaskExecutor } from './tasks/SendCuratorMarksTask.js'
 import { TaskReporter } from './tasks/TaskReporter.js'
 import { BrsUrlProvider } from './apis/BrsUrlProvider.js'
-import { ItsUrlProvider } from './apis/ItsUrlProvider.js'
 import { CredentialsError, NodeCredentials } from './apis/NodeCredentials.js'
 
 const credentials = NodeCredentials.fromProcess()
@@ -34,12 +22,10 @@ main().catch((error) => {
   throw error
 })
 
+// Табличные задания запускаются через CLI: npm run -s cli -- task run <sheetUrl | file.csv>.
 async function main() {
-  //await distributeStudentsIntoTeamsAsync()
-  //await createTeamProjectIterationsAsync()
-  //await exportTechnologyCardsAsync()
-  //await createTechnologyCardsAsync()
-  //await sendCuratorMarksAsync()
+  //await fillTechnologyCards()
+  //await cloneProjects()
 }
 
 async function fillTechnologyCards() {
@@ -80,97 +66,6 @@ async function fillTechnologyCards() {
   for (const card of cards) {
     await fillTechnologyCardAsync(brsApi, card, false, save, TaskReporter.console())
   }
-}
-
-async function createTeamProjectIterationsAsync() {
-  const googleAuth = await NodeGoogleAuth.createAsync('ask')
-  const taskReader = new TableTaskReader(new NodeGoogleApi(googleAuth))
-  const task = await taskReader.readTaskBySheetNameAsync(
-    '1oJcZnb909lF2VCyPgxacBIbTqMvNlmLKKY-ZHOpTxWI',
-    'Создание итераций',
-  )
-  if (task === null) return
-
-  const teamProjectApi = new TeamProjectApiV2(credentials.teamProjectAuth(), new TeamProjectUrlProvider(false))
-  const executor = new CreateTeamProjectIterationsTaskExecutor(teamProjectApi, null)
-  await executor.executeAsync(task)
-}
-
-async function distributeStudentsIntoTeamsAsync() {
-  const googleAuth = await NodeGoogleAuth.createAsync('ask-if-not-saved')
-  const taskReader = new TableTaskReader(new NodeGoogleApi(googleAuth))
-  // const task = await taskReader.readTaskBySheetNameAsync('1F56jrKpF5NGpZccI2rIgByj8QAIaRASDOWxnslEtJ3k', 'Регистрация команд')
-  // const task = await taskReader.readTaskBySheetNameAsync('1aLlE3N0twr8b3bbvEFf5ldAPxw5ICU8rrimejCZ2QTU', 'Все студенты')
-  // const task = await taskReader.readTaskBySheetNameAsync('1sl6Yo4Hlz7rsVyJZUhCMMf_8xhFJUbcTJvB_NnIvP2M', 'Регистрация команд') // 3 курс
-  // const task = await taskReader.readTaskBySheetNameAsync('1YnLMVnnHnb6fVw4baGMOcVf8sKmk580P3Oq3UIN1ttQ', 'Регистрация команд') // 2 курс
-  const task = await taskReader.readTaskBySheetNameAsync(
-    '1oJcZnb909lF2VCyPgxacBIbTqMvNlmLKKY-ZHOpTxWI',
-    'Регистрация команд',
-  ) // 1 курс
-  if (task === null) return
-
-  const itsApi = new ItsApiV2(credentials.itsAuth(), new ItsUrlProvider(false))
-  const executor = new DistributeStudentsIntoTeamsTaskExecutor(itsApi, null)
-  await executor.executeAsync(task)
-}
-
-async function sendCuratorMarksAsync() {
-  const googleAuth = await NodeGoogleAuth.createAsync('ask-if-not-saved')
-  const taskReader = new TableTaskReader(new NodeGoogleApi(googleAuth))
-
-  //Проектный практикум курс 3-4
-  const task = await taskReader.readTaskBySheetNameAsync('19C8YE8KT61C8VuFt-WpcN2bh9NNgnTy--fRDKvE8470', 'Участники')
-
-  //Проектный практикум курс 2
-  //const task = await taskReader.readTaskBySheetNameAsync('1QgjRk0MqpHmR3sBJ65lzptGtpsdlLETLCPCAdggOW6w', 'Оценивание команд')
-
-  //Проектный практикум курс 1
-  //const task = await taskReader.readTaskBySheetNameAsync('1quWHq3S93L-aYKvBbo0t6R7yjxYMz-iCimL2FAerHtA', 'Участники')
-
-  if (task === null) return
-
-  const teamProjectApi = new TeamProjectApiV2(credentials.teamProjectAuth(), new TeamProjectUrlProvider(false))
-  const executor = new SendCuratorMarksTaskExecutor(teamProjectApi, null)
-  await executor.executeAsync(task)
-}
-
-async function createTechnologyCardsAsync() {
-  const spreadsheetId = '1itQ1trUjQ9yx6c8FOHzbOc9kSDO-w55ZfMIsGCz9kpE'
-  const sheetName = 'Создание техкарт курсов по выбору'
-  //const sheetName = 'Создание техкарт основных курсов'
-
-  const googleAuth = await NodeGoogleAuth.createAsync('ask-if-not-saved')
-  const googleApi = new NodeGoogleApi(googleAuth)
-  const taskReader = new TableTaskReader(googleApi)
-  const task = await taskReader.readTaskBySheetNameAsync(spreadsheetId, sheetName)
-  if (task === null) return
-
-  const urlProvider = new BrsUrlProvider(false)
-  const auth = credentials.brsAuth()
-  const brsApi = new BrsApi(auth, urlProvider)
-
-  const executor = new CreateTechnologyCardsTaskExecutor(brsApi, null)
-  await executor.executeAsync(task)
-}
-
-async function exportTechnologyCardsAsync() {
-  const spreadsheetId = '1itQ1trUjQ9yx6c8FOHzbOc9kSDO-w55ZfMIsGCz9kpE'
-  // const sheetName = 'Основные курсы'
-  const sheetName = 'Курсы по выбору'
-
-  const googleAuth = await NodeGoogleAuth.createAsync('ask-if-not-saved')
-  const googleApi = new NodeGoogleApi(googleAuth)
-  const taskReader = new TableTaskReader(googleApi)
-  const taskWriter = new TableTaskWriter()
-  const task = await taskReader.readTaskBySheetNameAsync(spreadsheetId, sheetName)
-  if (task === null) return
-
-  const urlProvider = new BrsUrlProvider(false)
-  const auth = credentials.brsAuth()
-  const brsApi = new BrsApi(auth, urlProvider)
-
-  const executor = new ExportTechnologyCardsTaskExecutor(brsApi, taskWriter, null)
-  await executor.executeAsync(task)
 }
 
 async function cloneProjects() {

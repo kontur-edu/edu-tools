@@ -7,10 +7,10 @@ Status: Draft (2026-09-24)
 
 | Команда | Исполнитель | Нужные учётные данные | Пишет во внешние системы | Состояние |
 |---|---|---|---|---|
-| `task run <sheetUrl \| file.csv> [--save] [--out <file.csv>]` | `CompositeTableTaskExecutor` (тип задания берётся из листа) | Google (только для URL) + системы задания | только с `--save`; входной CSV не изменяется никогда, запись на лист при CSV-источнике идёт в `--out` | target (FT-0004, FT-0018) |
+| `task run <sheetUrl \| file.csv> [--save] [--out <file.csv>]` | `CompositeTableTaskExecutor` (тип задания берётся из листа) | Google (только для URL) + системы задания | только с `--save`; входной CSV не изменяется никогда, запись на лист при CSV-источнике идёт в `--out` | факт без `--out` (FT-0004); `--out` — target (FT-0018) |
 | `sheet export <sheetUrl> <file.csv>` | converter Google → CSV | Google | нет (пишет локальный файл) | target (FT-0016) |
 | `sheet import <file.csv> <sheetUrl> [--overwrite]` | converter CSV → Google | Google | да (в Google Таблицу) | target (FT-0016) |
-| `task list` | реестр типов заданий | — | нет | target (FT-0004) |
+| `task list` | реестр типов заданий `tableTaskTypes` (`src/tasks/CompositeTableTaskExecutor.ts`): имя, системы, пишет ли на лист. Google в системах не указывается: он нужен источнику (URL), а не заданию | — | нет | факт (FT-0004) |
 | `auth check [--system <brs|its|teamproject|partner|google>]` | пробные запросы на чтение `src/actions/checkSystemAuthAsync.ts` (их же вызывают сторы web); Google — обновление токена и `tokeninfo` | проверяемая система | нет | факт (FT-0003) |
 | `google login` | `NodeGoogleAuth.loginAsync` (installed-app flow, токены в `secrets/google-tokens.json`) | `secrets/google.json` | нет | факт (FT-0003) |
 
@@ -18,6 +18,6 @@ Status: Draft (2026-09-24)
 
 Скрипт Partner → Notion (`cloneProjects`) в CLI не переносится: он не развивается и может быть удалён или переписан с заменой Notion на BuildIn.AI.
 
-Разовые скрипты бывшего `src/main.ts` (запуск заданий с листом и параметрами в коде, `fillTechnologyCards`, `cloneProjects`) лежат в `src/legacyScripts.ts` и запускаются вручную (`npm run legacy-scripts`), CLI их не вызывает. Функции запуска заданий удаляются, когда их заменит `task run` (FT-0004).
+Разовые скрипты бывшего `src/main.ts` (`fillTechnologyCards`, `cloneProjects`) лежат в `src/legacyScripts.ts` и запускаются вручную (`npm run legacy-scripts`), CLI их не вызывает. Функции запуска заданий с листом в коде удалены в FT-0004: их заменил `task run`.
 
 Формат записи при добавлении команды: команда, исполнитель, учётные данные, пишет ли в системы.

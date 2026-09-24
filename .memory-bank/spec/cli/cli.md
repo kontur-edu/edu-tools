@@ -1,7 +1,7 @@
 # CLI spec
 Status: Draft (2026-09-24)
 
-**Состояние:** каркас CLI на Commander есть (FT-0003): `src/cli/`, команды `auth check` и `google login`. Запуск заданий (`task run`, `task list`) и конвертация Google ⇄ CSV появятся в следующих фичах [EP-001](../../plans/epics/EP-001-cli-and-observability.md). Разовые скрипты с параметрами в коде вынесены из бывшего `src/main.ts` в `src/legacyScripts.ts` (`npm run legacy-scripts`), CLI их не вызывает.
+**Состояние:** каркас CLI на Commander есть (FT-0003): `src/cli/`, команды `auth check` и `google login`. Запуск заданий — `task run` и `task list` (FT-0004). Конвертация Google ⇄ CSV (FT-0016) и `--out` (FT-0018) появятся в следующих фичах [EP-001](../../plans/epics/EP-001-cli-and-observability.md). В `src/legacyScripts.ts` (`npm run legacy-scripts`) остались только разовые скрипты, которые не являются табличными заданиями. CLI их не вызывает.
 
 ## Зачем
 Чтобы разработчик и ИИ-агент могли запускать задания без UI и автоматически проверять результат. CLI — основа интеграционных тестов ([EP-002](../../plans/epics/EP-002-automated-tests.md)).
@@ -40,15 +40,32 @@ Status: Draft (2026-09-24)
 | `CREDENTIALS_INVALID` | учётные данные заданы, но файл не читается / неверного формата или система их не приняла; `details.reason` — причина, если есть |
 | `NETWORK_ERROR` | система не ответила: сетевая ошибка или таймаут |
 | `LOGIN_CANCELLED` | `google login`: код авторизации не введён |
+| `TASK_SOURCE_INVALID` | `task run`: задание не прочитано. `details.source` — аргумент, `details.reason`: `not-found` (нет файла), `bad-url` (URL не указывает лист: нужен `#gid=`), `sheet-not-found` (в таблице нет листа с таким `gid`), `no-task` (на листе не заполнен параметр `task`) |
 | `INTERNAL_ERROR` | прочие исключения (в `auth check` — статус `error`) |
 
 Значения секретов не попадают ни в `message`, ни в `details`.
 
-## Результат выполнения задания (`--json`)
+## Результат выполнения задания (`task run`)
+`result` в конверте `--json`:
 - `task`, `mode` (`try` | `save`);
-- `events[]` — события исполнителя. Модель уже реализована (FT-0002): `outcome` с `status` (`changed` | `unchanged` | `skipped` | `warning` | `error`), `scope` (проект/студент/техкарта…), `message`, `details`, плюс служебные события текстового лога. SSoT модели и соответствия статусов эмодзи — [Execution events](../domain/tasks/execution-events.md);
+- `events[]` — события исполнителя (FT-0002): `outcome` с `status` (`changed` | `unchanged` | `skipped` | `warning` | `error`), `scope` (проект/студент/техкарта…), `message`, `details`, плюс служебные события текстового лога. SSoT модели и соответствия статусов эмодзи — [Execution events](../domain/tasks/execution-events.md);
 - `summary`: `counts` — элементарные результаты по статусам, `verdicts` — итоги стадий (`ok` / `attention` / `failed`), `ok` (bool); см. [Execution events](../domain/tasks/execution-events.md#сводка).
+
+`ok` конверта равен `summary.ok`; если `summary.ok = false`, код выхода 1. `message` — итог одной строкой: `<task> (<mode>): выполнено | есть ошибки. changed N, unchanged N, skipped N, warning N, error N` и, если есть, `failed verdicts N`.
+
+Human-вывод — те же строки, что в web-логе, по мере выполнения, последней строкой — `message`.
+
+Ошибки, из-за которых задание не выполнено, — это события, а не ошибка команды: результат с уже полученными событиями сохраняется. Такое событие — `outcome` со `status = error` и `stopped = true`, `scope` — имя задания:
+- неизвестный тип задания — `Unknown task "<name>"`;
+- нет учётных данных системы, которая нужна заданию: `details.code = CREDENTIALS_MISSING` (или `CREDENTIALS_INVALID`), `details.system`, `details.variables` — имена переменных через запятую;
+- задание, пишущее на лист, при CSV-источнике в save: запись на лист пока не поддерживается, подсказка про `--out` (FT-0018);
+- исключение во время выполнения (сеть, дефект) — `details.code` по таблице кодов ошибок, остальные поля `details` — как у ошибки команды.
+
+Ошибка команды (конверт с `error`) — только если задание не прочитано (`TASK_SOURCE_INVALID`) или не получен доступ к Google для URL (`CREDENTIALS_*`, `NETWORK_ERROR`).
+
 `warning` пока не используется: действие пропущено по ограничению окружения (например, запись на лист при CSV-источнике без `--out`, FT-0018).
+
+Учётные данные систем УрФУ читаются лениво: только для систем, нужных заданию (см. `task list`). Для CSV-источника Google не нужен, для URL нужны сохранённые токены (`google login`).
 
 ## Учётные данные
 Все команды берут учётные данные систем УрФУ из одного загрузчика — `NodeCredentials` (`src/apis/NodeCredentials.ts`). Переменные и форматы — в [Stack & tooling](../project/stack-and-tooling.md#конфигурация-и-секреты). Читать, чтобы не заводить второй способ передачи секретов.

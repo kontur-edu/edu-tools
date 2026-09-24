@@ -69,6 +69,16 @@ describe('TableSource', () => {
 
     expect(await readTableTaskAsync(source)).toBeNull()
   })
+
+  it('запись на лист при CSV-источнике — ошибка задания с подсказкой про --out, входной файл не меняется', async () => {
+    const text = '$keys,$values\ntask,ExportTechnologyCards\n'
+    const filePath = writeTempCsv(text)
+
+    await expect(new CsvFileTableSource(filePath).writeBlockAsync()).rejects.toThrow(
+      expect.objectContaining({ name: 'TaskExecutionError', message: expect.stringContaining('--out') }),
+    )
+    expect(fs.readFileSync(filePath, 'utf8')).toBe(text)
+  })
 })
 
 describe('GoogleSheetTableSource: запись на лист', () => {
