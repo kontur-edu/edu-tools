@@ -2,7 +2,7 @@
 Status: Draft (2026-09-24)
 
 Зафиксированный стек:
-- **Язык:** TypeScript (strict), ESM (`"type": "module"`), Node.js ≥ 22 (`.nvmrc`). Функция бота в Yandex Cloud пока работает на runtime `nodejs18`; переход на последние версии Node — в перспективе roadmap (не сейчас, есть риск поломок).
+- **Язык:** TypeScript (strict), ESM (`"type": "module"`), Node.js ≥ 22.12 (`.nvmrc`; минимум задают Vitest 5 и Vite 8). Функция бота в Yandex Cloud пока работает на runtime `nodejs18`; переход на последние версии Node — в перспективе roadmap (не сейчас, есть риск поломок).
 - **Web:** React 18 + MUI + Emotion, React Router, Zustand (состояние авторизаций), Create React App (`react-scripts`).
 - **Google:** в браузере — `@react-oauth/google` (OAuth token) + `gapi` (Sheets API v4); в Node — `googleapis` / `google-auth-library` (OAuth installed-app flow).
 - **Telegram bot:** Telegraf; HTML из Telegram-сущностей → Markdown → блоки Notion (`hast-util-*`, `mdast-util-to-markdown`, `@tryfabric/martian`).
@@ -17,9 +17,9 @@ Status: Draft (2026-09-24)
 - Сборка Node-части: `tsc` в `build/`; запуск через `node --loader ./loader.js` (loader дописывает `.js` к относительным импортам).
 - Сборка web: `react-scripts build`.
 - Lint: ESLint (`@typescript-eslint/recommended`) на `src/`. В `.eslintrc` стоит `"root": true`: конфиги из родительских папок и `~/.eslintrc` не подмешиваются, поэтому результат `lint` одинаков на любой машине.
-- Pre-commit: Husky 9, хук ставится скриптом `prepare` при `npm ci` / `npm install`. Состав проверок — в `.husky/pre-commit` и `.lintstagedrc`. Инварианты: коммит не проходит без зелёных `npm run lint` и `npm run docs:check`; Prettier форматирует только staged `src/**/*.{ts,tsx}` и не трогает меморибанк.
+- Pre-commit: Husky 9, хук ставится скриптом `prepare` при `npm ci` / `npm install`. Состав проверок — в `.husky/pre-commit` и `.lintstagedrc`. Инварианты: коммит не проходит без зелёных `npm run lint`, `npm run docs:check` и `npm test`; Prettier форматирует только staged `src/**/*.{ts,tsx}` и не трогает меморибанк.
 - Форматирование: Prettier — без `;`, одинарные кавычки, trailing commas, ширина 120, отступ 2.
-- Автотестов нет (`web-test` из CRA не используется).
+- Unit-тесты: Vitest ([ADR-0007](../../adr/ADR-0007-vitest-test-runner.md)), конфиг — `vitest.config.ts`. Тест лежит рядом с модулем: `src/**/<module>.test.ts` (однотипные модули папки — одним групповым файлом). `tsconfig.json` исключает тесты из сборки `tsc`, в CRA-бандл они не попадают (их никто не импортирует), ESLint проверяет их вместе со всем `src/`. Типы тестов проверяет `npm run typecheck` (`tsconfig.test.json`, без вывода файлов). `react-scripts test` не используется.
 - Playwright (`@playwright/test`) установлен как dev-зависимость для управления web-приложением из headless-браузера; тестов на нём пока нет (e2e web UI — out of scope EP-002). Браузер — установленный Chrome через `channel: 'chrome'`: скачивание сборки `npx playwright install chromium` с `cdn.playwright.dev` может обрываться по таймауту.
 - Dev-окружение: GitHub Codespaces (`.devcontainer/`) с Claude Code.
 
@@ -35,6 +35,8 @@ Status: Draft (2026-09-24)
 | `npm run legacy-scripts` / `npm run dev` | сборка и запуск разовых скриптов `src/legacyScripts.ts` / то же через nodemon + ts-node |
 | `npm run bot-dev` / `npm run bot-start` | бот локально (long polling) |
 | `./bot-deploy.sh` | сборка, выкладка функции `fiit-tools-bot` в Yandex Cloud, регистрация webhook |
+| `npm test` | однократный прогон unit-тестов (Vitest); при падении — ненулевой exit code |
+| `npm run typecheck` | проверка типов всего `src/`, включая тесты (`tsc` без вывода) |
 | `npm run lint` / `npm run format` | ESLint / ESLint --fix |
 | `npm run docs:check` | проверка меморибанка: битые ссылки, документы без входящих ссылок, строка статуса |
 | `cors-proxy/deploy.sh` | docker build/push + деплой ревизии serverless-контейнера |

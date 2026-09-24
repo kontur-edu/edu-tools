@@ -25,6 +25,7 @@ Status: Draft (2026-09-24)
 - `src/helpers/` — утилиты (кэши browser/file, нормализация строк, даты, CORS-proxy URL).
 - `public/` — статика CRA.
 - `loader.js`, `nodemon.json`, `tsconfig.json`, `.eslintrc`, `.prettierrc` — сборка/запуск/стиль.
+- `vitest.config.ts`, `tsconfig.test.json` — unit-тесты и проверка их типов. Сами тесты лежат рядом с модулями: `src/**/<module>.test.ts` ([ADR-0007](../../adr/ADR-0007-vitest-test-runner.md)).
 - `web-deploy.sh`, `bot-deploy.sh` — деплой.
 - `scripts/` — служебные скрипты разработки (`check-memory-bank.mjs` для `npm run docs:check`).
 

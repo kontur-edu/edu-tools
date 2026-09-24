@@ -9,11 +9,10 @@ Status: Draft (2026-09-24)
 
 ## Базовые проверки (для любой фичи, сейчас)
 - `npm run lint`
+- `npm test` (и `npm run typecheck`, если добавлены или изменены тесты)
 - `npm run docs:check` (если затронут `.memory-bank/`, `AGENTS.md` или `CLAUDE.md`)
 - `npm run web-build` (если затронут web) и `npm run build` (если затронут Node-код)
 - ручной прогон try на тестовом листе для затронутых заданий (после FT-0015 — можно на CSV через CLI)
-
-После EP-002 к базовым добавляется `npm test`.
 
 ## Matrix
 Формат строки: `FT` | `Must add test` (какой тест добавляем, путь) | `Must run` (какие сценарии и проверки обязаны быть зелёными).
@@ -24,3 +23,4 @@ Status: Draft (2026-09-24)
 | FT-0002 | Unit-тесты после FT-0006: текстовый рендер набора событий (`src/tasks/TaskEventText.ts`), сводка по статусам (`src/tasks/TaskEvents.ts`) | `npm run build`, `npm run web-build`, `npm run lint`; прогон каждого задания в try: текст лога совпадает с логом до изменений, кроме отличий из [Execution events](../spec/domain/tasks/execution-events.md); неизвестный тип задания даёт одно событие `error` и `ok = false` |
 | FT-0003 | Unit-тесты после FT-0006: `renderJson` / `renderHumanError` / `exitCodeFor` (`src/cli/output.ts`), `toCliError` (`src/cli/errors.ts`), `checkSystemsAsync` на фейковых пробах (`src/cli/commands/authCheck.ts`) | `npm run build`, `npm run web-build`, `npm run lint`; `npm run -s cli -- --help` (код 0, команды и примеры); без учётных данных ИТС `auth check --system its --json` → код 1, `status = missing`, `code = CREDENTIALS_MISSING`, `ITS_AUTH` в `details.variables`; `auth check --json` → stdout — валидный JSON по пяти системам, значение `BRS_SID` не выводится; `auth check --system nope --json` → код 2, `USAGE_ERROR`; с действующими данными системы — `ok` |
 | FT-0017 | — (инфраструктура; `npm test` в хук добавляется в FT-0006) | `npm run lint`, `npm run docs:check`; после `npm ci` `git config core.hooksPath` = `.husky/_`; коммит с изменённым `src/**/*.ts` проходит через lint-staged, Prettier переформатирует только staged `src/**/*.{ts,tsx}`; коммит при ошибке ESLint в любом файле `src/` (не только staged) отклоняется |
+| FT-0006 | Характеризационные unit-тесты хелперов: `src/helpers/tools.test.ts`, `src/helpers/fio.test.ts`, `src/helpers/JustDate.test.ts`, `src/helpers/CorsProxyUrlProvider.test.ts`, `src/apis/UrlProviders.test.ts` | `npm test` (код 0), `npm run typecheck`, `npm run lint`, `npm run build`, `npm run web-build`; в `build/` нет `*.test.*`; при сломанном хелпере `npm test` даёт ненулевой код и коммит отклоняется хуком |

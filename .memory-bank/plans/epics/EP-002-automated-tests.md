@@ -14,7 +14,7 @@ Status: `In progress`.
 ### Features (vertical slices)
 Порядок в списке — порядок реализации. Блокировки — строка `Blocked by:` в файле фичи; после FT-0006 можно параллельно делать FT-0019, FT-0009 и FT-0008 (последняя ждёт ещё FT-0004).
 - [FT-0017 — Рабочий pre-commit](../features/FT-0017-working-pre-commit.md) — быстрые проверки (lint, `docs:check`, Prettier для `src/`) на каждом коммите. `Done`.
-- [FT-0006 — Unit-инфраструктура](../features/FT-0006-unit-test-infrastructure.md) — раннер (ADR), `npm test` в pre-commit, первые тесты на чистые хелперы. Блокер FT-0015 (EP-001), чтобы CSV-модули сразу шли с тестами.
+- [FT-0006 — Unit-инфраструктура](../features/FT-0006-unit-test-infrastructure.md) — раннер (ADR), `npm test` в pre-commit, первые тесты на чистые хелперы. Блокер FT-0015 (EP-001), чтобы CSV-модули сразу шли с тестами. `Done`.
 - [FT-0019 — Unit-тесты для сделанного в EP-001](../features/FT-0019-ep-001-unit-tests.md) — отложенные тесты FT-0001…FT-0003 из verification matrix: учётные данные, события, вывод CLI.
 - [FT-0009 — CI](../features/FT-0009-ci.md) — lint, `docs:check`, сборки и `npm test` на каждый push/PR (дублирует pre-commit на случай, если хук обойдён или не установлен).
 - [FT-0008 — Каркас интеграционных тестов через CLI](../features/FT-0008-cli-integration-harness.md) — `task run <file.csv> --json` как процесс; офлайн-сценарии в `npm test`, живые в try по требованию; первый сценарий `SendCuratorMarks`.
@@ -31,7 +31,7 @@ Status: `In progress`.
 ### Risks & mitigations
 - Risk: интеграционные тесты зависят от живых систем УрФУ и истекающих учётных данных → Mitigation: только try-режим, запуск по требованию, а не на каждый push.
 - Risk: CSV-фикстуры расходятся с реальными таблицами → Mitigation: фикстуры получаются выгрузкой реальных листов через `sheet export` (с обезличиванием данных студентов).
-- Risk: CRA-раннер (`react-scripts test`) плохо подходит для Node-кода → Mitigation: раннер выбирается в FT-0006 и фиксируется ADR.
+- Risk: CRA-раннер (`react-scripts test`) плохо подходит для Node-кода → Mitigation: в FT-0006 выбран Vitest, решение зафиксировано в [ADR-0007](../../adr/ADR-0007-vitest-test-runner.md).
 
 ### Definition of done
 - Все фичи имеют сценарии (setup → action → assert).

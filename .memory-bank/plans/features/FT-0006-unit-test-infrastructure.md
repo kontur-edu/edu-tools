@@ -2,7 +2,7 @@
 Status: Draft (2026-09-24)
 
 ## Feature FT-0006 — Unit-инфраструктура
-Epic: `EP-002`. Status: `Planned`.
+Epic: `EP-002`. Status: `Done`.
 Triage: `ready-for-agent`.
 
 ### User value

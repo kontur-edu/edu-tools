@@ -8,7 +8,7 @@
   "homepage": "https://edu-tools.fiit-urfu-cloud.ru",
   "privacyPolicy": "https://edu-tools.fiit-urfu-cloud.ru/privacy",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.12.0"
   },
   "scripts": {
     "dev": "npx nodemon",
@@ -16,6 +16,8 @@
     "lint": "npx eslint ./src",
     "format": "npx eslint ./src --fix",
     "docs:check": "node ./scripts/check-memory-bank.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.test.json",
     "cli": "npm run -s build && node --no-warnings --loader ./loader.js build/cli/main",
     "legacy-scripts": "npm run build && node --loader ./loader.js build/legacyScripts",
     "bot-dev": "npx nodemon --exec npx ts-node ./src/bot.ts",
@@ -23,7 +25,6 @@
     "bot-register": "node --loader ./loader.js build/bot-register",
     "web-start": "react-scripts start",
     "web-build": "rimraf ./build && react-scripts build",
-    "web-test": "react-scripts test",
     "web-eject": "react-scripts eject",
     "prepare": "husky"
   },
@@ -50,7 +51,9 @@
     "prettier": "^2.8.0",
     "rimraf": "^3.0.2",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.2",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.1"
   },
   "dependencies": {
     "@emotion/react": "latest",
