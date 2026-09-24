@@ -5,7 +5,7 @@ import { missingCredentialsAsync, runLiveCliAsync, scenarioFixture } from '../..
 // Живые сценарии (npm run test:integration): try против TeamProject, во внешней системе ничего не меняется.
 
 /** Локальный CSV с тестовым проектом TeamProject для SC-0015; содержит реальные ФИО, поэтому не коммитится. */
-const PROJECT_CSV_VARIABLE = 'SC_0015_SEND_CURATOR_MARKS_CSV'
+const PROJECT_CSV_VARIABLE = 'TEST_SEND_CURATOR_MARKS_CSV'
 
 type Event = { kind: string; status?: string; scope?: string; stopped?: boolean; details?: unknown; level?: number }
 

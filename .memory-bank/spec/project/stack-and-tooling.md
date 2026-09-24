@@ -37,7 +37,7 @@ Status: Draft (2026-09-24)
 | `npm run bot-dev` / `npm run bot-start` | бот локально (long polling) |
 | `./bot-deploy.sh` | сборка, выкладка функции `fiit-tools-bot` в Yandex Cloud, регистрация webhook |
 | `npm test` | однократный прогон unit-тестов и офлайн-сценариев CLI (Vitest); при падении — ненулевой exit code |
-| `npm run test:integration` | живые сценарии в try против систем УрФУ, учётные данные из `.env` / `secrets/`; без учётных данных системы сценарий пропускается с именами переменных (exit code 0); сценарию с реальными данными нужен путь к локальному CSV в `.env` (`SC_0015_SEND_CURATOR_MARKS_CSV`) |
+| `npm run test:integration` | живые сценарии в try против систем УрФУ, учётные данные из `.env` / `secrets/`; без учётных данных системы сценарий пропускается с именами переменных (exit code 0); сценарию с реальными данными нужен путь к локальному CSV в `.env` (`TEST_SEND_CURATOR_MARKS_CSV`) |
 | `npm run typecheck` | проверка типов всего `src/`, включая тесты (`tsc` без вывода) |
 | `npm run lint` / `npm run format` | ESLint / ESLint --fix |
 | `npm run docs:check` | проверка меморибанка: битые ссылки, документы без входящих ссылок, строка статуса |
