@@ -17,7 +17,7 @@ Status: `In progress`.
 - [FT-0006 — Unit-инфраструктура](../features/FT-0006-unit-test-infrastructure.md) — раннер (ADR), `npm test` в pre-commit, первые тесты на чистые хелперы. Блокер FT-0015 (EP-001), чтобы CSV-модули сразу шли с тестами. `Done`.
 - [FT-0019 — Unit-тесты для сделанного в EP-001](../features/FT-0019-ep-001-unit-tests.md) — отложенные тесты FT-0001…FT-0003 из verification matrix: учётные данные, события, вывод CLI.
 - [FT-0009 — CI](../features/FT-0009-ci.md) — lint, `docs:check`, сборки и `npm test` на каждый push/PR (дублирует pre-commit на случай, если хук обойдён или не установлен).
-- [FT-0008 — Каркас интеграционных тестов через CLI](../features/FT-0008-cli-integration-harness.md) — `task run <file.csv> --json` как процесс; офлайн-сценарии в `npm test`, живые в try по требованию; первый сценарий `SendCuratorMarks`.
+- [FT-0008 — Каркас интеграционных тестов через CLI](../features/FT-0008-cli-integration-harness.md) — `task run <file.csv> --json` как процесс; офлайн-сценарии в `npm test`, живые в try по требованию; первый сценарий `SendCuratorMarks`. `Done`; живой прогон отложен: в TeamProject нет тестовых данных.
 - [FT-0020 — Живые сценарии заданий, не пишущих на лист](../features/FT-0020-live-scenarios-read-only-tasks.md) — сценарии в try для `CreateTechnologyCards`, `DistributeStudentsIntoTeams`, `CreateTeamProjectIterations`.
 - [FT-0021 — Сценарий ExportTechnologyCards с эталонным `--out`](../features/FT-0021-export-technology-cards-scenario.md) — сравнение результата записи на лист с эталонным CSV.
 - [FT-0007 — Unit-тесты исполнителей на фейковых адаптерах](../features/FT-0007-executor-unit-tests-with-fakes.md) — фейки портов, инвариант «try не пишет» для каждого исполнителя (зависит от портов из FT-0010).
