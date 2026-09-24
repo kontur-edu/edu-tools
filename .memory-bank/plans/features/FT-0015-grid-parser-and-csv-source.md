@@ -44,6 +44,7 @@ Blocked by: FT-0006.
 
 ### Tests
 - Unit: codec (кавычки, переводы строк, BOM, пустые ячейки); parser (все элементы разметки из Table task format); эквивалентность источников на in-memory сетке.
+- Unit: запись в Google-источник через fake `GoogleApi` — путь `ExportTechnologyCards` (запись в лист задания), диапазоны A1, пакеты по 50 строк, двухбуквенные колонки, апостроф в имени листа.
 
 ### Definition of done
 По [Feature template](../../mbb/templates/feature.md); дополнительно `npm test`, `npm run build`, `npm run web-build`, `npm run lint` зелёные.

@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { CsvFileTableSource } from '../apis/NodeCsvFile'
 import { GoogleApi, Spreadsheet } from '../apis/GoogleApi'
 import { formatCsv } from '../helpers/csv'
-import { readTableTaskAsync, TableTask } from './TableTask'
+import { readTableTaskAsync, TableTask, TableTaskWriter } from './TableTask'
 import { GoogleSheetTableSource, InMemoryTableSource } from './TableSource'
 
 // Инвариант Table sources: одна сетка значений из любого источника даёт одинаковый TableTask.
@@ -71,12 +71,97 @@ describe('TableSource', () => {
   })
 })
 
+describe('GoogleSheetTableSource: запись на лист', () => {
+  function sourceWithWrites(sheetName: string) {
+    const writes: Write[] = []
+    const source = new GoogleSheetTableSource(fakeGoogleApi('s-1', sheetName, [], writes), 's-1', sheetName)
+    return { source, writes }
+  }
+
+  it('TableTaskWriter пишет блок в тот же лист, из которого прочитано задание (как ExportTechnologyCards)', async () => {
+    const writes: Write[] = []
+    const sheetGrid = [
+      ['$keys', '$values'],
+      ['task', 'ExportTechnologyCards'],
+      ['outputColumn', 'H'],
+    ]
+    const task = await readTableTaskAsync(
+      new GoogleSheetTableSource(fakeGoogleApi('s-1', 'Курсы по выбору', sheetGrid, writes), 's-1', 'Курсы по выбору'),
+    )
+
+    await new TableTaskWriter().batchWriteAsync(task!, 7, 0, [
+      ['Дисциплина', 'Итого'],
+      ['Алгебра', 100],
+    ])
+
+    expect(writes).toEqual([
+      {
+        range: "'Курсы по выбору'!H1:I",
+        values: [
+          ['Дисциплина', 'Итого'],
+          ['Алгебра', 100],
+        ],
+      },
+    ])
+  })
+
+  it('пишет пакетами по 50 строк, каждый пакет — со своей строки', async () => {
+    const { source, writes } = sourceWithWrites('Лист')
+    const values = Array.from({ length: 120 }, (_, i) => [`r${i}`, i, ''])
+
+    await source.writeBlockAsync(0, 2, values)
+
+    expect(writes.map((w) => [w.range, w.values.length])).toEqual([
+      ["'Лист'!A3:C", 50],
+      ["'Лист'!A53:C", 50],
+      ["'Лист'!A103:C", 20],
+    ])
+    expect(writes.flatMap((w) => w.values)).toEqual(values)
+  })
+
+  it('называет колонки после Z двумя буквами', async () => {
+    const { source, writes } = sourceWithWrites('Лист')
+
+    await source.writeBlockAsync(25, 0, [['a', 'b', 'c']])
+    await source.writeBlockAsync(51, 9, [['a', 'b']])
+
+    expect(writes.map((w) => w.range)).toEqual(["'Лист'!Z1:AB", "'Лист'!AZ10:BA"])
+  })
+
+  it('экранирует апостроф в имени листа', async () => {
+    const { source, writes } = sourceWithWrites("Курсы 'по выбору'")
+
+    await source.writeBlockAsync(0, 0, [['x']])
+
+    expect(writes.map((w) => w.range)).toEqual(["'Курсы ''по выбору'''!A1:A"])
+  })
+
+  it('пустой блок ничего не пишет', async () => {
+    const { source, writes } = sourceWithWrites('Лист')
+
+    await source.writeBlockAsync(3, 0, [])
+
+    expect(writes).toEqual([])
+  })
+})
+
 function describeTask({ name, params, rows, rowsByNamespace, columns }: TableTask) {
   return { name, params, rows, rowsByNamespace, columns }
 }
 
+interface Write {
+  range: string
+  values: unknown[][]
+}
+
 // Ведёт себя как Google Sheets API: весь лист по имени, хвостовые пустые ячейки и строки обрезаны.
-function fakeGoogleApi(spreadsheetId: string, sheetName: string, sheetGrid: string[][]): GoogleApi {
+// Записи на лист складываются в writes.
+function fakeGoogleApi(
+  spreadsheetId: string,
+  sheetName: string,
+  sheetGrid: string[][],
+  writes: Write[] = [],
+): GoogleApi {
   const values = trimTrailingEmpty(
     sheetGrid.map((row) => trimTrailingEmpty(row, (v) => v === '')),
     (r) => r.length === 0,
@@ -90,7 +175,9 @@ function fakeGoogleApi(spreadsheetId: string, sheetName: string, sheetGrid: stri
           if (range !== `'${sheetName}'`) throw new Error(`Unexpected range ${range}`)
           return { range, values }
         },
-        writeAsync: () => Promise.reject(new Error('not supported')),
+        writeAsync: async (range: string, values: unknown[][]) => {
+          writes.push({ range, values })
+        },
         appendAsync: () => Promise.reject(new Error('not supported')),
       }
     },
