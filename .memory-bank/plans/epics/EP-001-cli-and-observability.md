@@ -15,7 +15,7 @@ Status: `In progress`.
 Порядок в списке — порядок реализации (ID выдаются по мере появления фич и не отражают порядок). Блокировки — строка `Blocked by:` в файле фичи; FT-0001, FT-0002 и FT-0015 (после FT-0006) можно делать параллельно.
 - [FT-0001 — Секреты вне кода](../features/FT-0001-secrets-out-of-code.md) — учётные данные Node из `.env` / `secrets/`, в коде нет `sid`, токенов и кук. `Done`.
 - [FT-0002 — Структурированные события выполнения](../features/FT-0002-structured-execution-events.md) — исполнители сообщают события (`status`, `scope`, `message`, `details`); текстовый лог в web строится из событий и внешне не меняется. `Done`.
-- [FT-0015 — Разбор задания по сетке значений и CSV-источник](../features/FT-0015-grid-parser-and-csv-source.md) — CSV codec, чистый разбор `string[][] → TableTask`, источники Google / CSV / in-memory; поведение для Google не меняется. Blocked by FT-0006 (EP-002).
+- [FT-0015 — Разбор задания по сетке значений и CSV-источник](../features/FT-0015-grid-parser-and-csv-source.md) — CSV codec, чистый разбор `string[][] → TableTask`, источники Google / CSV / in-memory; поведение для Google не меняется. `Done`.
 - [FT-0003 — Каркас CLI на Commander](../features/FT-0003-cli-skeleton-commander.md) — `--help` с примерами, human/`--json`, коды выхода, `auth check`, `google login`. `Done`.
 - [FT-0004 — Запуск заданий из CLI](../features/FT-0004-task-run-from-cli.md) — `task run <sheetUrl | file.csv> [--save]`, `task list`, результат в `--json`.
 - [FT-0018 — Запись на лист при CSV-источнике](../features/FT-0018-csv-sheet-write-out.md) — `--out <file.csv>` для заданий, пишущих на лист; без `--out` — `warning`.

@@ -5,7 +5,7 @@ import { TaskReporter } from './TaskReporter'
 
 export class ExportTechnologyCardsTaskExecutor {
   static readonly TASK_NAME = 'ExportTechnologyCards'
-  
+
   brsApi: BrsApi
   tableTaskWriter: TableTaskWriter
   reporter: TaskReporter
@@ -65,9 +65,7 @@ export class ExportTechnologyCardsTaskExecutor {
     }
 
     if (task.save) {
-      const outputSpreadsheetId = tableTask.spreadsheetId
-      const outputSheetName = tableTask.sheetName
-      await this.tableTaskWriter.batchWriteAsync(outputSpreadsheetId, outputSheetName, task.outputColumn, 0, values)
+      await this.tableTaskWriter.batchWriteAsync(tableTask, task.outputColumn, 0, values)
     }
 
     this.reporter.finished(tableTask.name, 'Execution has been completed')
@@ -75,7 +73,11 @@ export class ExportTechnologyCardsTaskExecutor {
   }
 }
 
-function extractTask(tableTask: TableTask, reporter: TaskReporter, forceSave: boolean | null = null): ExportTechnologyCardsTask | null {
+function extractTask(
+  tableTask: TableTask,
+  reporter: TaskReporter,
+  forceSave: boolean | null = null,
+): ExportTechnologyCardsTask | null {
   const academicYear = tableTask.getParam('academicYear').getCustom((it) => parseInt(it.split('/')[0], 10))
   if (academicYear === null) {
     reporter.note('academicYear is required', true)

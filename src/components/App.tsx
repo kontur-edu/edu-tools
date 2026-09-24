@@ -58,8 +58,8 @@ export default function App() {
           <Container maxWidth="md">
             <Box sx={{ my: 4 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography 
-                  variant="h4" 
+                <Typography
+                  variant="h4"
                   component={RouterLink}
                   to="/"
                   sx={{ cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}
@@ -98,7 +98,11 @@ export default function App() {
                         </Box>
                       </ShowIfGoogleAuth>
                       <ShowIfGoogleAuth is={true}>
-                        <SpreadsheetForm onTaskLoading={handleTaskLoading} onTaskLoaded={handleTaskLoaded} disabled={!!taskExecutionState} />
+                        <SpreadsheetForm
+                          onTaskLoading={handleTaskLoading}
+                          onTaskLoaded={handleTaskLoaded}
+                          disabled={!!taskExecutionState}
+                        />
                         {task && (
                           <Box sx={{ mt: 2, display: 'flex', gap: 2, justifyContent: 'center' }}>
                             <Button
@@ -127,7 +131,7 @@ export default function App() {
                           />
                         )}
                       </ShowIfGoogleAuth>
-                    </>                  
+                    </>
                   }
                 />
               </Routes>
@@ -190,7 +194,7 @@ function TaskExecutionDialog({
           setIsExecuting(false)
           return
         }
-        const taskWriter = new TableTaskWriter(googleApi)
+        const taskWriter = new TableTaskWriter()
 
         const requreTeamProjectApi = () => {
           const teamProjectApi = getTeamProjectApi()
@@ -232,7 +236,14 @@ function TaskExecutionDialog({
           return partnerApi
         }
 
-        const executor = new CompositeTableTaskExecutor(requreBrsApi, requreItsApi, requrePartnerApi, requreTeamProjectApi, taskWriter, reporter)
+        const executor = new CompositeTableTaskExecutor(
+          requreBrsApi,
+          requreItsApi,
+          requrePartnerApi,
+          requreTeamProjectApi,
+          taskWriter,
+          reporter,
+        )
         executor.executeAsync(task, forceSave).then(() => {
           setIsExecuting(false)
         })
@@ -252,14 +263,14 @@ function TaskExecutionDialog({
     <Dialog open={isOpened} onClose={handleCloseDialog} fullWidth maxWidth="md">
       <DialogTitle>Выполнение задания</DialogTitle>
       <DialogContent>
-        <TextField 
-          autoFocus 
-          margin="dense" 
-          fullWidth 
-          multiline 
-          rows={20} 
-          variant="outlined" 
-          value={content} 
+        <TextField
+          autoFocus
+          margin="dense"
+          fullWidth
+          multiline
+          rows={20}
+          variant="outlined"
+          value={content}
           ref={textFieldRef}
         />
       </DialogContent>
@@ -272,7 +283,15 @@ function TaskExecutionDialog({
   )
 }
 
-function SpreadsheetForm({ onTaskLoading, onTaskLoaded, disabled }: { onTaskLoading: () => void; onTaskLoaded: (task: TableTask | null) => void; disabled: boolean }) {
+function SpreadsheetForm({
+  onTaskLoading,
+  onTaskLoaded,
+  disabled,
+}: {
+  onTaskLoading: () => void
+  onTaskLoaded: (task: TableTask | null) => void
+  disabled: boolean
+}) {
   const [isLoading, setIsLoading] = useState(false)
 
   const [spreadsheetUrl, setSpreadsheetUrl] = useState('')

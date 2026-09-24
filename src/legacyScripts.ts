@@ -85,7 +85,10 @@ async function fillTechnologyCards() {
 async function createTeamProjectIterationsAsync() {
   const googleAuth = await NodeGoogleAuth.createAsync('ask')
   const taskReader = new TableTaskReader(new NodeGoogleApi(googleAuth))
-  const task = await taskReader.readTaskBySheetNameAsync('1oJcZnb909lF2VCyPgxacBIbTqMvNlmLKKY-ZHOpTxWI', 'Создание итераций')
+  const task = await taskReader.readTaskBySheetNameAsync(
+    '1oJcZnb909lF2VCyPgxacBIbTqMvNlmLKKY-ZHOpTxWI',
+    'Создание итераций',
+  )
   if (task === null) return
 
   const teamProjectApi = new TeamProjectApiV2(credentials.teamProjectAuth(), new TeamProjectUrlProvider(false))
@@ -100,7 +103,10 @@ async function distributeStudentsIntoTeamsAsync() {
   // const task = await taskReader.readTaskBySheetNameAsync('1aLlE3N0twr8b3bbvEFf5ldAPxw5ICU8rrimejCZ2QTU', 'Все студенты')
   // const task = await taskReader.readTaskBySheetNameAsync('1sl6Yo4Hlz7rsVyJZUhCMMf_8xhFJUbcTJvB_NnIvP2M', 'Регистрация команд') // 3 курс
   // const task = await taskReader.readTaskBySheetNameAsync('1YnLMVnnHnb6fVw4baGMOcVf8sKmk580P3Oq3UIN1ttQ', 'Регистрация команд') // 2 курс
-  const task = await taskReader.readTaskBySheetNameAsync('1oJcZnb909lF2VCyPgxacBIbTqMvNlmLKKY-ZHOpTxWI', 'Регистрация команд') // 1 курс
+  const task = await taskReader.readTaskBySheetNameAsync(
+    '1oJcZnb909lF2VCyPgxacBIbTqMvNlmLKKY-ZHOpTxWI',
+    'Регистрация команд',
+  ) // 1 курс
   if (task === null) return
 
   const itsApi = new ItsApiV2(credentials.itsAuth(), new ItsUrlProvider(false))
@@ -120,8 +126,6 @@ async function sendCuratorMarksAsync() {
 
   //Проектный практикум курс 1
   //const task = await taskReader.readTaskBySheetNameAsync('1quWHq3S93L-aYKvBbo0t6R7yjxYMz-iCimL2FAerHtA', 'Участники')
-
-
 
   if (task === null) return
 
@@ -157,7 +161,7 @@ async function exportTechnologyCardsAsync() {
   const googleAuth = await NodeGoogleAuth.createAsync('ask-if-not-saved')
   const googleApi = new NodeGoogleApi(googleAuth)
   const taskReader = new TableTaskReader(googleApi)
-  const taskWriter = new TableTaskWriter(googleApi)
+  const taskWriter = new TableTaskWriter()
   const task = await taskReader.readTaskBySheetNameAsync(spreadsheetId, sheetName)
   if (task === null) return
 

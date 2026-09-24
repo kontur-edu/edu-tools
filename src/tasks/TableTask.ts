@@ -1,34 +1,21 @@
 import { getSheetNameAsync, GoogleApi, parseSpreadsheetUrl } from '../apis/GoogleApi'
 import { normalizeString } from '../helpers/tools'
+import { parseTableTask, TableRow, TableTaskData } from './tableTaskParser'
+import { GoogleSheetTableSource, TableSource } from './TableSource'
 
+// Пишет на лист, из которого прочитано задание.
 export class TableTaskWriter {
-  googleApi: GoogleApi
-  
-  constructor(googleApi: GoogleApi) {
-    this.googleApi = googleApi
-  }
-
-  async batchWriteAsync(spreadsheetId: string, sheetName: string, leftIndex: number, topIndex: number, values: any[][]) {
-    if (values.length < 1) {
-      return
-    }
-    const width = values[0].length
-
-    const batchSize = 50
-    for (let i = 0; i < values.length; ) {
-      const batch = values.slice(i, i + batchSize)
-      await this.writeAsync(spreadsheetId, sheetName, leftIndex, leftIndex + width - 1, topIndex + i, batch)
-      i += batch.length
-    }
-  }
-
-  async writeAsync(spreadsheetId: string, sheetName: string, leftIndex: number, rightIndex: number, topIndex: number, values: any[][]): Promise<void> {
-    const sheet = this.googleApi.openSpreadsheet(spreadsheetId)
-    const range = buildDataRange(sheetName, leftIndex, rightIndex, topIndex)
-    await sheet.writeAsync(range, values)
+  async batchWriteAsync(tableTask: TableTask, leftIndex: number, topIndex: number, values: unknown[][]) {
+    await tableTask.source.writeBlockAsync(leftIndex, topIndex, values)
   }
 }
 
+export async function readTableTaskAsync(source: TableSource): Promise<TableTask | null> {
+  const data = parseTableTask(await source.readGridAsync())
+  return data ? new TableTask(data, source) : null
+}
+
+// Чтение задания из Google Таблицы по URL или имени листа.
 export class TableTaskReader {
   googleApi: GoogleApi
 
@@ -50,188 +37,26 @@ export class TableTaskReader {
   }
 
   async readTaskBySheetNameAsync(spreadsheetId: string, sheetName: string): Promise<TableTask | null> {
-    const headRows = await readHeadRowsFromSpreadsheetAsync(this.googleApi, spreadsheetId, sheetName)
-    const header = getHeader(headRows)
-    const indices = buildIndicesBy(header)
-    const { task, ...params } = readParameters(headRows, indices)
-    const rows = await readRowsAsync(this.googleApi, spreadsheetId, sheetName, indices)
-    const namespacedRows = distributeRowsByNamespace(rows)
-    return task ? new TableTask(task, spreadsheetId, sheetName, params, namespacedRows, indices) : null
+    return readTableTaskAsync(new GoogleSheetTableSource(this.googleApi, spreadsheetId, sheetName))
   }
-}
-
-async function readHeadRowsFromSpreadsheetAsync(googleApi: GoogleApi, spreadsheetId: string, sheetName: string) {
-  const sheet = googleApi.openSpreadsheet(spreadsheetId)
-  const rows = (await sheet.readAsync(sheetName + '!A1:ZZ100')).values as string[][]
-  return rows || null
-}
-
-function getHeader(rows: string[][]): string[] {
-  const header = rows && rows[0]
-  return header || []
-}
-
-function buildIndicesBy(header: string[]): Indices {
-  let leftIndex = Number.POSITIVE_INFINITY
-  let rightIndex = Number.NEGATIVE_INFINITY
-  let keysIndex = Number.NaN
-  let valuesIndex = Number.NaN
-  const columns: { [key: string]: number } = {}
-  for (let i = 0; i < header.length; i++) {
-    const trimmed = header[i].trim()
-    const normalized = normalizeString(header[i])
-    if (trimmed.startsWith('$')) {
-      if (normalized === 'keys') {
-        keysIndex = i
-      } else if (normalized === 'values') {
-        valuesIndex = i
-      } else {
-        columns[normalized] = i
-        if (i < leftIndex) {
-          leftIndex = i
-        }
-        if (rightIndex < i) {
-          rightIndex = i
-        }
-      }
-    }
-  }
-
-  return {
-    columns,
-    keysIndex,
-    valuesIndex,
-    leftIndex,
-    rightIndex,
-  }
-}
-
-function readParameters(rows: string[][], indices: Indices): { [key: string]: string } {
-  if (indices.keysIndex === Number.NaN || indices.valuesIndex === Number.NaN) {
-    return {}
-  }
-
-  const result: { [key: string]: string } = {}
-  for (let i = 1; i < rows.length; i++) {
-    const key = normalizeString(rows[i][indices.keysIndex])
-    if (!key) {
-      break
-    }
-    const value = rows[i][indices.valuesIndex]?.trim()
-    result[key] = value
-  }
-
-  return result
-}
-
-async function readRowsAsync(
-  googleApi: GoogleApi,
-  spreadsheetId: string,
-  sheetName: string,
-  indices: Indices,
-): Promise<Row[]> {
-  const sheet = googleApi.openSpreadsheet(spreadsheetId)
-  const range = buildDataRange(sheetName, indices.leftIndex, indices.rightIndex)
-  const rows = (await sheet.readAsync(range)).values || []
-
-  const result: { [key: string]: string }[] = []
-  for (const row of rows) {
-    const rowObject: { [key: string]: string } = {}
-    for (const columnKey in indices.columns) {
-      const columnIndex = indices.columns[columnKey] - indices.leftIndex
-      const columnValue = row[columnIndex]?.trim()
-      rowObject[columnKey] = columnValue
-    }
-    result.push(rowObject)
-  }
-  return result
-}
-
-function distributeRowsByNamespace(rows: Row[]): NamespacedRows {
-  const result: NamespacedRows = {
-    rootNamespace: [],
-    byNamespace: {},
-  }
-
-  for (const row of rows) {
-    const root: Row = {}
-    const byNamespace: { [n: string]: Row } = {}
-
-    for (const key in row) {
-      const parts = key.split('.')
-      if (parts.length === 1) {
-        root[key] = row[key]
-      } else if (parts.length === 2) {
-        if (!byNamespace[parts[0]]) byNamespace[parts[0]] = {}
-        byNamespace[parts[0]][parts[1]] = row[key]
-      }
-    }
-
-    if (isFilled(root)) {
-      result.rootNamespace.push(root)
-    }
-    for (const n of Object.keys(byNamespace)) {
-      const r = byNamespace[n]
-      if (isFilled(r)) {
-        result.byNamespace[n] = result.byNamespace[n] || []
-        if (!result.byNamespace[n]) result.byNamespace[n] = []
-        result.byNamespace[n].push(r)
-      }
-    }
-  }
-
-  return result
-
-  function isFilled(r: Row) {
-    return Object.values(r).reduce((acc, value) => acc || (value !== '' && value !== undefined), false)
-  }
-}
-
-function buildDataRange(sheetName: string, leftIndex: number, rightIndex: number, topIndex = 1) {
-  if (!Number.isFinite(leftIndex) || !Number.isFinite(rightIndex)) {
-    return `${sheetName}!A${topIndex + 1}:A`
-  }
-
-  const leftLetter = index2letter(leftIndex)
-  const rightLetter = index2letter(rightIndex)
-  return `${sheetName}!${leftLetter}${topIndex + 1}:${rightLetter}`
-}
-
-function index2letter(index: number) {
-  const size = 'Z'.charCodeAt(0) - 'A'.charCodeAt(0) + 1
-  const big = Math.floor(index / size)
-  const little = index % size
-
-  return big > 0
-    ? String.fromCharCode('A'.charCodeAt(0) + (big - 1)) + String.fromCharCode('A'.charCodeAt(0) + little)
-    : String.fromCharCode('A'.charCodeAt(0) + little)
-}
-
-interface Indices {
-  columns: { [key: string]: number }
-  keysIndex: number
-  valuesIndex: number
-  leftIndex: number
-  rightIndex: number
 }
 
 export class TableTask {
   name: string
-  spreadsheetId: string
-  sheetName: string
-  params: Row
-  rows: Row[]
-  rowsByNamespace: { [namespace: string]: Row[] }
+  params: TableRow
+  rows: TableRow[]
+  rowsByNamespace: { [namespace: string]: TableRow[] }
   columns: { [key: string]: number }
+  // Лист, из которого прочитано задание; туда же пишут задания с выводом на лист.
+  source: TableSource
 
-  constructor(name: string, spreadsheetId: string, sheetName: string, params: { [key: string]: string }, namespacedRows: NamespacedRows, indices: Indices) {
-    this.name = name
-    this.spreadsheetId = spreadsheetId
-    this.sheetName = sheetName
-    this.params = params
-    this.rows = namespacedRows.rootNamespace
-    this.rowsByNamespace = namespacedRows.byNamespace
-    this.columns = indices.columns
+  constructor(data: TableTaskData, source: TableSource) {
+    this.name = data.name
+    this.params = data.params
+    this.rows = data.rows
+    this.rowsByNamespace = data.rowsByNamespace
+    this.columns = data.columns
+    this.source = source
   }
 
   getParam(name: string): TableTaskValue {
@@ -267,7 +92,8 @@ export class TableTaskValue {
   }
 
   get<T>(process: (it: string) => T, defaultValue: T) {
-    if (this.value === undefined) return defaultValue
+    // Пустая ячейка — отсутствующее значение, где бы она ни стояла в строке.
+    if (this.value === undefined || this.value === '') return defaultValue
     try {
       const processedValue = process(this.value)
       return processedValue !== undefined ? processedValue : defaultValue
@@ -276,7 +102,7 @@ export class TableTaskValue {
     }
   }
 
-  static extract(row: Row, name: string) {
+  static extract(row: TableRow, name: string) {
     const value = row[normalizeString(name)]
     return new TableTaskValue(value)
   }
@@ -298,13 +124,4 @@ function extractInt(it: string): number {
 
 function extractString(it: string): string {
   return it
-}
-
-interface NamespacedRows {
-  rootNamespace: Row[]
-  byNamespace: { [n: string]: Row[] }
-}
-
-interface Row {
-  [k: string]: string
 }

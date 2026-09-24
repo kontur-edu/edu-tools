@@ -5,7 +5,7 @@ Status: Draft (2026-09-24)
 
 ## Слои сейчас (as-is)
 - **Delivery:** Web UI (`src/components` + `src/stores`), CLI (`src/cli/`) и разовые Node-скрипты (`src/legacyScripts.ts`), Telegram bot (`src/bot.ts`).
-- **Task engine** (`src/tasks`): чтение листа, маршрутизация по типу задания, исполнители.
+- **Task engine** (`src/tasks`): разбор задания по сетке значений (`tableTaskParser`, чистая функция), порт источника листа `TableSource` (Google, in-memory), маршрутизация по типу задания, исполнители. CSV codec — `src/helpers/csv.ts`; CSV-файл как источник (только Node, `fs`) — `src/apis/NodeCsvFile.ts` ([Table sources](../domain/table-sources.md)).
 - **Actions** (`src/actions`): многошаговые операции с доменными правилами (например, заполнение техкарты).
 - **Adapters** (`src/apis`): клиенты внешних систем, абстракция `GoogleApi`.
 

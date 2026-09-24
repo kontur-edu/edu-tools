@@ -1,8 +1,8 @@
 # FT-0015 — Разбор задания по сетке значений и CSV-источник
-Status: Draft (2026-09-23)
+Status: Draft (2026-09-24)
 
 ## Feature FT-0015 — Разбор задания по сетке значений и CSV-источник
-Epic: `EP-001`. Status: `Planned`.
+Epic: `EP-001`. Status: `Done`.
 Triage: `ready-for-agent`.
 Blocked by: FT-0006.
 

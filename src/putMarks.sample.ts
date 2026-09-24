@@ -1,28 +1,17 @@
-import { StudentFailure, TermType } from './apis/BrsApi.js';
-import putMarksToBrsManualAsync, {
-  DisciplineConfig,
-  ControlActionConfig,
-} from './actions/putMarksToBrsManualAsync.js';
-import putMarksToBrsAutoAsync from './actions/putMarksToBrsAutoAsync.js';
-import * as readStudents from './actions/readStudentsAsync.js';
-import { BrsApi } from './apis/BrsApi.js';
-import { FileApi } from './apis/FileApi.js';
-import { NodeGoogleApi } from './apis/NodeGoogleApi.js';
-import { NodeGoogleAuth } from './apis/NodeGoogleAuth.js';
-import { BrsUrlProvider } from './apis/BrsUrlProvider.js';
-import { NodeCredentials } from './apis/NodeCredentials.js';
+import { StudentFailure, TermType } from './apis/BrsApi.js'
+import putMarksToBrsManualAsync, { DisciplineConfig, ControlActionConfig } from './actions/putMarksToBrsManualAsync.js'
+import putMarksToBrsAutoAsync from './actions/putMarksToBrsAutoAsync.js'
+import * as readStudents from './actions/readStudentsAsync.js'
+import { BrsApi } from './apis/BrsApi.js'
+import { NodeGoogleApi } from './apis/NodeGoogleApi.js'
+import { NodeGoogleAuth } from './apis/NodeGoogleAuth.js'
+import { BrsUrlProvider } from './apis/BrsUrlProvider.js'
+import { NodeCredentials } from './apis/NodeCredentials.js'
 
 async function runPutMarksForSample() {
   const dataCsv = './data/students2.csv'
 
-  const fileApi = new FileApi();
-  const actualStudents = readStudents.fromCvs(
-    fileApi,
-    dataCsv,
-    true,
-    1,
-    0
-  );
+  const actualStudents = readStudents.fromCvs(dataCsv, true, 1, 0)
 
   // Подсказка: 0.Группа, 1.Фамилия и имя, 2.ЛР, 3.ДР1, 4.ДР2, 5.ДР3, 6.КР, 7.Экзамен
   const controlActionConfigs: ControlActionConfig[] = [
@@ -56,7 +45,7 @@ async function runPutMarksForSample() {
       controlActions: ['экзамен'],
       propertyIndex: 7,
     }, // Экзамен
-  ];
+  ]
 
   const disciplineConfig = {
     name: 'Крутой курс по программированию',
@@ -65,27 +54,27 @@ async function runPutMarksForSample() {
     termType: TermType.Spring,
     course: 1,
     defaultStudentFailure: StudentFailure.NoFailure,
-  } as DisciplineConfig;
+  } as DisciplineConfig
 
-  const brsApi = new BrsApi(NodeCredentials.fromProcess().brsAuth(), new BrsUrlProvider(false));
+  const brsApi = new BrsApi(NodeCredentials.fromProcess().brsAuth(), new BrsUrlProvider(false))
   await putMarksToBrsManualAsync(
     brsApi,
     { actualStudents, disciplineConfig, controlActionConfigs },
     {
       save: true,
       verbose: true,
-    }
-  );
+    },
+  )
 }
 
 async function runPutMarksAutoForSample() {
   // Пример таблицы для автоматической конфигурации
   // https://docs.google.com/spreadsheets/d/1Owzl3JfmFASIdC7ZMMw-0kkA3pwFSab1QdVO5dhZoxY/edit?usp=sharing
-  const spreadsheetId = '1Owzl3JfmFASIdC7ZMMw-0kkA3pwFSab1QdVO5dhZoxY';
-  const sheetName = 'БРС';
+  const spreadsheetId = '1Owzl3JfmFASIdC7ZMMw-0kkA3pwFSab1QdVO5dhZoxY'
+  const sheetName = 'БРС'
 
-  const brsApi = new BrsApi(NodeCredentials.fromProcess().brsAuth(), new BrsUrlProvider(false));
-  const googleApi = new NodeGoogleApi(await NodeGoogleAuth.createAsync('ask-if-not-saved'));
+  const brsApi = new BrsApi(NodeCredentials.fromProcess().brsAuth(), new BrsUrlProvider(false))
+  const googleApi = new NodeGoogleApi(await NodeGoogleAuth.createAsync('ask-if-not-saved'))
   await putMarksToBrsAutoAsync(
     brsApi,
     googleApi,
@@ -95,6 +84,6 @@ async function runPutMarksAutoForSample() {
       save: true,
       verbose: true,
     },
-    (discipline) => discipline.group !== 'BAD-140934'
-  );
+    (discipline) => discipline.group !== 'BAD-140934',
+  )
 }
