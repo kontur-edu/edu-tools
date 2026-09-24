@@ -16,7 +16,7 @@ Status: Draft (2026-09-24)
 - Установка зависимостей: `npm ci --legacy-peer-deps` (добавление пакета — `npm install <pkg> --legacy-peer-deps`). Флаг обязателен: `react-scripts` 5 объявляет peer-зависимость `typescript@^3 || ^4`, а в проекте TypeScript 5, без флага npm падает с `ERESOLVE`. На сборку и dev-сервер это не влияет.
 - Сборка Node-части: `tsc` в `build/`; запуск через `node --loader ./loader.js` (loader дописывает `.js` к относительным импортам).
 - Сборка web: `react-scripts build`.
-- Lint: ESLint (`@typescript-eslint/recommended`) на `src/`.
+- Lint: ESLint (`@typescript-eslint/recommended`) на `src/`. В `.eslintrc` стоит `"root": true`: конфиги из родительских папок и `~/.eslintrc` не подмешиваются, поэтому результат `lint` одинаков на любой машине.
 - Pre-commit: Husky 9, хук ставится скриптом `prepare` при `npm ci` / `npm install`. Состав проверок — в `.husky/pre-commit` и `.lintstagedrc`. Инварианты: коммит не проходит без зелёных `npm run lint` и `npm run docs:check`; Prettier форматирует только staged `src/**/*.{ts,tsx}` и не трогает меморибанк.
 - Форматирование: Prettier — без `;`, одинарные кавычки, trailing commas, ширина 120, отступ 2.
 - Автотестов нет (`web-test` из CRA не используется).
