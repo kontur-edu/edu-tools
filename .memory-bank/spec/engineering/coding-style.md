@@ -14,7 +14,7 @@ Status: Draft (2026-09-24)
 ## Formatting & lint
 - Связка ESLint + Prettier (другие линтеры/форматтеры не вводим).
 - Prettier: без `;`, одинарные кавычки, trailing commas, ширина 120, отступ 2.
-- ESLint `@typescript-eslint/recommended` на `src/`, должен запускаться pre-commit хуком (Husky); сейчас хук не работает — FT-0017.
+- ESLint `@typescript-eslint/recommended` на `src/`, запускается pre-commit хуком; устройство хука — в [Stack & tooling](../project/stack-and-tooling.md), читать при изменении проверок коммита.
 
 ## Errors & results
 - Исполнители сообщают о результатах и ошибках событиями через `TaskReporter` ([Execution events](../domain/tasks/execution-events.md)); текстовый лог со статусами-эмодзи строится из событий. Строки лога напрямую не пишутся.

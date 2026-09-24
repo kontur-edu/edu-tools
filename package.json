@@ -10,11 +10,6 @@
   "engines": {
     "node": ">=22.0.0"
   },
-  "husky": {
-    "hooks": {
-      "pre-commit": "npm run lint"
-    }
-  },
   "scripts": {
     "dev": "npx nodemon",
     "build": "rimraf ./build && npx tsc",
@@ -29,7 +24,8 @@
     "web-start": "react-scripts start",
     "web-build": "rimraf ./build && react-scripts build",
     "web-test": "react-scripts test",
-    "web-eject": "react-scripts eject"
+    "web-eject": "react-scripts eject",
+    "prepare": "husky"
   },
   "keywords": [
     "education",
@@ -48,7 +44,8 @@
     "ajv": "^8.17.1",
     "ajv-keywords": "^5.1.0",
     "eslint": "^8.29.0",
-    "husky": "^8.0.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
     "nodemon": "^3.1.9",
     "prettier": "^2.8.0",
     "rimraf": "^3.0.2",
