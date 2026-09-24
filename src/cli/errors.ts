@@ -9,6 +9,7 @@ export type CliErrorCode =
   | 'NETWORK_ERROR'
   | 'LOGIN_CANCELLED'
   | 'TASK_SOURCE_INVALID'
+  | 'SHEET_NOT_EMPTY'
   | 'INTERNAL_ERROR'
 
 export type CliErrorDetails = Record<string, unknown>

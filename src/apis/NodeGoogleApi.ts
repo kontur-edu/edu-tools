@@ -15,7 +15,7 @@ export class NodeGoogleApi implements GoogleApi {
     async function getMetaAsync() {
       const sheets = google.sheets({ version: 'v4', auth: authClient })
       const response = await sheets.spreadsheets.get({
-        spreadsheetId
+        spreadsheetId,
       })
       return response.data as SpreadsheetMeta
     }
@@ -25,6 +25,8 @@ export class NodeGoogleApi implements GoogleApi {
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId,
         range,
+        // Отображаемые значения (строки, как их видит пользователь): на них опирается разбор задания и выгрузка в CSV.
+        valueRenderOption: 'FORMATTED_VALUE',
       })
       return response.data as ValueRange
     }

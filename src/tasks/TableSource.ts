@@ -12,6 +12,8 @@ export interface TableSource {
 }
 
 // Лист Google Таблицы. Работает и в браузере, и в Node — через переданный GoogleApi.
+// Читаются отображаемые значения (FORMATTED_VALUE), запись — RAW (writeAsync без asEnteredByUser):
+// строки вроде 2024/2025 или 1, 2 не превращаются в даты и числа (Table sources, «Конвертация»).
 export class GoogleSheetTableSource implements TableSource {
   googleApi: GoogleApi
   spreadsheetId: string

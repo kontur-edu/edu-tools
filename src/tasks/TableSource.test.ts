@@ -3,8 +3,8 @@ import * as os from 'os'
 import * as path from 'path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { CsvFileTableSource, readCsvFile, writeCsvFile } from '../apis/NodeCsvFile'
-import { GoogleApi, Spreadsheet } from '../apis/GoogleApi'
 import { formatCsv } from '../helpers/csv'
+import { fakeGoogleApi, FakeSheetWrite } from '../testing/fakeGoogleApi'
 import { readTableTaskAsync, TableTask, TableTaskWriter } from './TableTask'
 import { GoogleSheetTableSource, InMemoryTableSource, writeBlockToGrid, WriteSkippingTableSource } from './TableSource'
 import { TaskEventCollector } from './TaskEvents'
@@ -189,13 +189,13 @@ describe('WriteSkippingTableSource: запись на лист не выполн
 
 describe('GoogleSheetTableSource: запись на лист', () => {
   function sourceWithWrites(sheetName: string) {
-    const writes: Write[] = []
+    const writes: FakeSheetWrite[] = []
     const source = new GoogleSheetTableSource(fakeGoogleApi('s-1', sheetName, [], writes), 's-1', sheetName)
     return { source, writes }
   }
 
   it('TableTaskWriter пишет блок в тот же лист, из которого прочитано задание (как ExportTechnologyCards)', async () => {
-    const writes: Write[] = []
+    const writes: FakeSheetWrite[] = []
     const sheetGrid = [
       ['$keys', '$values'],
       ['task', 'ExportTechnologyCards'],
@@ -273,45 +273,4 @@ describe('GoogleSheetTableSource: запись на лист', () => {
 
 function describeTask({ name, params, rows, rowsByNamespace, columns }: TableTask) {
   return { name, params, rows, rowsByNamespace, columns }
-}
-
-interface Write {
-  range: string
-  values: unknown[][]
-}
-
-// Ведёт себя как Google Sheets API: весь лист по имени, хвостовые пустые ячейки и строки обрезаны.
-// Записи на лист складываются в writes.
-function fakeGoogleApi(
-  spreadsheetId: string,
-  sheetName: string,
-  sheetGrid: string[][],
-  writes: Write[] = [],
-): GoogleApi {
-  const values = trimTrailingEmpty(
-    sheetGrid.map((row) => trimTrailingEmpty(row, (v) => v === '')),
-    (r) => r.length === 0,
-  )
-  return {
-    openSpreadsheet(id: string): Spreadsheet {
-      if (id !== spreadsheetId) throw new Error(`Unknown spreadsheet ${id}`)
-      return {
-        getMetaAsync: () => Promise.reject(new Error('not supported')),
-        readAsync: async (range: string) => {
-          if (range !== `'${sheetName}'`) throw new Error(`Unexpected range ${range}`)
-          return { range, values }
-        },
-        writeAsync: async (range: string, values: unknown[][]) => {
-          writes.push({ range, values })
-        },
-        appendAsync: () => Promise.reject(new Error('not supported')),
-      }
-    },
-  }
-}
-
-function trimTrailingEmpty<T>(items: T[], isEmpty: (item: T) => boolean): T[] {
-  let end = items.length
-  while (end > 0 && isEmpty(items[end - 1])) end--
-  return items.slice(0, end)
 }

@@ -8,8 +8,8 @@ Status: Draft (2026-09-24)
 | Команда | Исполнитель | Нужные учётные данные | Пишет во внешние системы | Состояние |
 |---|---|---|---|---|
 | `task run <sheetUrl \| file.csv> [--save] [--out <file.csv>]` | `CompositeTableTaskExecutor` (тип задания берётся из листа) | Google (только для URL) + системы задания | только с `--save`; входной CSV не изменяется никогда, запись на лист при CSV-источнике идёт в `--out` | факт (FT-0004; `--out` — FT-0018: только для CSV, пишется и в try, и в save; с URL или на месте входного файла — `USAGE_ERROR`) |
-| `sheet export <sheetUrl> <file.csv>` | converter Google → CSV | Google | нет (пишет локальный файл) | target (FT-0016) |
-| `sheet import <file.csv> <sheetUrl> [--overwrite]` | converter CSV → Google | Google | да (в Google Таблицу) | target (FT-0016) |
+| `sheet export <sheetUrl> <file.csv>` | converter Google → CSV (`convertTableAsync`, `src/tasks/TableConverter.ts`) | Google | нет (пишет локальный файл; существующий перезаписывается) | факт (FT-0016) |
+| `sheet import <file.csv> <sheetUrl> [--overwrite]` | converter CSV → Google (`convertTableAsync`) | Google | да (в Google Таблицу, без `--save`: команда сама — явная запись); непустой лист — только с `--overwrite`, иначе `SHEET_NOT_EMPTY` | факт (FT-0016) |
 | `task list` | реестр типов заданий `tableTaskTypes` (`src/tasks/CompositeTableTaskExecutor.ts`): имя, системы, пишет ли на лист. Google в системах не указывается: он нужен источнику (URL), а не заданию | — | нет | факт (FT-0004) |
 | `auth check [--system <brs|its|teamproject|partner|google>]` | пробные запросы на чтение `src/actions/checkSystemAuthAsync.ts` (их же вызывают сторы web); Google — обновление токена и `tokeninfo` | проверяемая система | нет | факт (FT-0003) |
 | `google login` | `NodeGoogleAuth.loginAsync` (installed-app flow, токены в `secrets/google-tokens.json`) | `secrets/google.json` | нет | факт (FT-0003) |

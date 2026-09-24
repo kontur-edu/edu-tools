@@ -22,6 +22,7 @@ Status: Draft (2026-09-24)
 - `src/actions/` — многошаговые операции над внешними системами, переиспользуемые заданиями и скриптами.
 - `src/apis/` — клиенты внешних систем (`*Api`, `*Auth`, `*UrlProvider`), абстракция `GoogleApi` с браузерной и Node-реализациями, общие типы.
 - `src/helpers/` — утилиты (кэши browser/file, нормализация строк, даты, CORS-proxy URL).
+- `src/testing/` — общие хелперы unit-тестов (фейковый `GoogleApi` с состоянием листа, запуск CLI `runCliAsync`); только для тестов, в сборку `tsc` не входят (`exclude` в `tsconfig.json`).
 - `public/` — статика CRA.
 - `loader.js`, `nodemon.json`, `tsconfig.json`, `.eslintrc`, `.prettierrc` — сборка/запуск/стиль.
 - `vitest.config.ts`, `tsconfig.test.json` — unit-тесты и проверка их типов. Сами тесты лежат рядом с модулями: `src/**/<module>.test.ts` ([ADR-0007](../../adr/ADR-0007-vitest-test-runner.md)).

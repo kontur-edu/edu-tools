@@ -1,11 +1,11 @@
 # Architecture guardrails
-Status: Draft (2026-09-23)
+Status: Draft (2026-09-24)
 
 ## Guardrails (must, действуют сейчас)
 1. `src/tasks`, `src/actions`, `src/apis` не импортируют React, `src/components` и `src/stores`. API-клиенты передаются в исполнители снаружи.
 2. Код, общий для web и Node, не обращается к `window`, `localStorage`, `fs`, `process.stdin` напрямую. Окружение-специфичное — только в отдельных реализациях (`BrowserGoogleApi` / `NodeGoogleApi`, `BrowserCache` / `FileCache`, `NodeGoogleAuth`) и через `*UrlProvider(withProxy)`.
 3. UI не содержит логики заданий: получает API-клиенты из сторов и вызывает `CompositeTableTaskExecutor`.
-4. Любая запись во внешнюю систему выполняется только при `save`. Режим try не меняет данные ([ADR-0003](../../adr/ADR-0003-try-save-modes.md)).
+4. Любая запись во внешнюю систему выполняется только при `save`. Режим try не меняет данные ([ADR-0003](../../adr/ADR-0003-try-save-modes.md)). Исключение — команда CLI `sheet import`: она целиком состоит из явной записи в лист и защищена флагом `--overwrite` (там же).
 5. Учётные данные внешних систем не хранятся нигде, кроме browser storage пользователя (web), `.env` и `secrets/` (Node). В коде и в git их нет ([ADR-0002](../../adr/ADR-0002-user-credentials-in-browser.md)).
 6. Новое табличное задание регистрируется в `CompositeTableTaskExecutor` и описывается в [Task catalog](../domain/tasks/index.md).
 7. `brs-extensions/` не изменяется: это референс для переноса функциональности.

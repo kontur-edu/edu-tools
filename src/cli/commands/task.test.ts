@@ -2,9 +2,9 @@ import * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { NodeCredentials } from '../../apis/NodeCredentials'
 import { formatCsv } from '../../helpers/csv'
-import { runProgramAsync } from '../program'
+import { fakeGoogleApi } from '../../testing/fakeGoogleApi'
+import { runCliAsync } from '../../testing/runCli'
 
 // Команды task list / task run через публичный вход CLI; без сети: учётных данных нет,
 // поэтому задания останавливаются до обращения к внешним системам.
@@ -198,6 +198,30 @@ describe('task run', () => {
     expect(json.error).toMatchObject({ code: 'USAGE_ERROR', details: { option: '--out', reason: 'google-source' } })
   })
 
+  it('URL Google Таблицы: задание читается с листа по gid', async () => {
+    const googleApi = fakeGoogleApi(
+      'abc123',
+      'Задание',
+      [
+        ['$keys', '$values'],
+        ['task', 'Unknown'],
+      ],
+      [],
+      5,
+    )
+
+    const { json, exitCode } = await runCliAsync(
+      ['task', 'run', 'https://docs.google.com/spreadsheets/d/abc123/edit#gid=5', '--json'],
+      googleApi,
+    )
+
+    expect(exitCode).toBe(1)
+    expect(json.result.task).toBe('Unknown')
+    expect(json.result.events).toEqual([
+      { kind: 'outcome', status: 'error', scope: 'Unknown', message: 'Unknown task "Unknown"', stopped: true },
+    ])
+  })
+
   it('URL Google Таблицы без листа (gid): ошибка TASK_SOURCE_INVALID до обращения к Google', async () => {
     const { json, exitCode } = await runCliAsync([
       'task',
@@ -210,25 +234,3 @@ describe('task run', () => {
     expect(json.error).toMatchObject({ code: 'TASK_SOURCE_INVALID', details: { reason: 'bad-url' } })
   })
 })
-
-async function runCliAsync(args: string[]) {
-  let stdout = ''
-  let stderr = ''
-  let exitCode = -1
-  await runProgramAsync(
-    {
-      credentials: new NodeCredentials({
-        env: {},
-        readFile: () => {
-          throw new Error('no files')
-        },
-      }),
-      streams: { stdout: (text) => (stdout += text), stderr: (text) => (stderr += text) },
-      setExitCode: (code) => (exitCode = code),
-    },
-    args,
-  )
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const json = args.includes('--json') ? (JSON.parse(stdout) as any) : null
-  return { stdout, stderr, exitCode, json }
-}

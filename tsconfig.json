@@ -20,7 +20,7 @@
     "jsx": "react"
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "src/**/*.test.ts"],
+  "exclude": ["node_modules", "src/**/*.test.ts", "src/testing"],
   "ts-node": {
     "esm": true
   }

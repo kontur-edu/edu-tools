@@ -1,7 +1,7 @@
 # Table sources: Google Sheets и CSV
 Status: Draft (2026-09-24)
 
-**Состояние:** модули 1–3 реализованы (FT-0015): CSV codec — `src/helpers/csv.ts`, разбор — `src/tasks/tableTaskParser.ts`, порт `TableSource` с Google- и in-memory-реализациями — `src/tasks/TableSource.ts`, CSV-файл — `src/apis/NodeCsvFile.ts`. Задание читается `readTableTaskAsync(source)`; `TableTask.source` — лист, из которого оно прочитано, туда же пишет `TableTaskWriter`. Google-источник читает весь лист одним запросом (раньше было два: `A1:ZZ100` и колонки между крайними `$`-колонками), поэтому `$`-колонки правее `ZZ` теперь тоже участвуют в задании; имя листа в диапазонах берётся в кавычки по A1-нотации. Запись на лист (FT-0018): in-memory и CSV-источник пишут в сетку в памяти чистой функцией `writeBlockToGrid` (`src/tasks/TableSource.ts`), CLI сохраняет сетку CSV-источника в `--out` (`writeCsvFile`); без `--out` CLI оборачивает CSV-источник в `WriteSkippingTableSource`, который вместо записи выдаёт `warning`. CLI (`task run`, FT-0004) выбирает источник по аргументу: URL листа или путь к CSV. Converter — FT-0016.
+**Состояние:** модули 1–3 реализованы (FT-0015): CSV codec — `src/helpers/csv.ts`, разбор — `src/tasks/tableTaskParser.ts`, порт `TableSource` с Google- и in-memory-реализациями — `src/tasks/TableSource.ts`, CSV-файл — `src/apis/NodeCsvFile.ts`. Задание читается `readTableTaskAsync(source)`; `TableTask.source` — лист, из которого оно прочитано, туда же пишет `TableTaskWriter`. Google-источник читает весь лист одним запросом (раньше было два: `A1:ZZ100` и колонки между крайними `$`-колонками), поэтому `$`-колонки правее `ZZ` теперь тоже участвуют в задании; имя листа в диапазонах берётся в кавычки по A1-нотации. Запись на лист (FT-0018): in-memory и CSV-источник пишут в сетку в памяти чистой функцией `writeBlockToGrid` (`src/tasks/TableSource.ts`), CLI сохраняет сетку CSV-источника в `--out` (`writeCsvFile`); без `--out` CLI оборачивает CSV-источник в `WriteSkippingTableSource`, который вместо записи выдаёт `warning`. CLI (`task run`, FT-0004) выбирает источник по аргументу: URL листа или путь к CSV. Converter (FT-0016) — `convertTableAsync` в `src/tasks/TableConverter.ts`, команды `sheet export` / `sheet import`.
 
 Зачем: запускать и тестировать задания без учётной записи Google ([ADR-0005](../../adr/ADR-0005-csv-table-source.md)). Лист задания и CSV-файл — два представления одного и того же: таблицы строк с одинаковой разметкой ([Table task format](table-task-format.md)).
 
@@ -29,6 +29,12 @@ Status: Draft (2026-09-24)
 - **Google → CSV:** выгружаются отображаемые значения всего листа; формулы и форматирование теряются (в CSV попадают их значения).
 - **CSV → Google:** значения записываются как есть (`RAW`), без автоопределения типов, чтобы `2024/2025` или `1, 2` не превратились в даты или числа. Непустой целевой лист перезаписывается только при явном флаге.
 - Круговая конвертация (Google → CSV → Google, CSV → Google → CSV) сохраняет значения ячеек.
+
+Правила converter'а (`convertTableAsync(from, to, { overwrite })`, работает только через порт `TableSource`, от Google API не зависит):
+- сетка источника пишется в цель одним блоком с ячейки A1; строки выравниваются до одной ширины (недостающая ячейка — `''`). Google обрезает хвостовые пустые ячейки и строки, поэтому выгрузка листа — прямоугольная сетка до последней непустой строки и колонки, и повторная выгрузка после загрузки даёт тот же CSV-текст;
+- лист пуст, если в нём нет непустых значений (форматирование не учитывается). Непустая цель без `overwrite` — ошибка `TableNotEmptyError` до какой-либо записи;
+- с `overwrite` блок покрывает и старую сетку: ячейки за пределами новой сетки записываются как `''`, то есть очищаются (запись `RAW` пустой строки очищает значение ячейки Google; форматирование не меняется);
+- Google-реализация порта читает `FORMATTED_VALUE` (значение по умолчанию Sheets API, задано явно в `NodeGoogleApi` и `BrowserGoogleApi`) и пишет `RAW` (`writeAsync` без `asEnteredByUser`) — так же, как чтение задания и запись результатов заданий.
 
 ## Запись результатов заданий
 Входной CSV-файл **никогда не изменяется**. Если задание пишет на лист (например, `ExportTechnologyCards`):

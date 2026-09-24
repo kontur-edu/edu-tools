@@ -3,25 +3,23 @@ import * as path from 'path'
 import { Command } from 'commander'
 import { BrsApi } from '../../apis/BrsApi.js'
 import { BrsUrlProvider } from '../../apis/BrsUrlProvider.js'
-import { parseSpreadsheetUrl } from '../../apis/GoogleApi.js'
 import { ItsApiV2 } from '../../apis/ItsApiV2.js'
 import { ItsUrlProvider } from '../../apis/ItsUrlProvider.js'
-import { CredentialsError, NodeCredentials } from '../../apis/NodeCredentials.js'
+import { CredentialsError } from '../../apis/NodeCredentials.js'
 import { CsvFileTableSource, writeCsvFile } from '../../apis/NodeCsvFile.js'
-import { NodeGoogleApi } from '../../apis/NodeGoogleApi.js'
 import { TeamProjectApiV2 } from '../../apis/TeamProjectApiV2.js'
 import { TeamProjectUrlProvider } from '../../apis/TeamProjectUrlProvider.js'
 import { CompositeTableTaskExecutor, tableTaskTypes } from '../../tasks/CompositeTableTaskExecutor.js'
 import { readTableTaskAsync, TableTask, TableTaskWriter } from '../../tasks/TableTask.js'
-import { GoogleSheetTableSource, TableSource, WriteSkippingTableSource } from '../../tasks/TableSource.js'
+import { TableSource, WriteSkippingTableSource } from '../../tasks/TableSource.js'
 import { TaskExecutionError } from '../../tasks/TaskExecutionError.js'
 import { renderTaskEventText } from '../../tasks/TaskEventText.js'
 import { summarizeTaskEvents, TaskEvent, TaskEventCollector, TaskEventDetails } from '../../tasks/TaskEvents.js'
 import { TaskReporter } from '../../tasks/TaskReporter.js'
 import { CliError, CliErrorDetails, toCliError } from '../errors.js'
-import { savedGoogleAuthAsync } from '../googleAuth.js'
 import { CommandOutput } from '../output.js'
 import { CliContext, outputMode, runCommandAsync } from '../runCommand.js'
+import { looksLikeUrl, openCsvFile, openGoogleSheetAsync } from '../sources.js'
 
 export type TaskRunMode = 'try' | 'save'
 
@@ -87,7 +85,7 @@ summary.ok — нет ошибок и проваленных вердиктов.
         const mode: TaskRunMode = options.save ? 'save' : 'try'
         // В human-режиме лог выводится по мере выполнения, как в web.
         const liveLog = outputMode(command) === 'human' ? (line: string) => context.streams.stdout(line + '\n') : null
-        return taskRunAsync(context.credentials, source, mode, options.out ?? null, liveLog)
+        return taskRunAsync(context, source, mode, options.out ?? null, liveLog)
       }),
     )
 }
@@ -106,7 +104,7 @@ export function taskListOutput(): CommandOutput {
 }
 
 async function taskRunAsync(
-  credentials: NodeCredentials,
+  context: CliContext,
   source: string,
   mode: TaskRunMode,
   out: string | null,
@@ -116,12 +114,13 @@ async function taskRunAsync(
     checkOutPath(source, out)
   }
 
+  const { credentials } = context
   const collector = new TaskEventCollector()
   const reporter = liveLog
     ? new TaskReporter(collector.listener, (event) => liveLog(renderTaskEventText(event)))
     : new TaskReporter(collector.listener)
 
-  const { tableSource, outSource } = await openSourceAsync(source, out, reporter)
+  const { tableSource, outSource } = await openSourceAsync(context, source, out, reporter)
   const tableTask = await readTaskAsync(tableSource, source)
 
   const executor = new CompositeTableTaskExecutor(
@@ -151,14 +150,15 @@ async function taskRunAsync(
 // Источник задания. CSV: запись на лист идёт в сетку в памяти (outSource, с --out)
 // или превращается в warning (без --out).
 async function openSourceAsync(
+  context: CliContext,
   source: string,
   out: string | null,
   reporter: TaskReporter,
 ): Promise<{ tableSource: TableSource; outSource: CsvFileTableSource | null }> {
-  if (isGoogleSource(source)) {
-    return { tableSource: await googleSourceAsync(source), outSource: null }
+  if (looksLikeUrl(source)) {
+    return { tableSource: await openGoogleSheetAsync(context, source), outSource: null }
   }
-  const csvTableSource = csvSource(source)
+  const csvTableSource = openCsvFile(source)
   return out !== null
     ? { tableSource: csvTableSource, outSource: csvTableSource }
     : { tableSource: new WriteSkippingTableSource(csvTableSource, reporter), outSource: null }
@@ -196,13 +196,9 @@ export function taskRunOutput(
   return { ok: summary.ok, message, result: { task, mode, ...(out !== null ? { out } : {}), events, summary } }
 }
 
-function isGoogleSource(source: string): boolean {
-  return /^https?:\/\//i.test(source)
-}
-
 // --out: только для CSV-источника и не на месте входного файла.
 function checkOutPath(source: string, out: string) {
-  if (isGoogleSource(source)) {
+  if (looksLikeUrl(source)) {
     throw new CliError('USAGE_ERROR', '--out поддерживается только для CSV-источника: Google-лист пишется сам.', {
       option: '--out',
       reason: 'google-source',
@@ -233,35 +229,6 @@ async function readTaskAsync(tableSource: TableSource, source: string): Promise<
     })
   }
   return tableTask
-}
-
-function csvSource(filePath: string): CsvFileTableSource {
-  if (!fs.existsSync(filePath)) {
-    throw new CliError('TASK_SOURCE_INVALID', `Файл ${filePath} не найден.`, { source: filePath, reason: 'not-found' })
-  }
-  return new CsvFileTableSource(filePath)
-}
-
-async function googleSourceAsync(url: string): Promise<TableSource> {
-  const { spreadsheetId, sheetId } = parseSpreadsheetUrl(url) ?? {}
-  if (!spreadsheetId || !sheetId) {
-    throw new CliError(
-      'TASK_SOURCE_INVALID',
-      'Нужен URL листа Google Таблицы вида https://docs.google.com/spreadsheets/d/<id>/edit#gid=<sheetId>.',
-      { source: url, reason: 'bad-url' },
-    )
-  }
-  const googleApi = new NodeGoogleApi(await savedGoogleAuthAsync())
-  // Метаданные читаются напрямую, а не через getSheetNameAsync: ошибки сети и авторизации не должны теряться.
-  const meta = await googleApi.openSpreadsheet(spreadsheetId).getMetaAsync()
-  const sheet = meta.sheets.map((s) => s.properties).find((p) => p.sheetId.toString() === sheetId)
-  if (!sheet) {
-    throw new CliError('TASK_SOURCE_INVALID', `В таблице нет листа с gid=${sheetId}.`, {
-      source: url,
-      reason: 'sheet-not-found',
-    })
-  }
-  return new GoogleSheetTableSource(googleApi, spreadsheetId, sheet.title)
 }
 
 // API создаётся только когда его запросило задание; нет учётных данных — ошибка задания, а не команды.

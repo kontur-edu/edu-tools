@@ -1,7 +1,7 @@
 # CLI spec
 Status: Draft (2026-09-24)
 
-**Состояние:** каркас CLI на Commander есть (FT-0003): `src/cli/`, команды `auth check` и `google login`. Запуск заданий — `task run` и `task list` (FT-0004), запись на лист при CSV-источнике — `task run --out` (FT-0018). Конвертация Google ⇄ CSV (FT-0016) появится в следующих фичах [EP-001](../../plans/epics/EP-001-cli-and-observability.md). В `src/legacyScripts.ts` (`npm run legacy-scripts`) остались только разовые скрипты, которые не являются табличными заданиями. CLI их не вызывает.
+**Состояние:** каркас CLI на Commander есть (FT-0003): `src/cli/`, команды `auth check` и `google login`. Запуск заданий — `task run` и `task list` (FT-0004), запись на лист при CSV-источнике — `task run --out` (FT-0018), конвертация Google ⇄ CSV — `sheet export` и `sheet import` (FT-0016). Остальное — в следующих фичах [EP-001](../../plans/epics/EP-001-cli-and-observability.md). В `src/legacyScripts.ts` (`npm run legacy-scripts`) остались только разовые скрипты, которые не являются табличными заданиями. CLI их не вызывает.
 
 ## Зачем
 Чтобы разработчик и ИИ-агент могли запускать задания без UI и автоматически проверять результат. CLI — основа интеграционных тестов ([EP-002](../../plans/epics/EP-002-automated-tests.md)).
@@ -10,7 +10,7 @@ Status: Draft (2026-09-24)
 - Каждая команда поддерживает human output (по умолчанию) и `--json` со стабильной схемой.
 - При `--json` в stdout только JSON; человекочитаемые сообщения — в отдельном поле `message`.
 - Ошибки машиночитаемы: `code + message + details`, ненулевой код выхода.
-- Режим по умолчанию — try; запись только с явным `--save`.
+- Режим по умолчанию — try; запись только с явным `--save`. Исключение — `sheet import`: сама команда и есть явная запись в указанный лист, `--save` у неё нет; непустой лист защищён флагом `--overwrite` ([ADR-0003](../../adr/ADR-0003-try-save-modes.md)).
 - CLI — тонкий клиент поверх того же движка заданий, что и web: без собственной доменной логики.
 - Реализация — на Commander ([ADR-0004](../../adr/ADR-0004-cli-commander.md)).
 - Задание берётся из Google Таблицы (URL) или из CSV-файла (путь) с той же разметкой ([Table sources](../domain/table-sources.md)). Для CSV учётная запись Google не нужна.
@@ -23,7 +23,7 @@ Status: Draft (2026-09-24)
 - Справка: `--help` у программы и у каждой команды, с примерами; `--json` — глобальная опция, её можно указывать после команды.
 
 ## Каркас (`src/cli/`)
-- `main.ts` — точка входа; `program.ts` — регистрация команд на Commander и разбор ошибок вызова; `runCommand.ts` — единая обёртка обработчика команды; `output.ts` — вывод и коды выхода; `errors.ts` — коды ошибок и приведение исключений к `code + message + details`; `commands/` — по файлу на группу команд.
+- `main.ts` — точка входа; `program.ts` — регистрация команд на Commander и разбор ошибок вызова; `runCommand.ts` — единая обёртка обработчика команды и `CliContext` (зависимости команд: учётные данные, `googleApiAsync` — создание `GoogleApi` с сохранёнными токенами, потоки вывода; в тестах подменяются); `output.ts` — вывод и коды выхода; `errors.ts` — коды ошибок и приведение исключений к `code + message + details`; `sources.ts` — листы из аргументов (URL с `#gid=` или путь к CSV) для `task run` и `sheet`; `commands/` — по файлу на группу команд.
 - Новая команда регистрируется в `program.ts` и выполняется через `runCommandAsync`: обработчик возвращает `CommandOutput` (`ok`, `message`, `result`, опционально `text` для human-вывода) или бросает исключение — остальное делает каркас.
 - `console.log` / `info` / `debug` перенаправлены в stderr: stdout занят результатом команды, диагностика API-клиентов его не портит.
 
@@ -40,7 +40,8 @@ Status: Draft (2026-09-24)
 | `CREDENTIALS_INVALID` | учётные данные заданы, но файл не читается / неверного формата или система их не приняла; `details.reason` — причина, если есть |
 | `NETWORK_ERROR` | система не ответила: сетевая ошибка или таймаут |
 | `LOGIN_CANCELLED` | `google login`: код авторизации не введён |
-| `TASK_SOURCE_INVALID` | `task run`: задание не прочитано. `details.source` — аргумент, `details.reason`: `not-found` (нет файла), `bad-url` (URL не указывает лист: нужен `#gid=`), `sheet-not-found` (в таблице нет листа с таким `gid`), `no-task` (на листе не заполнен параметр `task`) |
+| `TASK_SOURCE_INVALID` | `task run`: задание не прочитано; `sheet export` / `sheet import`: не открыт лист или CSV-файл из аргумента. `details.source` — аргумент, `details.reason`: `not-found` (нет файла), `bad-url` (URL не указывает лист: нужен `#gid=`), `sheet-not-found` (в таблице нет листа с таким `gid`), `no-task` (только `task run`: на листе не заполнен параметр `task`) |
+| `SHEET_NOT_EMPTY` | `sheet import` без `--overwrite`: на целевом листе есть непустые значения; лист не изменён. `details.sheet` — URL листа, `details.option = --overwrite` |
 | `INTERNAL_ERROR` | прочие исключения (в `auth check` — статус `error`) |
 
 Значения секретов не попадают ни в `message`, ни в `details`.
@@ -74,6 +75,12 @@ Human-вывод — те же строки, что в web-логе, по мер
 - Без `--out` задание выполняется так же, но запись на лист заменяется событием `warning`; файлов не создаётся.
 
 Учётные данные систем УрФУ читаются лениво: только для систем, нужных заданию (см. `task list`). Для CSV-источника Google не нужен, для URL нужны сохранённые токены (`google login`).
+
+## Конвертация Google ⇄ CSV (`sheet export`, `sheet import`)
+Правила converter'а — [Table sources](../domain/table-sources.md#конвертация); читать, чтобы знать, какие значения сохраняются и как очищается лист.
+- `sheet export <sheetUrl> <file.csv>` — отображаемые значения всего листа в CSV-файл (существующий перезаписывается). `result`: `sheet` (URL), `file`, `rows`, `columns` — размер выгруженной сетки. `message`: `Лист выгружен в <file>: строк N, колонок M.`
+- `sheet import <file.csv> <sheetUrl> [--overwrite]` — значения CSV на лист с A1 (`RAW`). `result`: `file`, `sheet`, `overwrite` (bool), `rows`, `columns`. Непустой лист без `--overwrite` — `SHEET_NOT_EMPTY` (код выхода 1) до записи; с `--overwrite` старые значения за пределами новой сетки очищаются.
+- Нужны сохранённые токены Google (`google login`); нет — `CREDENTIALS_MISSING`. URL без `#gid=` (и у `sheet import` — отсутствующий CSV-файл) — `TASK_SOURCE_INVALID` до обращения к Google.
 
 ## Учётные данные
 Все команды берут учётные данные систем УрФУ из одного загрузчика — `NodeCredentials` (`src/apis/NodeCredentials.ts`). Переменные и форматы — в [Stack & tooling](../project/stack-and-tooling.md#конфигурация-и-секреты). Читать, чтобы не заводить второй способ передачи секретов.
