@@ -1,6 +1,6 @@
 import * as fs from 'fs'
 import * as path from 'path'
-import 'dotenv/config'
+import * as dotenv from 'dotenv'
 import { BrsAuth } from './BrsAuth.js'
 import { ItsAuthV2 } from './ItsAuthV2.js'
 import { PartnerAuth } from './PartnerAuth.js'
@@ -60,7 +60,9 @@ export class NodeCredentials {
     this.environment = environment
   }
 
+  /** Окружение процесса; `.env` загружается здесь, а не при импорте модуля, чтобы тесты его не читали. */
   static fromProcess(): NodeCredentials {
+    dotenv.config()
     return new NodeCredentials({
       env: process.env,
       readFile: (filePath) => fs.readFileSync(filePath, 'utf8'),

@@ -111,7 +111,12 @@ function classify(error: CliError, title: string): Omit<SystemCheck, 'system' | 
       }
     case 'INTERNAL_ERROR':
       if (isLoginPageResponse(error.cause)) return { ...rejected(title), details: { reason: error.message } }
-      return { status: 'error', code: error.code, message: `${title}: ${error.message}`, details: error.details }
+      return {
+        status: 'error',
+        code: error.code,
+        message: `${title}: ${error.message}`,
+        details: { ...error.details, reason: error.message },
+      }
     default:
       return { status: 'invalid', code: 'CREDENTIALS_INVALID', message: error.message, details: error.details }
   }

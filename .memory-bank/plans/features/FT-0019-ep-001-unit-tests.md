@@ -2,7 +2,7 @@
 Status: Draft (2026-09-24)
 
 ## Feature FT-0019 — Unit-тесты для сделанного в EP-001
-Epic: `EP-002`. Status: `Planned`.
+Epic: `EP-002`. Status: `Done` (2026-09-24). Seams уже были (`CredentialsEnvironment` у `NodeCredentials`, пробы — параметр `checkSystemsAsync`). Изменения кода: `.env` загружается в `NodeCredentials.fromProcess()`, а не при импорте модуля, чтобы тесты его не читали; `auth check` со статусом `error` теперь кладёт причину в `details.reason`, как требует [CLI spec](../../spec/cli/cli.md).
 Triage: `ready-for-agent`.
 Blocked by: FT-0006.
 
