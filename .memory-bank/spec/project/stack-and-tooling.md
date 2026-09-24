@@ -20,6 +20,7 @@ Status: Draft (2026-09-24)
 - Pre-commit: Husky 9, хук ставится скриптом `prepare` при `npm ci` / `npm install`. Состав проверок — в `.husky/pre-commit` и `.lintstagedrc`. Инварианты: коммит не проходит без зелёных `npm run lint`, `npm run docs:check` и `npm test`; Prettier форматирует только staged `src/**/*.{ts,tsx}` и не трогает меморибанк.
 - Форматирование: Prettier — без `;`, одинарные кавычки, trailing commas, ширина 120, отступ 2.
 - Unit-тесты: Vitest ([ADR-0007](../../adr/ADR-0007-vitest-test-runner.md)), конфиг — `vitest.config.ts`. Тест лежит рядом с модулем: `src/**/<module>.test.ts` (однотипные модули папки — одним групповым файлом). `tsconfig.json` исключает тесты из сборки `tsc`, в CRA-бандл они не попадают (их никто не импортирует), ESLint проверяет их вместе со всем `src/`. Типы тестов проверяет `npm run typecheck` (`tsconfig.test.json`, без вывода файлов). `react-scripts test` не используется.
+- Сценарии через CLI (FT-0008, [Scenario registry](../../plans/scenarios.md)): собранный CLI запускается отдельным процессом (каркас `src/testing/cliProcess.ts`). Сборка идёт один раз на прогон, в `globalSetup`, в `.cache/cli-build/`: `build/` не трогается. Офлайн-сценарии `src/**/*.scenario.test.ts` — это Vitest project `scenarios` в `vitest.config.ts`, они входят в `npm test` и добавляют к прогону около 10 с на сборку. Живые сценарии `src/**/*.live.test.ts` работают только в try и описаны в `vitest.live.config.ts`. Прогон отдельного unit-файла (`npx vitest run <file>`) CLI не собирает.
 - Playwright (`@playwright/test`) установлен как dev-зависимость для управления web-приложением из headless-браузера; тестов на нём пока нет (e2e web UI — out of scope EP-002). Браузер — установленный Chrome через `channel: 'chrome'`: скачивание сборки `npx playwright install chromium` с `cdn.playwright.dev` может обрываться по таймауту.
 - Dev-окружение: GitHub Codespaces (`.devcontainer/`) с Claude Code.
 
@@ -35,7 +36,8 @@ Status: Draft (2026-09-24)
 | `npm run legacy-scripts` / `npm run dev` | сборка и запуск разовых скриптов `src/legacyScripts.ts` / то же через nodemon + ts-node |
 | `npm run bot-dev` / `npm run bot-start` | бот локально (long polling) |
 | `./bot-deploy.sh` | сборка, выкладка функции `fiit-tools-bot` в Yandex Cloud, регистрация webhook |
-| `npm test` | однократный прогон unit-тестов (Vitest); при падении — ненулевой exit code |
+| `npm test` | однократный прогон unit-тестов и офлайн-сценариев CLI (Vitest); при падении — ненулевой exit code |
+| `npm run test:integration` | живые сценарии в try против систем УрФУ, учётные данные из `.env` / `secrets/`; без учётных данных системы сценарий пропускается с именами переменных (exit code 0); сценарию с реальными данными нужен путь к локальному CSV в `.env` (`SC_0015_SEND_CURATOR_MARKS_CSV`) |
 | `npm run typecheck` | проверка типов всего `src/`, включая тесты (`tsc` без вывода) |
 | `npm run lint` / `npm run format` | ESLint / ESLint --fix |
 | `npm run docs:check` | проверка меморибанка: битые ссылки, документы без входящих ссылок, строка статуса |

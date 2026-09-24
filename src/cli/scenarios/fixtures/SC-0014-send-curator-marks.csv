@@ -1,0 +1,5 @@
+$keys,$values,$student,$curator,$projectName,$projectInstanceNumber,$iteration1
+task,SendCuratorMarks,Тестов Тест Тестович,Кураторов К. К.,EduTools сценарий SC-0014 (такого проекта нет),1,5
+academicYear,2024/2025,Примеров Пример Примерович,Кураторов К. К.,EduTools сценарий SC-0014 (такого проекта нет),1,4
+semester,fall,Образцов Образец Образцович,Кураторов К. К.,,,3
+iterationNumber,1,,,,,

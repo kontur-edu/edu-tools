@@ -17,6 +17,7 @@
     "format": "npx eslint ./src --fix",
     "docs:check": "node ./scripts/check-memory-bank.mjs",
     "test": "vitest run",
+    "test:integration": "vitest run --config vitest.live.config.ts",
     "typecheck": "tsc -p tsconfig.test.json",
     "cli": "npm run -s build && node --no-warnings --loader ./loader.js build/cli/main",
     "legacy-scripts": "npm run build && node --loader ./loader.js build/legacyScripts",

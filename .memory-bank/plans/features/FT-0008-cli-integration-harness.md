@@ -2,7 +2,7 @@
 Status: Draft (2026-09-24)
 
 ## Feature FT-0008 — Каркас интеграционных тестов через CLI
-Epic: `EP-002`. Status: `Planned`.
+Epic: `EP-002`. Status: `In progress` — код и офлайн-сценарии готовы; осталось пройти живые SC-0014 и SC-0015 с действующим `TEAMPROJECT_JWT` и CSV тестового проекта (пользователь).
 Triage: `ready-for-agent`.
 Blocked by: FT-0006, FT-0004.
 
@@ -30,6 +30,12 @@ Blocked by: FT-0006, FT-0004.
 - Живые сценарии никогда не передают `--save`; это проверяется в самом каркасе (запрет флага).
 - Фикстуры не содержат персональных данных: ФИО и идентификаторы обезличены или взяты из тестовых данных.
 - Сборка CLI перед прогоном — один раз на запуск, не на каждый сценарий.
+
+### Реализация (факт)
+- Каркас — `src/testing/cliProcess.ts` (только для тестов, в сборку не входит): `runOfflineCliAsync` — CLI без учётных данных (переменные `*_JWT`/`*_SID`/`*_FILE`… убраны из окружения, рабочая папка временная, чтобы не подхватился `.env`); `runLiveCliAsync` — с учётными данными репозитория, `--save` отклоняется до запуска процесса; `missingCredentialsAsync(system)` — причина пропуска по `auth check --system <system> --json` (`missing` → пропуск, `invalid` / `unreachable` → падение).
+- CLI собирается один раз на прогон (`globalSetup` `src/testing/buildCli.globalSetup.ts`) в `.cache/cli-build/`, а не в `build/`: сценарии не затирают сборку web и `npm run build`.
+- Офлайн-сценарии — `src/**/*.scenario.test.ts`, отдельный Vitest project `scenarios` в `vitest.config.ts`, входят в `npm test` (сборка добавляет к прогону ~10 с). Живые — `src/**/*.live.test.ts`, `vitest.live.config.ts`, `npm run test:integration`, reporter `verbose` печатает причину пропуска.
+- Фикстуры — `src/cli/scenarios/fixtures/<SC-XXXX>-<slug>.csv`, обезличенные. Живой SC-0014 ссылается на несуществующий проект: результат не зависит от данных TeamProject, прогон проверяет авторизацию и чтение списка рабочих пространств. Итерации, оценки и сравнение с таблицей проверяет SC-0015. Он работает по локальному CSV тестового проекта (`SC_0015_SEND_CURATOR_MARKS_CSV`, в репозиторий не коммитится) и делает два прогона try: одинаковые outcome-события в обоих прогонах подтверждают, что в TeamProject ничего не записано.
 
 ### Scenarios (acceptance)
 #### Setup

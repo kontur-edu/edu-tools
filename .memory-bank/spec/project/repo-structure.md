@@ -22,10 +22,11 @@ Status: Draft (2026-09-24)
 - `src/actions/` — многошаговые операции над внешними системами, переиспользуемые заданиями и скриптами.
 - `src/apis/` — клиенты внешних систем (`*Api`, `*Auth`, `*UrlProvider`), абстракция `GoogleApi` с браузерной и Node-реализациями, общие типы.
 - `src/helpers/` — утилиты (кэши browser/file, нормализация строк, даты, CORS-proxy URL).
-- `src/testing/` — общие хелперы unit-тестов (фейковый `GoogleApi` с состоянием листа, запуск CLI `runCliAsync`); только для тестов, в сборку `tsc` не входят (`exclude` в `tsconfig.json`).
+- `src/testing/` — общие хелперы unit-тестов (фейковый `GoogleApi` с состоянием листа, запуск CLI в том же процессе `runCliAsync`; каркас сценариев `cliProcess.ts` — сборка CLI в `.cache/cli-build/` и запуск процессом, `buildCli.globalSetup.ts`); только для тестов, в сборку `tsc` не входят (`exclude` в `tsconfig.json`).
 - `public/` — статика CRA.
 - `loader.js`, `nodemon.json`, `tsconfig.json`, `.eslintrc`, `.prettierrc` — сборка/запуск/стиль.
-- `vitest.config.ts`, `tsconfig.test.json` — unit-тесты и проверка их типов. Сами тесты лежат рядом с модулями: `src/**/<module>.test.ts` ([ADR-0007](../../adr/ADR-0007-vitest-test-runner.md)).
+- `src/cli/scenarios/` — сценарии через CLI процессом (FT-0008): офлайн `*.scenario.test.ts`, живые `*.live.test.ts`, CSV-фикстуры в `fixtures/<SC-XXXX>-<slug>.csv` ([Scenario registry](../../plans/scenarios.md)).
+- `vitest.config.ts` (projects `unit` и `scenarios`), `vitest.live.config.ts` (живые сценарии, `npm run test:integration`), `tsconfig.test.json` — тесты и проверка их типов. Сами тесты лежат рядом с модулями: `src/**/<module>.test.ts` ([ADR-0007](../../adr/ADR-0007-vitest-test-runner.md)).
 - `web-deploy.sh`, `bot-deploy.sh` — деплой.
 - `scripts/` — служебные скрипты разработки (`check-memory-bank.mjs` для `npm run docs:check`).
 

@@ -21,7 +21,8 @@ export const credentialsSystems: Record<CredentialsSystem, SystemInfo> = {
   partner: { title: 'Partner', variable: 'PARTNER_COOKIE', fileVariable: 'PARTNER_COOKIE_FILE' },
 }
 
-const BRS_USER_VARIABLE = 'BRS_USER'
+/** Имя записи в `secrets/brs.json`, если записей несколько. */
+export const BRS_USER_VARIABLE = 'BRS_USER'
 
 /** `missing` — учётные данные не заданы; `invalid` — файл из `*_FILE` не читается или имеет неверный формат. */
 export type CredentialsErrorKind = 'missing' | 'invalid'
