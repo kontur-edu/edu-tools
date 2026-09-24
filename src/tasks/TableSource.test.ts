@@ -89,7 +89,8 @@ describe('GoogleSheetTableSource: запись на лист', () => {
       new GoogleSheetTableSource(fakeGoogleApi('s-1', 'Курсы по выбору', sheetGrid, writes), 's-1', 'Курсы по выбору'),
     )
 
-    await new TableTaskWriter().batchWriteAsync(task!, 7, 0, [
+    if (!task) throw new Error('Задание не прочитано')
+    await new TableTaskWriter().batchWriteAsync(task, 7, 0, [
       ['Дисциплина', 'Итого'],
       ['Алгебра', 100],
     ])
