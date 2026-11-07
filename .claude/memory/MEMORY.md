@@ -1,0 +1,2 @@
+- [feedback_russian_language.md](feedback_russian_language.md) — Общаться с пользователем на русском языке
+- [feedback_memory_location.md](feedback_memory_location.md) — Хранить память в working directory, не в домашней директории
