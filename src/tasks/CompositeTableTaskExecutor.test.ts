@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest'
+import { BrsApi } from '../apis/BrsApi'
+import { BrsAuth } from '../apis/BrsAuth'
+import { BrsUrlProvider } from '../apis/BrsUrlProvider'
 import { CompositeTableTaskExecutor, findTableTaskType, tableTaskTypes } from './CompositeTableTaskExecutor'
 import { readTableTaskAsync, TableTask, TableTaskWriter } from './TableTask'
 import { InMemoryTableSource } from './TableSource'
 import { TaskExecutionError } from './TaskExecutionError'
 import { TaskEventCollector } from './TaskEvents'
+import { renderTaskEventText } from './TaskEventText'
 import { TaskReporter } from './TaskReporter'
 
 describe('реестр типов заданий', () => {
@@ -15,9 +19,10 @@ describe('реестр типов заданий', () => {
         { name: 'DistributeStudentsIntoTeams', systems: ['its'], writesToSheet: false },
         { name: 'CreateTeamProjectIterations', systems: ['teamproject'], writesToSheet: false },
         { name: 'SendCuratorMarks', systems: ['teamproject'], writesToSheet: false },
+        { name: 'PutMarksToBrs', systems: ['brs'], writesToSheet: false },
       ]),
     )
-    expect(tableTaskTypes).toHaveLength(5)
+    expect(tableTaskTypes).toHaveLength(6)
   })
 
   it('находит тип задания без учёта регистра', () => {
@@ -76,6 +81,33 @@ describe('CompositeTableTaskExecutor', () => {
         stopped: true,
       },
     ])
+  })
+
+  it('PutMarksToBrs без semester — «- semester required❗», задание не выполняется, summary.ok = false', async () => {
+    const { executor, collector } = createExecutor({
+      getBrsApi: () => new BrsApi(new BrsAuth('test-sid'), new BrsUrlProvider(false)),
+    })
+    const task = await readTableTaskAsync(
+      new InMemoryTableSource([
+        ['$keys', '$values', '$group', '$student', '$$экзамен'],
+        ['task', 'PutMarksToBrs', 'МЕН-1', 'Иванов Иван', '10'],
+        ['discipline', 'Основы программирования'],
+        ['academicYear', '2024/2025'],
+      ]),
+    )
+    if (!task) throw new Error('Задание не прочитано')
+
+    await executor.executeAsync(task, false)
+
+    expect(collector.events.map(renderTaskEventText)).toContain('- semester required❗')
+    expect(collector.events).toContainEqual({
+      kind: 'outcome',
+      status: 'error',
+      scope: 'PutMarksToBrs',
+      message: 'Execution has been stopped',
+      stopped: true,
+    })
+    expect(collector.getSummary().ok).toBe(false)
   })
 })
 

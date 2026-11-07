@@ -1,5 +1,5 @@
-import { StudentFailure } from '../apis/BrsApi.js';
-import { compareNormalized } from './tools.js';
+import { StudentFailure } from '../apis/BrsApi'
+import { compareNormalized } from './tools'
 
 const failureMapping: { [key: string]: StudentFailure } = {
   '-': StudentFailure.NoFailure,
@@ -12,34 +12,32 @@ const failureMapping: { [key: string]: StudentFailure } = {
   'Не должен сдавать': StudentFailure.ShouldNotPass,
   'Академический отпуск': StudentFailure.AcademicLeave,
   Выбыл: StudentFailure.DroppedOut,
-};
+}
 
 export function parseStudentFailure(input: string): StudentFailure | null {
   if (input === null || input === undefined) {
-    return null;
+    return null
   }
 
   for (const key of Object.keys(failureMapping)) {
     if (compareNormalized(key, input)) {
-      return failureMapping[key];
+      return failureMapping[key]
     }
   }
 
-  return StudentFailure.NoFailure;
+  return StudentFailure.NoFailure
 }
 
-export function formatStudentFailure(
-  input: StudentFailure | null | undefined
-): string | null {
+export function formatStudentFailure(input: StudentFailure | null | undefined): string | null {
   if (input === null || input === undefined) {
-    return null;
+    return null
   }
 
   for (const key of Object.keys(failureMapping)) {
     if (failureMapping[key] === input) {
-      return key;
+      return key
     }
   }
 
-  return '-';
+  return '-'
 }

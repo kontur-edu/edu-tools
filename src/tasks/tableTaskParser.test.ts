@@ -18,6 +18,8 @@ describe('parseTableTask', () => {
       ],
       rowsByNamespace: {},
       columns: { name: 2, group: 3 },
+      extraColumns: [],
+      extraValues: [[], []],
     })
   })
 
@@ -117,6 +119,62 @@ describe('parseTableTask', () => {
         { name: 'Итерация 1', begin: '01.09' },
         { name: 'Итерация 2', begin: '15.09' },
       ],
+    })
+  })
+
+  describe('дополнительные колонки ($$)', () => {
+    it('читает заголовки $$-колонок по порядку, с повторами и точками, без нормализации', () => {
+      const task = parseTableTask([
+        ['$keys', '$values', '$Student', '$$ домашняя работа ', 'Комментарий', '$$Лаб. работа', '$$домашняя работа'],
+        ['task', 'X', 'Иванов', '5', 'заметка', '7', '9'],
+      ])
+
+      expect(task?.extraColumns).toEqual(['домашняя работа', 'Лаб. работа', 'домашняя работа'])
+      expect(task?.extraValues).toEqual([['5', '7', '9']])
+      expect(task?.rows).toEqual([{ student: 'Иванов' }])
+      expect(task?.columns).toEqual({ student: 2 })
+      expect(task?.rowsByNamespace).toEqual({})
+    })
+
+    it('значения $$-колонок идут параллельно строкам: строка пустая, только если пусты все $- и $$-значения', () => {
+      const task = parseTableTask([
+        ['$keys', '$values', '$Student', '$$экзамен'],
+        ['task', 'X', 'Иванов', ' 10 '],
+        ['', '', '', '8'],
+        ['', '', '', ''],
+        ['', '', 'Петров'],
+      ])
+
+      expect(task?.rows).toEqual([{ student: 'Иванов' }, { student: '' }, { student: 'Петров' }])
+      expect(task?.extraValues).toEqual([['10'], ['8'], ['']])
+    })
+
+    it('для заданий, не ожидающих $$, лист разбирается так же, как без $$-колонок', () => {
+      const withoutExtra = parseTableTask([
+        ['$keys', '$values', '$Student', '$Iteration.Name'],
+        ['task', 'SendCuratorMarks', 'Иванов', 'Итерация 1'],
+        ['', '', 'Петров', ''],
+      ])
+      const withExtra = parseTableTask([
+        ['$keys', '$values', '$Student', '$$Лаб. работа', '$Iteration.Name', '$$экзамен'],
+        ['task', 'SendCuratorMarks', 'Иванов', '5', 'Итерация 1', '10'],
+        ['', '', 'Петров', '', '', ''],
+      ])
+
+      expect(withExtra?.rows).toEqual(withoutExtra?.rows)
+      expect(withExtra?.rowsByNamespace).toEqual(withoutExtra?.rowsByNamespace)
+      expect(withExtra?.params).toEqual(withoutExtra?.params)
+      expect(Object.keys(withExtra?.columns ?? {})).toEqual(Object.keys(withoutExtra?.columns ?? {}))
+    })
+
+    it('заголовок $$ без названия игнорируется', () => {
+      const task = parseTableTask([
+        ['$keys', '$values', '$$', '$$ ', '$$экзамен'],
+        ['task', 'X', '1', '2', '3'],
+      ])
+
+      expect(task?.extraColumns).toEqual(['экзамен'])
+      expect(task?.extraValues).toEqual([['3']])
     })
   })
 })

@@ -7,6 +7,7 @@ import { SendCuratorMarksTaskExecutor } from './SendCuratorMarksTask'
 import { ExportTechnologyCardsTaskExecutor } from './ExportTechnologyCardsTask'
 import { CreateTeamProjectIterationsTaskExecutor } from './CreateTeamProjectIterationsTask'
 import { CreateTechnologyCardsTaskExecutor } from './CreateTechnologyCardsTask'
+import { PutMarksToBrsTaskExecutor } from './PutMarksToBrsTask'
 import { TableTask, TableTaskWriter } from './TableTask'
 import { TaskExecutionError } from './TaskExecutionError'
 import { TaskReporter } from './TaskReporter'
@@ -65,6 +66,12 @@ export const tableTaskTypes: ReadonlyArray<TableTaskType> = [
     systems: ['brs'],
     writesToSheet: false,
     createExecutor: (d) => new CreateTechnologyCardsTaskExecutor(d.getBrsApi(), d.reporter),
+  },
+  {
+    name: PutMarksToBrsTaskExecutor.TASK_NAME,
+    systems: ['brs'],
+    writesToSheet: false,
+    createExecutor: (d) => new PutMarksToBrsTaskExecutor(d.getBrsApi(), d.reporter),
   },
 ]
 

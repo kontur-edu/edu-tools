@@ -13,10 +13,16 @@ export interface TableTaskData {
   rows: TableRow[]
   rowsByNamespace: { [namespace: string]: TableRow[] }
   columns: { [key: string]: number }
+  // Дополнительные колонки ($$, ADR-0006): заголовки слева направо, без нормализации, с повторами.
+  extraColumns: string[]
+  // Значения $$-колонок: extraValues[i] относится к rows[i], порядок — как в extraColumns.
+  extraValues: string[][]
 }
 
 // Параметры читаются только из первых 100 строк листа, включая заголовок.
 const PARAMETERS_ROW_LIMIT = 100
+
+const EXTRA_COLUMN_PREFIX = '$$'
 
 export function parseTableTask(grid: string[][]): TableTaskData | null {
   const header = grid[0] || []
@@ -27,18 +33,21 @@ export function parseTableTask(grid: string[][]): TableTaskData | null {
   }
 
   const rows = readRows(grid.slice(1), indices)
-  const { rootNamespace, byNamespace } = distributeRowsByNamespace(rows)
+  const { rootNamespace, extraValues, byNamespace } = distributeRowsByNamespace(rows)
   return {
     name: task,
     params,
     rows: rootNamespace,
     rowsByNamespace: byNamespace,
     columns: indices.columns,
+    extraColumns: indices.extraColumns.map((it) => it.name),
+    extraValues,
   }
 }
 
 interface Indices {
   columns: { [key: string]: number }
+  extraColumns: { name: string; index: number }[]
   keysIndex: number
   valuesIndex: number
 }
@@ -47,8 +56,16 @@ function buildIndicesBy(header: string[]): Indices {
   let keysIndex = Number.NaN
   let valuesIndex = Number.NaN
   const columns: { [key: string]: number } = {}
+  const extraColumns: { name: string; index: number }[] = []
   for (let i = 0; i < header.length; i++) {
     const trimmed = (header[i] ?? '').trim()
+    if (trimmed.startsWith(EXTRA_COLUMN_PREFIX)) {
+      const name = trimmed.substring(EXTRA_COLUMN_PREFIX.length).trim()
+      if (name) {
+        extraColumns.push({ name, index: i })
+      }
+      continue
+    }
     if (!trimmed.startsWith('$')) {
       continue
     }
@@ -62,7 +79,7 @@ function buildIndicesBy(header: string[]): Indices {
     }
   }
 
-  return { columns, keysIndex, valuesIndex }
+  return { columns, extraColumns, keysIndex, valuesIndex }
 }
 
 function readParameters(rows: string[][], indices: Indices): TableRow {
@@ -82,13 +99,19 @@ function readParameters(rows: string[][], indices: Indices): TableRow {
   return result
 }
 
-function readRows(rows: string[][], indices: Indices): TableRow[] {
+interface RawRow {
+  values: TableRow
+  extraValues: string[]
+}
+
+function readRows(rows: string[][], indices: Indices): RawRow[] {
   return rows.map((row) => {
-    const rowObject: TableRow = {}
+    const values: TableRow = {}
     for (const columnKey in indices.columns) {
-      rowObject[columnKey] = readCell(row, indices.columns[columnKey])
+      values[columnKey] = readCell(row, indices.columns[columnKey])
     }
-    return rowObject
+    const extraValues = indices.extraColumns.map((it) => readCell(row, it.index))
+    return { values, extraValues }
   })
 }
 
@@ -98,39 +121,42 @@ function readCell(row: string[] | undefined, index: number): string {
   return (row?.[index] ?? '').trim()
 }
 
-function distributeRowsByNamespace(rows: TableRow[]) {
+function distributeRowsByNamespace(rows: RawRow[]) {
   const rootNamespace: TableRow[] = []
+  const extraValues: string[][] = []
   const byNamespace: { [n: string]: TableRow[] } = {}
 
   for (const row of rows) {
     const root: TableRow = {}
     const rowByNamespace: { [n: string]: TableRow } = {}
 
-    for (const key in row) {
+    for (const key in row.values) {
       const parts = key.split('.')
       if (parts.length === 1) {
-        root[key] = row[key]
+        root[key] = row.values[key]
       } else if (parts.length === 2) {
         if (!rowByNamespace[parts[0]]) rowByNamespace[parts[0]] = {}
-        rowByNamespace[parts[0]][parts[1]] = row[key]
+        rowByNamespace[parts[0]][parts[1]] = row.values[key]
       }
     }
 
-    if (isFilled(root)) {
+    // $$-колонки относятся к корневым строкам: строка пустая, только если пусты и $-, и $$-значения.
+    if (isFilled(Object.values(root)) || isFilled(row.extraValues)) {
       rootNamespace.push(root)
+      extraValues.push(row.extraValues)
     }
     for (const n of Object.keys(rowByNamespace)) {
       const r = rowByNamespace[n]
-      if (isFilled(r)) {
+      if (isFilled(Object.values(r))) {
         byNamespace[n] = byNamespace[n] || []
         byNamespace[n].push(r)
       }
     }
   }
 
-  return { rootNamespace, byNamespace }
+  return { rootNamespace, extraValues, byNamespace }
 }
 
-function isFilled(row: TableRow) {
-  return Object.values(row).some((value) => value !== '' && value !== undefined)
+function isFilled(values: string[]) {
+  return values.some((value) => value !== '' && value !== undefined)
 }

@@ -20,7 +20,7 @@ Status: `In progress`.
 - [FT-0004 — Запуск заданий из CLI](../features/FT-0004-task-run-from-cli.md) — `task run <sheetUrl | file.csv> [--save]`, `task list`, результат в `--json`. `Done`.
 - [FT-0018 — Запись на лист при CSV-источнике](../features/FT-0018-csv-sheet-write-out.md) — `--out <file.csv>` для заданий, пишущих на лист; без `--out` — `warning`. `Done`.
 - [FT-0016 — Конвертация Google ⇄ CSV](../features/FT-0016-google-csv-conversion.md) — `sheet export`, `sheet import`; круговая конвертация сохраняет значения.
-- [FT-0005 — Перенос баллов в БРС как табличное задание](../features/FT-0005-put-marks-to-brs-task.md) — задание `PutMarksToBrs` (web и `task run`) с контрольными мероприятиями в `$$`-колонках вместо ручного запуска `putMarks.sample.ts`.
+- [FT-0005 — Перенос баллов в БРС как табличное задание](../features/FT-0005-put-marks-to-brs-task.md) — задание `PutMarksToBrs` (web и `task run`) с контрольными мероприятиями в `$$`-колонках вместо ручного запуска `putMarks.sample.ts`. `Done`.
 
 ### Dependencies
 - External: действующие учётные данные систем УрФУ у разработчика; Google-аккаунт — только для запуска из Google Таблиц и конвертации (для CSV не нужен).

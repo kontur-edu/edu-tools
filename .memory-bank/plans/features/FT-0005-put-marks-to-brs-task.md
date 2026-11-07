@@ -1,8 +1,8 @@
 # FT-0005 — Перенос баллов в БРС как табличное задание
-Status: Draft (2026-09-23)
+Status: Draft (2026-09-24)
 
 ## Feature FT-0005 — Перенос баллов в БРС как табличное задание
-Epic: `EP-001`. Status: `Planned`.
+Epic: `EP-001`. Status: `Done`.
 Triage: `ready-for-agent`.
 Blocked by: FT-0002, FT-0004, FT-0015.
 
@@ -57,6 +57,14 @@ Blocked by: FT-0002, FT-0004, FT-0015.
 - Unit: разбор `$$`-колонок (порядок, повторы, точка в названии, пустые строки, игнор в других заданиях); сборка `MarksData` из `TableTask` (параметры, `studyYear` по умолчанию `0`, повторы → `matchIndex`).
 - Integration: живой сценарий в try по Setup выше — в этой фиче, на каркасе интеграционных тестов [FT-0008](FT-0008-cli-integration-harness.md) (EP-002), плюс запись в [Scenario registry](../scenarios.md).
 
+### Implementation notes
+- Разбор `$$` — в `src/tasks/tableTaskParser.ts`: `TableTaskData.extraColumns` (заголовки по порядку) и `extraValues` (значения, `extraValues[i]` относится к `rows[i]`). Строки остаются объектами по `$`-колонкам, поэтому `$$` лежат в параллельном массиве; повторы и точки в названиях не схлопываются. Заголовок `$$` без названия игнорируется.
+- Задание — `src/tasks/PutMarksToBrsTask.ts`: `buildPutMarksTask` (чистая сборка `MarksData`, тестируется без сети) и `PutMarksToBrsTaskExecutor`. `ControlActionConfig` для повторов строится так же, как в `buildAutoMarksConfigAsync` (нормализованное сравнение, `matchIndex`/`matchCount`).
+- Решения, которых не было в спеке: `studyYear`, заданный не целым числом, останавливает задание (иначе баллы молча ушли бы всем курсам); лист без `$$`-колонок останавливает задание (опечатка `$` вместо `$$` иначе привела бы только к простановке причин отсутствия); `verbose` всегда включён, чтобы отчёт показывал каждого студента.
+- Вывод: `PutMarksOptions.log` (необязательный, по умолчанию `console.log` — `putMarksToBrsManualAsync` / `putMarksToBrsAutoAsync` не менялись). Задание превращает строку в событие без статуса: пустая → `separator`, `# …` → `heading`, остальные → `note`. Исключение при переносе → `error` со `stopped`, иначе `finished`.
+- `putMarksForDisciplineAsync.ts`, `putMarksToBrsAsync.ts` и `src/helpers/BrsHelpers.ts` теперь попадают в web-сборку: у их относительных импортов убран `.js` (CRA не находит `./X.js`), `ActualStudent` импортируется через `import type`, чтобы не тянуть `readStudentsAsync` → `NodeCsvFile` (`fs`). Оба файла `putMarks*` целиком отформатированы Prettier (lint-staged всё равно переформатировал бы их при коммите); для ревью логики удобнее `git diff -w`.
+- Интеграционный сценарий из раздела Tests (живой try на каркасе FT-0008) **отложен до FT-0008**: FT-0008 относится к EP-002 и ещё не реализована. Он записан как SC-0008 в [Scenario registry](../scenarios.md). Живые проверки в БРС (try/save, web «Попробовать») не выполнялись: в окружении реализации не было `BRS_SID` и тестовой дисциплины. Сценарий без `semester` проверен офлайн: unit-тест через `CompositeTableTaskExecutor` и ручной `task run no-semester.csv --json` (код 1, `- semester required❗`).
+- Известное ограничение (логика переноса не менялась): несопоставленное мероприятие или ненайденная дисциплина видны только в отчёте, `summary.ok` остаётся `true`.
 ### Definition of done
 По [Feature template](../../mbb/templates/feature.md); дополнительно `npm run build`, `npm run web-build`, `npm run lint`, `npm test` зелёные.
 

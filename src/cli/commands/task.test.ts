@@ -15,8 +15,9 @@ describe('task list', () => {
 
     expect(exitCode).toBe(0)
     expect(json.command).toBe('task list')
-    expect(json.result.tasks).toHaveLength(5)
+    expect(json.result.tasks).toHaveLength(6)
     expect(json.result.tasks).toContainEqual({ name: 'ExportTechnologyCards', systems: ['brs'], writesToSheet: true })
+    expect(json.result.tasks).toContainEqual({ name: 'PutMarksToBrs', systems: ['brs'], writesToSheet: false })
     expect(json.result.tasks).toContainEqual({
       name: 'SendCuratorMarks',
       systems: ['teamproject'],

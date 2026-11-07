@@ -47,6 +47,9 @@ export class TableTask {
   rows: TableRow[]
   rowsByNamespace: { [namespace: string]: TableRow[] }
   columns: { [key: string]: number }
+  // Дополнительные колонки ($$) и их значения по строкам — см. TableTaskData.
+  extraColumns: string[]
+  extraValues: string[][]
   // Лист, из которого прочитано задание; туда же пишут задания с выводом на лист.
   source: TableSource
 
@@ -56,6 +59,8 @@ export class TableTask {
     this.rows = data.rows
     this.rowsByNamespace = data.rowsByNamespace
     this.columns = data.columns
+    this.extraColumns = data.extraColumns
+    this.extraValues = data.extraValues
     this.source = source
   }
 

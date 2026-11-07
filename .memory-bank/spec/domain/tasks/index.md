@@ -8,11 +8,11 @@ Status: Draft (2026-09-24)
 - [DistributeStudentsIntoTeams](distribute-students-into-teams.md): запись студентов в команды проектов (система: ИТС). Читать, чтобы понимать сопоставление студентов, проектов и команд.
 - [CreateTeamProjectIterations](create-team-project-iterations.md): создание и обновление итераций в рабочих пространствах проектов (система: TeamProject). Читать перед изменением логики итераций.
 - [SendCuratorMarks](send-curator-marks.md): выставление оценок куратора за итерацию (система: TeamProject). Читать, чтобы понимать сопоставление студентов и проверки полноты.
+- [PutMarksToBrs](put-marks-to-brs.md): перенос баллов по контрольным мероприятиям и причин отсутствия в БРС; мероприятия — в `$$`-колонках (система: БРС). Читать, чтобы подготовить лист или перевести старый лист переноса баллов.
 
 Общие правила:
 - [Workspace identification](workspace-identification.md): как строка таблицы сопоставляется с рабочим пространством TeamProject. Читать при работе с заданиями по TeamProject.
 - [Execution events](execution-events.md): модель событий выполнения (статусы, scope, сводка) и их текстовый рендер. Читать перед добавлением или изменением сообщений лога.
 
 Вне каталога (не подключено к web, запускается только из Node):
-- Перенос баллов в БРС (`src/actions/putMarksToBrs*`, пример — `src/putMarks.sample.ts`). Логика частично перенесена из `brs-extensions/`; полный перенос в web — в перспективе roadmap.
 - Клонирование паспортов проектов из Partner в Notion (`cloneProjects` в `src/legacyScripts.ts`). Не развивается и не тестируется; может быть удалено или переписано с заменой Notion на BuildIn.AI.

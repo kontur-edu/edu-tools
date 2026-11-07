@@ -16,7 +16,6 @@ Status: Draft (2026-09-24)
 - `src/bot.ts`, `src/bot-start.ts`, `src/bot-register.ts` — Telegram bot (облачный handler, локальный запуск, регистрация webhook).
 - `src/cli/` — CLI на Commander: точка входа, каркас вывода и ошибок, команды ([CLI spec](../cli/cli.md)). Не импортирует `src/components` и `src/stores`.
 - `src/legacyScripts.ts` — разовые Node-скрипты с параметрами в коде (бывший `src/main.ts`); CLI их не вызывает, запуск заданий переходит в `task run` ([EP-001](../../plans/epics/EP-001-cli-and-observability.md)).
-- `src/putMarks.sample.ts` — пример запуска переноса баллов в БРС из Node.
 - `src/components/` — React UI (только web).
 - `src/stores/` — Zustand-сторы авторизаций во внешних системах (только web).
 - `src/tasks/` — движок табличных заданий и исполнители заданий (общий для web и Node).

@@ -22,7 +22,7 @@ Status: `In progress`.
 - [FT-0021 — Сценарий ExportTechnologyCards с эталонным `--out`](../features/FT-0021-export-technology-cards-scenario.md) — сравнение результата записи на лист с эталонным CSV.
 - [FT-0007 — Unit-тесты исполнителей на фейковых адаптерах](../features/FT-0007-executor-unit-tests-with-fakes.md) — фейки портов, инвариант «try не пишет» для каждого исполнителя (зависит от портов из FT-0010).
 
-Интеграционный сценарий `PutMarksToBrs` делается в самой [FT-0005](../features/FT-0005-put-marks-to-brs-task.md) на каркасе FT-0008.
+Интеграционный сценарий `PutMarksToBrs` (SC-0008 в [Scenario registry](../scenarios.md)) отложен из [FT-0005](../features/FT-0005-put-marks-to-brs-task.md) до каркаса FT-0008: добавляется, когда каркас готов.
 
 ### Dependencies
 - Internal: FT-0008 — после EP-001 (FT-0004); FT-0021 — после FT-0018 (EP-001); FT-0007 — вместе с EP-003 (FT-0010).
